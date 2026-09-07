@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * un solo elemento fuera de orden invalida el documento. Estos tests validan contra el esquema
  * oficial, no contra lo que a nosotros nos parezca correcto.
  */
-class EscritorRegistroAltaTest {
+class EscritorRegistroTest {
 
     private static final Instant MOMENTO = Instant.parse("2024-01-01T18:20:30Z");
     private static final EncadenadorRegistros ENCADENADOR = new EncadenadorRegistros(
@@ -49,7 +49,7 @@ class EscritorRegistroAltaTest {
 
     @Test
     void elPrimerRegistroDeLaCadenaValidaContraElEsquemaOficial() {
-        String xml = EscritorRegistroAlta.escribir(encadenar(Optional.empty()));
+        String xml = EscritorRegistro.escribir(encadenar(Optional.empty()));
 
         assertThat(validar(xml)).isEmpty();
         assertThat(xml).contains("<sf:PrimerRegistro>S</sf:PrimerRegistro>");
@@ -57,7 +57,7 @@ class EscritorRegistroAltaTest {
 
     @Test
     void unRegistroEnlazadoValidaYLlevaLaIdentificacionCompletaDelAnterior() {
-        String xml = EscritorRegistroAlta.escribir(
+        String xml = EscritorRegistro.escribir(
                 encadenar(Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
 
         assertThat(validar(xml)).isEmpty();
@@ -74,7 +74,7 @@ class EscritorRegistroAltaTest {
     void laHuellaDelRegistroViajaEnElXmlJuntoConSuAlgoritmo() {
         RegistroEncadenado registro = encadenar(Optional.empty());
 
-        assertThat(EscritorRegistroAlta.escribir(registro))
+        assertThat(EscritorRegistro.escribir(registro))
                 .contains("<sf:TipoHuella>01</sf:TipoHuella>")
                 .contains("<sf:Huella>" + registro.huella().valor() + "</sf:Huella>");
     }
@@ -99,7 +99,7 @@ class EscritorRegistroAltaTest {
                 .idAcuerdoSistemaInformatico("SIF-0001")
                 .build();
 
-        String xml = EscritorRegistroAlta.escribir(
+        String xml = EscritorRegistro.escribir(
                 ENCADENADOR.encadenar(datos, Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
 
         assertThat(validar(xml)).isEmpty();
@@ -112,7 +112,7 @@ class EscritorRegistroAltaTest {
                         new IdOtro("FR", TipoIdentificacion.PASAPORTE, "12AB34567"))))
                 .build();
 
-        String xml = EscritorRegistroAlta.escribir(ENCADENADOR.encadenar(datos, Optional.empty()));
+        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(datos, Optional.empty()));
 
         assertThat(validar(xml)).isEmpty();
         assertThat(xml)
@@ -123,7 +123,7 @@ class EscritorRegistroAltaTest {
 
     @Test
     void losIndicadoresEnFalsoNoSeEmiten() {
-        String xml = EscritorRegistroAlta.escribir(encadenar(Optional.empty()));
+        String xml = EscritorRegistro.escribir(encadenar(Optional.empty()));
 
         assertThat(xml)
                 .doesNotContain("Macrodato")
@@ -133,14 +133,74 @@ class EscritorRegistroAltaTest {
 
     @Test
     void noEmiteDeclaracionXmlParaPoderEmbeberseEnUnLote() {
-        assertThat(EscritorRegistroAlta.escribir(encadenar(Optional.empty())))
+        assertThat(EscritorRegistro.escribir(encadenar(Optional.empty())))
                 .doesNotContain("<?xml")
                 .startsWith("<sf:RegistroAlta");
     }
 
+    // --- Registro de anulación ---
+
+    @Test
+    void unaAnulacionValidaContraElEsquemaOficial() {
+        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(
+                Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
+
+        assertThat(validar(xml)).isEmpty();
+        assertThat(xml)
+                .startsWith("<sf:RegistroAnulacion")
+                .contains("<sf:IDEmisorFacturaAnulada>89890001K</sf:IDEmisorFacturaAnulada>")
+                .contains("<sf:NumSerieFacturaAnulada>12345679/G34</sf:NumSerieFacturaAnulada>")
+                .contains("<sf:FechaExpedicionFacturaAnulada>01-01-2024</sf:FechaExpedicionFacturaAnulada>")
+                .contains("<sf:GeneradoPor>E</sf:GeneradoPor>");
+    }
+
+    @Test
+    void unaAnulacionNoLlevaDesgloseNiImportes() {
+        String xml = EscritorRegistro.escribir(
+                ENCADENADOR.encadenar(Registros.anulacion(), Optional.empty()));
+
+        assertThat(xml)
+                .doesNotContain("Desglose")
+                .doesNotContain("CuotaTotal")
+                .doesNotContain("ImporteTotal")
+                .doesNotContain("TipoFactura");
+    }
+
+    @Test
+    void unaAnulacionGeneradaPorUnTerceroValidaConSuGenerador() {
+        dev.lacre.sif.registro.DatosRegistroAnulacion datos =
+                new dev.lacre.sif.registro.DatosRegistroAnulacion(
+                        Registros.idFactura("12345679/G34"), "REF-ANU-1", true, true,
+                        dev.lacre.sif.registro.GeneradoPor.T,
+                        new PersonaFisicaJuridica("Asesoría SL", new Nif("B12345674")),
+                        Registros.sistemaInformatico());
+
+        String xml = EscritorRegistro.escribir(
+                ENCADENADOR.encadenar(datos, Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
+
+        assertThat(validar(xml)).isEmpty();
+        assertThat(xml)
+                .contains("<sf:SinRegistroPrevio>S</sf:SinRegistroPrevio>")
+                .contains("<sf:RechazoPrevio>S</sf:RechazoPrevio>")
+                .contains("<sf:Generador>");
+    }
+
+    @Test
+    void coincideConElFicheroGoldenDeAnulacion() throws Exception {
+        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(
+                Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
+
+        Diff diff = DiffBuilder.compare(golden("registro-anulacion.xml"))
+                .withTest(xml).ignoreWhitespace().checkForSimilar().build();
+
+        assertThat(diff.hasDifferences())
+                .withFailMessage("El XML cambió respecto del golden:%n%s%n%nGenerado:%n%s", diff, xml)
+                .isFalse();
+    }
+
     @Test
     void coincideConElFicheroGolden() throws Exception {
-        String xml = EscritorRegistroAlta.escribir(encadenar(Optional.empty()));
+        String xml = EscritorRegistro.escribir(encadenar(Optional.empty()));
 
         Diff diff = DiffBuilder.compare(golden("registro-alta-primero.xml"))
                 .withTest(xml)
@@ -172,7 +232,7 @@ class EscritorRegistroAltaTest {
     }
 
     private static String golden(String nombre) throws IOException {
-        try (var entrada = EscritorRegistroAltaTest.class.getResourceAsStream("/golden/" + nombre)) {
+        try (var entrada = EscritorRegistroTest.class.getResourceAsStream("/golden/" + nombre)) {
             if (entrada == null) {
                 throw new IllegalStateException("Falta el fichero golden " + nombre);
             }

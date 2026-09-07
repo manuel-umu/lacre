@@ -2,7 +2,7 @@ package dev.lacre.sif.huella;
 
 import dev.lacre.sif.registro.RegistroAnterior;
 import dev.lacre.sif.internal.CalculadorHuella;
-import dev.lacre.sif.registro.DatosRegistroAlta;
+import dev.lacre.sif.registro.DatosRegistro;
 import dev.lacre.sif.registro.RegistroEncadenado;
 
 import java.time.Clock;
@@ -35,7 +35,7 @@ public final class EncadenadorRegistros {
     /**
      * @param registroAnterior vacío si es el primer registro de la cadena del obligado
      */
-    public RegistroEncadenado encadenar(DatosRegistroAlta datos, Optional<RegistroAnterior> registroAnterior) {
+    public RegistroEncadenado encadenar(DatosRegistro datos, Optional<RegistroAnterior> registroAnterior) {
         Objects.requireNonNull(datos, "datos");
         Objects.requireNonNull(registroAnterior, "registroAnterior");
 

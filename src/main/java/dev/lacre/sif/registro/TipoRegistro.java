@@ -1,11 +1,13 @@
 package dev.lacre.sif.registro;
 
 /**
- * Tipos de registro que un SIF puede generar según el RD 1007/2023.
+ * Tipos de registro de facturación que genera un SIF VERI*FACTU.
+ * <p>
+ * No hay {@code EVENTO}: el registro de eventos solo es obligatorio en modalidad no
+ * VERI*FACTU, que queda fuera del alcance de lacre.
  */
 public enum TipoRegistro {
 
     ALTA,
-    ANULACION,
-    EVENTO
+    ANULACION
 }

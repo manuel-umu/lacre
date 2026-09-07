@@ -17,7 +17,7 @@ import java.util.Optional;
  *                                  en el cálculo de la huella y así se serializa al XML
  */
 public record RegistroEncadenado(
-        DatosRegistroAlta datos,
+        DatosRegistro datos,
         Optional<RegistroAnterior> registroAnterior,
         OffsetDateTime fechaHoraHusoGenRegistro,
         Huella huella) {

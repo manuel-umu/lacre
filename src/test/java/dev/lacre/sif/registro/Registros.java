@@ -48,6 +48,13 @@ public final class Registros {
         return new RegistroAnterior(idFactura("12345678/G32"), huella);
     }
 
+    /** Anulación del caso 3 del documento oficial de la huella. */
+    public static DatosRegistroAnulacion anulacion() {
+        return new DatosRegistroAnulacion(
+                idFactura("12345679/G34"), null, false, false, GeneradoPor.E, null,
+                sistemaInformatico());
+    }
+
     public static IdFactura idFactura(String numSerie) {
         return new IdFactura(EMISOR, numSerie, FECHA_EXPEDICION);
     }

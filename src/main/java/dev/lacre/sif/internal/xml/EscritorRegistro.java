@@ -9,6 +9,7 @@ import dev.lacre.sif.desglose.DetalleDesglose;
 import dev.lacre.sif.desglose.OperacionExenta;
 import dev.lacre.sif.internal.FormatosAeat;
 import dev.lacre.sif.registro.DatosRegistroAlta;
+import dev.lacre.sif.registro.DatosRegistroAnulacion;
 import dev.lacre.sif.registro.IdFactura;
 import dev.lacre.sif.registro.PersonaFisicaJuridica;
 import dev.lacre.sif.registro.RegistroAnterior;
@@ -22,7 +23,8 @@ import java.io.StringWriter;
 import java.util.List;
 
 /**
- * Serializa un registro de alta al XML del elemento {@code sf:RegistroAlta}.
+ * Serializa un registro al XML de {@code sf:RegistroAlta} o {@code sf:RegistroAnulacion},
+ * según el tipo.
  * <p>
  * <strong>El orden de los elementos es el de la secuencia de
  * {@code RegistroFacturacionAltaType} y no admite variación</strong>: un XSD con
@@ -40,7 +42,7 @@ import java.util.List;
  * @implNote TODO Confirmar contra el Portal de Pruebas Externas que omitir los indicadores en
  * {@code N} se interpreta igual que informarlos.
  */
-public final class EscritorRegistroAlta {
+public final class EscritorRegistro {
 
     public static final String NS = "https://www2.agenciatributaria.gob.es/static_files/common/"
             + "internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd";
@@ -49,7 +51,7 @@ public final class EscritorRegistroAlta {
 
     private final XMLStreamWriter xml;
 
-    private EscritorRegistroAlta(XMLStreamWriter xml) {
+    private EscritorRegistro(XMLStreamWriter xml) {
         this.xml = xml;
     }
 
@@ -57,7 +59,7 @@ public final class EscritorRegistroAlta {
         StringWriter salida = new StringWriter();
         try {
             XMLStreamWriter xml = XMLOutputFactory.newInstance().createXMLStreamWriter(salida);
-            new EscritorRegistroAlta(xml).registroAlta(registro);
+            new EscritorRegistro(xml).registro(registro);
             xml.flush();
         } catch (XMLStreamException e) {
             throw new IllegalStateException("No se pudo serializar el registro de alta", e);
@@ -65,10 +67,16 @@ public final class EscritorRegistroAlta {
         return salida.toString();
     }
 
-    private void registroAlta(RegistroEncadenado registro) throws XMLStreamException {
-        DatosRegistroAlta datos = registro.datos();
-
+    private void registro(RegistroEncadenado registro) throws XMLStreamException {
         xml.setPrefix(PREFIJO, NS);
+        switch (registro.datos()) {
+            case DatosRegistroAlta alta -> registroAlta(registro, alta);
+            case DatosRegistroAnulacion anulacion -> registroAnulacion(registro, anulacion);
+        }
+    }
+
+    private void registroAlta(RegistroEncadenado registro, DatosRegistroAlta datos)
+            throws XMLStreamException {
         xml.writeStartElement(NS, "RegistroAlta");
         xml.writeNamespace(PREFIJO, NS);
 
@@ -122,6 +130,39 @@ public final class EscritorRegistroAlta {
         texto("FechaHoraHusoGenRegistro", FormatosAeat.fechaHoraHuso(registro.fechaHoraHusoGenRegistro()));
         opcional("NumRegistroAcuerdoFacturacion", datos.numRegistroAcuerdoFacturacion());
         opcional("IdAcuerdoSistemaInformatico", datos.idAcuerdoSistemaInformatico());
+        texto("TipoHuella", DatosRegistroAlta.TIPO_HUELLA);
+        texto("Huella", registro.huella().valor());
+
+        xml.writeEndElement();
+    }
+
+    /**
+     * Mucho más corto que el alta: una anulación no lleva desglose ni importes. Y sus tres
+     * primeros elementos cambian de nombre, con el sufijo {@code Anulada}.
+     */
+    private void registroAnulacion(RegistroEncadenado registro, DatosRegistroAnulacion datos)
+            throws XMLStreamException {
+        xml.writeStartElement(NS, "RegistroAnulacion");
+        xml.writeNamespace(PREFIJO, NS);
+
+        texto("IDVersion", DatosRegistroAlta.ID_VERSION);
+        xml.writeStartElement(NS, "IDFactura");
+        texto("IDEmisorFacturaAnulada", datos.idFactura().emisor().valor());
+        texto("NumSerieFacturaAnulada", datos.idFactura().numSerieFactura());
+        texto("FechaExpedicionFacturaAnulada", FormatosAeat.fecha(datos.idFactura().fechaExpedicion()));
+        xml.writeEndElement();
+        opcional("RefExterna", datos.refExterna());
+        indicadorSiVerdadero("SinRegistroPrevio", datos.sinRegistroPrevio());
+        indicadorSiVerdadero("RechazoPrevio", datos.rechazoPrevio());
+        if (datos.generadoPor() != null) {
+            texto("GeneradoPor", datos.generadoPor().codigo());
+        }
+        if (datos.generador() != null) {
+            persona("Generador", datos.generador());
+        }
+        encadenamiento(registro.registroAnterior());
+        sistemaInformatico(datos.sistemaInformatico());
+        texto("FechaHoraHusoGenRegistro", FormatosAeat.fechaHoraHuso(registro.fechaHoraHusoGenRegistro()));
         texto("TipoHuella", DatosRegistroAlta.TIPO_HUELLA);
         texto("Huella", registro.huella().valor());
 

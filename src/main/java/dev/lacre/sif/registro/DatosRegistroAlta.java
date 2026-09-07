@@ -51,7 +51,12 @@ public record DatosRegistroAlta(
         Importe importeTotal,
         SistemaInformatico sistemaInformatico,
         String numRegistroAcuerdoFacturacion,
-        String idAcuerdoSistemaInformatico) {
+        String idAcuerdoSistemaInformatico) implements DatosRegistro {
+
+    @Override
+    public TipoRegistro tipo() {
+        return TipoRegistro.ALTA;
+    }
 
     /** Única versión admitida por {@code VersionType}. */
     public static final String ID_VERSION = "1.0";
