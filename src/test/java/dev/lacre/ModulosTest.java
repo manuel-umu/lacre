@@ -22,29 +22,29 @@ class ModulosTest {
     }
 
     /**
-     * Los tres subpaquetes de concepto de {@code sif} tienen que estar publicados como
+     * Los tres subpaquetes de concepto de {@code verifactu} tienen que estar publicados como
      * interfaces con nombre. Si alguno perdiera su {@code @NamedInterface}, quedaría interno y
      * los demás módulos dejarían de verlo: este test lo detecta antes que un fallo de compilación
      * a mitad de la Fase 6.
      */
     @Test
-    void sifPublicaSusTresInterfacesDeConcepto() {
-        var interfacesDeSif = modulos.getModuleByName("sif").orElseThrow()
+    void verifactuPublicaSusTresInterfacesDeConcepto() {
+        var interfacesPublicadas = modulos.getModuleByName("verifactu").orElseThrow()
                 .getNamedInterfaces().stream()
                 .map(nombrada -> nombrada.getName())
                 .toList();
 
-        assertThat(interfacesDeSif).contains("registro", "desglose", "huella");
+        assertThat(interfacesPublicadas).contains("registro", "desglose", "huella");
     }
 
     @Test
-    void elAdaptadorDeSifNoEstaPublicado() {
-        var interfacesDeSif = modulos.getModuleByName("sif").orElseThrow()
+    void elAdaptadorNoEstaPublicado() {
+        var interfacesPublicadas = modulos.getModuleByName("verifactu").orElseThrow()
                 .getNamedInterfaces().stream()
                 .map(nombrada -> nombrada.getName())
                 .toList();
 
-        assertThat(interfacesDeSif).doesNotContain("internal", "adaptador");
+        assertThat(interfacesPublicadas).doesNotContain("internal", "adaptador");
     }
 
     @Test

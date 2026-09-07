@@ -13,13 +13,13 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  * Reglas que hacen verificable la arquitectura hexagonal por módulo del
  * <a href="../../../docs/adr/0002-arquitectura-hexagonal-por-modulo.md">ADR 0002</a>.
  * <p>
- * La primera es la que sostiene todo lo demás: si el núcleo de {@code sif} no depende de
+ * La primera es la que sostiene todo lo demás: si el núcleo de {@code verifactu} no depende de
  * Spring, se puede publicar en Maven Central; si un día deja de cumplirse, este test se pone
  * rojo antes de que nadie lo descubra al intentar extraer la librería.
  */
 class ArquitecturaTest {
 
-    private static final String ADAPTADORES = "..sif.internal.adaptador..";
+    private static final String ADAPTADORES = "..verifactu.internal.adaptador..";
 
     private static JavaClasses clases;
 
@@ -41,13 +41,13 @@ class ArquitecturaTest {
      * quien lo use tenga que arrastrar Modulith.
      */
     @Test
-    void elNucleoDeSifNoDependeDeSpring() {
+    void elNucleoNoDependeDeSpring() {
         ArchRule regla = noClasses()
-                .that().resideInAPackage("dev.lacre.sif..")
+                .that().resideInAPackage("dev.lacre.verifactu..")
                 .and().resideOutsideOfPackage(ADAPTADORES)
                 .and().doNotHaveSimpleName("package-info")
                 .should().dependOnClassesThat().resideInAnyPackage("org.springframework..")
-                .because("el núcleo de sif se publica en Maven Central y no puede exigir Spring; "
+                .because("el núcleo del módulo se publica en Maven Central y no puede exigir Spring; "
                         + "los adaptadores van en " + ADAPTADORES);
 
         regla.check(clases);
@@ -61,7 +61,7 @@ class ArquitecturaTest {
     @Test
     void loUnicoDeSpringEnElNucleoSonLasAnotacionesDeModulith() {
         ArchRule regla = noClasses()
-                .that().resideInAPackage("dev.lacre.sif..")
+                .that().resideInAPackage("dev.lacre.verifactu..")
                 .and().resideOutsideOfPackage(ADAPTADORES)
                 .and().haveSimpleName("package-info")
                 .should().dependOnClassesThat(
@@ -75,9 +75,9 @@ class ArquitecturaTest {
     }
 
     @Test
-    void elNucleoDeSifNoDependeDeNingunaBaseDeDatos() {
+    void elNucleoNoDependeDeNingunaBaseDeDatos() {
         ArchRule regla = noClasses()
-                .that().resideInAPackage("dev.lacre.sif..")
+                .that().resideInAPackage("dev.lacre.verifactu..")
                 .and().resideOutsideOfPackage(ADAPTADORES)
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "java.sql..", "javax.sql..", "org.postgresql..", "org.flywaydb..")
@@ -106,7 +106,7 @@ class ArquitecturaTest {
         ArchRule regla = noClasses()
                 .that().resideInAPackage("dev.lacre.shared..")
                 .should().dependOnClassesThat().resideInAnyPackage(
-                        "dev.lacre.sif..", "dev.lacre.facturacion..",
+                        "dev.lacre.verifactu..", "dev.lacre.facturacion..",
                         "dev.lacre.identidad..", "dev.lacre.remision..")
                 .because("shared es el suelo sobre el que se apoyan los módulos, no al revés");
 
@@ -116,26 +116,26 @@ class ArquitecturaTest {
     // --- Fronteras entre módulos ---
 
     @Test
-    void sifYFacturacionNoSeConocen() {
-        noClasses().that().resideInAPackage("dev.lacre.sif..")
+    void verifactuYFacturacionNoSeConocen() {
+        noClasses().that().resideInAPackage("dev.lacre.verifactu..")
                 .should().dependOnClassesThat().resideInAPackage("dev.lacre.facturacion..")
-                .because("la frontera entre ambos es lo que permite extraer sif; "
+                .because("la frontera entre ambos es lo que permite extraer el módulo; "
                         + "se cruza con eventos de dominio, no con imports")
                 .check(clases);
 
         // allowEmptyShould porque el módulo facturacion todavía no existe: la regla queda puesta
         // para que el día que exista no se pueda cruzar la frontera sin que este test avise.
         noClasses().that().resideInAPackage("dev.lacre.facturacion..")
-                .should().dependOnClassesThat().resideInAPackage("dev.lacre.sif..")
+                .should().dependOnClassesThat().resideInAPackage("dev.lacre.verifactu..")
                 .allowEmptyShould(true)
                 .check(clases);
     }
 
     @Test
-    void nadieDeFueraDeSifEntraEnSuPaqueteInterno() {
+    void nadieDeFueraDelModuloEntraEnSuPaqueteInterno() {
         ArchRule regla = noClasses()
-                .that().resideOutsideOfPackage("dev.lacre.sif..")
-                .should().dependOnClassesThat().resideInAPackage("dev.lacre.sif.internal..")
+                .that().resideOutsideOfPackage("dev.lacre.verifactu..")
+                .should().dependOnClassesThat().resideInAPackage("dev.lacre.verifactu.internal..")
                 .because("la API pública del módulo es su paquete raíz");
 
         regla.check(clases);
@@ -156,7 +156,7 @@ class ArquitecturaTest {
     @Test
     void elDominioNoLeeElRelojDelSistema() {
         ArchRule regla = noClasses()
-                .that().resideInAPackage("dev.lacre.sif..")
+                .that().resideInAPackage("dev.lacre.verifactu..")
                 .and().resideOutsideOfPackage(ADAPTADORES)
                 .should().callMethod(java.time.Instant.class, "now")
                 .orShould().callMethod(java.time.LocalDate.class, "now")

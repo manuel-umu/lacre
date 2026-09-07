@@ -1,3 +1,22 @@
 spring:
   application:
     name: lacre
+
+lacre:
+  # Identidad del sistema informático de facturación. Viaja en cada registro y debe coincidir
+  # con la declaración responsable que firme quien comercializa el sistema.
+  sistema-informatico:
+    nombre-razon: ${LACRE_PRODUCTOR_NOMBRE:lacre}
+    nif: ${LACRE_PRODUCTOR_NIF:89890001K}
+    nombre-sistema-informatico: ${LACRE_SIF_NOMBRE:lacre}
+    id-sistema-informatico: ${LACRE_SIF_ID:01}
+    version: ${LACRE_SIF_VERSION:0.0.1}
+    numero-instalacion: ${LACRE_SIF_INSTALACION:0001}
+
+    # Entra en el cálculo de la huella. Canarias es Atlantic/Canary, no Europe/Madrid.
+    zona-horaria: ${LACRE_ZONA_HORARIA:Europe/Madrid}
+
+    # Un componente integrado en un ERP da servicio a varios obligados: apartado 1.f) de la
+    # declaración responsable.
+    multi-obligado: ${LACRE_MULTI_OBLIGADO:true}
+    sirve-a-varios-obligados: ${LACRE_SIRVE_A_VARIOS:true}
