@@ -3,11 +3,11 @@ package dev.lacre.sif.internal;
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
-import dev.lacre.sif.DatosRegistroAlta;
-import dev.lacre.sif.IdFactura;
-import dev.lacre.sif.PersonaFisicaJuridica;
-import dev.lacre.sif.Registros;
-import dev.lacre.sif.TipoFactura;
+import dev.lacre.sif.registro.DatosRegistroAlta;
+import dev.lacre.sif.registro.IdFactura;
+import dev.lacre.sif.registro.PersonaFisicaJuridica;
+import dev.lacre.sif.registro.Registros;
+import dev.lacre.sif.registro.TipoFactura;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

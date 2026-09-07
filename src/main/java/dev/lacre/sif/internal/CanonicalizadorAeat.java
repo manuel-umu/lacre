@@ -1,8 +1,9 @@
 package dev.lacre.sif.internal;
 
 import dev.lacre.shared.Huella;
-import dev.lacre.sif.Canonicalizador;
-import dev.lacre.sif.DatosRegistroAlta;
+import dev.lacre.sif.huella.Canonicalizador;
+import dev.lacre.sif.registro.DatosRegistroAlta;
+import dev.lacre.sif.registro.TipoFactura;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
