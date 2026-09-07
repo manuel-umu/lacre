@@ -135,6 +135,25 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!--
+						Sin esto, las clases *Properties de jqwik NO se ejecutan: los patrones por
+						defecto de Surefire son *Test, *Tests, Test* y *TestCase. Se ejecutaban solo
+						al pasar -Dtest a mano, y un `mvn test` limpio se saltaba 16 tests en
+						silencio. Al redefinir includes hay que repetir los de serie.
+					-->
+					<includes>
+						<include>**/Test*.java</include>
+						<include>**/*Test.java</include>
+						<include>**/*Tests.java</include>
+						<include>**/*TestCase.java</include>
+						<include>**/*Properties.java</include>
+					</includes>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
