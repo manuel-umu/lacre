@@ -48,6 +48,24 @@ class ImporteTest {
     }
 
     @Test
+    void aceptaHastaDoceDigitosEnterosYRechazaElTrece() {
+        assertThat(Importe.de("999999999999.99").valor().toPlainString()).isEqualTo("999999999999.99");
+        assertThat(Importe.de("-999999999999.99").valor().toPlainString()).isEqualTo("-999999999999.99");
+
+        assertThatThrownBy(() -> Importe.de("1000000000000.00"))
+                .isInstanceOf(ValorInvalidoException.class)
+                .hasMessageContaining("12 dígitos enteros");
+        assertThatThrownBy(() -> Importe.de("-1000000000000.00"))
+                .isInstanceOf(ValorInvalidoException.class);
+    }
+
+    @Test
+    void elRedondeoNoPuedeColarUnImporteFueraDeLimite() {
+        assertThatThrownBy(() -> Importe.de("999999999999.995"))
+                .isInstanceOf(ValorInvalidoException.class);
+    }
+
+    @Test
     void rechazaNuloYNoNumerico() {
         assertThatThrownBy(() -> Importe.de((String) null)).isInstanceOf(ValorInvalidoException.class);
         assertThatThrownBy(() -> Importe.de("no soy un número")).isInstanceOf(ValorInvalidoException.class);

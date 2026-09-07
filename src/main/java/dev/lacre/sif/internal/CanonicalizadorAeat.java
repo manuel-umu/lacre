@@ -38,10 +38,10 @@ public final class CanonicalizadorAeat implements Canonicalizador {
                                 OffsetDateTime fechaHoraHusoGenRegistro) {
 
         StringJoiner cadena = new StringJoiner("&");
-        cadena.add(campo("IDEmisorFactura", datos.emisor().valor()));
-        cadena.add(campo("NumSerieFactura", datos.numSerieFactura()));
-        cadena.add(campo("FechaExpedicionFactura", datos.fechaExpedicion().format(FECHA)));
-        cadena.add(campo("TipoFactura", datos.tipoFactura()));
+        cadena.add(campo("IDEmisorFactura", datos.idFactura().emisor().valor()));
+        cadena.add(campo("NumSerieFactura", datos.idFactura().numSerieFactura()));
+        cadena.add(campo("FechaExpedicionFactura", datos.idFactura().fechaExpedicion().format(FECHA)));
+        cadena.add(campo("TipoFactura", datos.tipoFactura().codigo()));
         cadena.add(campo("CuotaTotal", datos.cuotaTotal().valor().toPlainString()));
         cadena.add(campo("ImporteTotal", datos.importeTotal().valor().toPlainString()));
         cadena.add(campo("Huella", huellaAnterior.map(Huella::valor).orElse("")));

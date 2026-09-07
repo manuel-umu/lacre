@@ -30,9 +30,7 @@ class EncadenadorRegistrosProperties {
             Clock.fixed(Instant.parse("2024-01-01T18:20:30Z"), ZoneOffset.ofHours(1)),
             new CanonicalizadorAeat());
 
-    private static final DatosRegistroAlta DATOS = new DatosRegistroAlta(
-            new Nif("89890001K"), "12345678/G33", LocalDate.of(2024, 1, 1), "F1",
-            "Servicios de consultoría", List.of(), Importe.de("12.35"), Importe.de("123.45"));
+    private static final DatosRegistroAlta DATOS = Registros.alta().build();
 
     @Provide
     Arbitrary<Huella> huellas() {

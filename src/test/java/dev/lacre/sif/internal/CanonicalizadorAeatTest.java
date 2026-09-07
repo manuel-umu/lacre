@@ -4,6 +4,10 @@ import dev.lacre.shared.Huella;
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
 import dev.lacre.sif.DatosRegistroAlta;
+import dev.lacre.sif.IdFactura;
+import dev.lacre.sif.PersonaFisicaJuridica;
+import dev.lacre.sif.Registros;
+import dev.lacre.sif.TipoFactura;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -118,14 +122,16 @@ class CanonicalizadorAeatTest {
     }
 
     private static DatosRegistroAlta datos(String numSerie, String cuota, String importe) {
-        return new DatosRegistroAlta(new Nif("89890001K"), numSerie, LocalDate.of(2024, 1, 1), "F1",
-                "Servicios de consultoría",
-                List.of(new DatosRegistroAlta.Destinatario(new Nif("12345678Z"), "Cliente")),
-                Importe.de(cuota), Importe.de(importe));
+        return Registros.alta()
+                .idFactura(Registros.idFactura(numSerie))
+                .cuotaTotal(Importe.de(cuota))
+                .importeTotal(Importe.de(importe))
+                .build();
     }
 
     private static DatosRegistroAlta datosConFecha(LocalDate fecha) {
-        return new DatosRegistroAlta(new Nif("89890001K"), "FA/1", fecha, "F1", "Descripción",
-                List.of(), Importe.de("12.35"), Importe.de("123.45"));
+        return Registros.alta()
+                .idFactura(new IdFactura(Registros.EMISOR, "FA/1", fecha))
+                .build();
     }
 }

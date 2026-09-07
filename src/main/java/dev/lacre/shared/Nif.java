@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
  * destinatario: NIF de persona física (DNI), NIE de extranjero y NIF de persona
  * jurídica (el antiguo CIF). El valor se normaliza a mayúsculas sin espacios.
  */
-public record Nif(String valor) {
+public record Nif(String valor) implements IdentificadorFiscal {
 
     private static final Pattern DNI = Pattern.compile("[0-9]{8}[A-Z]");
     private static final Pattern NIE = Pattern.compile("[XYZ][0-9]{7}[A-Z]");

@@ -75,9 +75,11 @@ class EncadenadorRegistrosTest {
 
     @Test
     void losCamposQueNoEntranEnLaHuellaNoLaCambian() {
-        DatosRegistroAlta otraDescripcion = new DatosRegistroAlta(new Nif("89890001K"),
-                "12345678/G33", LocalDate.of(2024, 1, 1), "F1", "Otra cosa completamente distinta",
-                List.of(), Importe.de("12.35"), Importe.de("123.45"));
+        DatosRegistroAlta otraDescripcion = Registros.alta()
+                .descripcionOperacion("Otra cosa completamente distinta")
+                .refExterna("REF-9999")
+                .macrodato(true)
+                .build();
 
         RegistroEncadenado registro = encadenador(CASO_1).encadenar(otraDescripcion, Optional.empty());
 
@@ -151,8 +153,7 @@ class EncadenadorRegistrosTest {
     }
 
     private static DatosRegistroAlta datos(String numSerie) {
-        return new DatosRegistroAlta(new Nif("89890001K"), numSerie, LocalDate.of(2024, 1, 1), "F1",
-                "Servicios de consultoría", List.of(), Importe.de("12.35"), Importe.de("123.45"));
+        return Registros.alta().idFactura(Registros.idFactura(numSerie)).build();
     }
 
     private static RegistroEncadenado base() {
@@ -163,7 +164,7 @@ class EncadenadorRegistrosTest {
         Nif emisor = new Nif("89890001K");
         String numSerie = "12345678/G33";
         LocalDate fecha = LocalDate.of(2024, 1, 1);
-        String tipo = "F1";
+        TipoFactura tipo = TipoFactura.F1;
         Importe cuota = Importe.de("12.35");
         Importe total = Importe.de("123.45");
         Optional<Huella> anterior = Optional.empty();
@@ -173,15 +174,19 @@ class EncadenadorRegistrosTest {
             case EMISOR -> emisor = new Nif("12345678Z");
             case NUM_SERIE -> numSerie = "12345678/G34";
             case FECHA_EXPEDICION -> fecha = LocalDate.of(2024, 1, 2);
-            case TIPO_FACTURA -> tipo = "F2";
+            case TIPO_FACTURA -> tipo = TipoFactura.F2;
             case CUOTA_TOTAL -> cuota = Importe.de("12.36");
             case IMPORTE_TOTAL -> total = Importe.de("123.46");
             case HUELLA_ANTERIOR -> anterior = Optional.of(HUELLA_CASO_1);
             case FECHA_HORA_HUSO -> momento = CASO_1.plusSeconds(1);
         }
 
-        DatosRegistroAlta datos = new DatosRegistroAlta(emisor, numSerie, fecha, tipo,
-                "Servicios de consultoría", List.of(), cuota, total);
+        DatosRegistroAlta datos = Registros.alta()
+                .idFactura(new IdFactura(emisor, numSerie, fecha))
+                .tipoFactura(tipo)
+                .cuotaTotal(cuota)
+                .importeTotal(total)
+                .build();
         return encadenador(momento).encadenar(datos, anterior);
     }
 }
