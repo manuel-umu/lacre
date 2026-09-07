@@ -7,4 +7,5 @@
  *
  * @see dev.lacre.sif.desglose.Desglose
  */
+@org.springframework.modulith.NamedInterface("desglose")
 package dev.lacre.sif.desglose;

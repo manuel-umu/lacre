@@ -7,4 +7,5 @@
  *
  * @see dev.lacre.sif.registro.DatosRegistroAlta
  */
+@org.springframework.modulith.NamedInterface("registro")
 package dev.lacre.sif.registro;

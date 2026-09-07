@@ -8,4 +8,5 @@
  *
  * @see dev.lacre.sif.huella.EncadenadorRegistros
  */
+@org.springframework.modulith.NamedInterface("huella")
 package dev.lacre.sif.huella;

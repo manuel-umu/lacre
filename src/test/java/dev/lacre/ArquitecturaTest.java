@@ -32,16 +32,46 @@ class ArquitecturaTest {
 
     // --- Lo que hace publicable la librería ---
 
+    /**
+     * La excepción de {@code package-info} es deliberada y está acotada por la regla siguiente.
+     * Declarar las interfaces con nombre de Modulith exige anotar el paquete, y no hay otra
+     * forma de hacerlo. Es metadato: un {@code package-info} no contiene código, y una anotación
+     * cuya clase no esté en el classpath la ignora la JVM en silencio, así que el artefacto
+     * publicado puede declarar {@code spring-modulith-api} como dependencia opcional sin que
+     * quien lo use tenga que arrastrar Modulith.
+     */
     @Test
     void elNucleoDeSifNoDependeDeSpring() {
         ArchRule regla = noClasses()
                 .that().resideInAPackage("dev.lacre.sif..")
                 .and().resideOutsideOfPackage(ADAPTADORES)
+                .and().doNotHaveSimpleName("package-info")
                 .should().dependOnClassesThat().resideInAnyPackage("org.springframework..")
                 .because("el núcleo de sif se publica en Maven Central y no puede exigir Spring; "
                         + "los adaptadores van en " + ADAPTADORES);
 
         regla.check(clases);
+    }
+
+    /**
+     * Mantiene estrecha la excepción de arriba: en los {@code package-info} del núcleo solo se
+     * admiten las anotaciones de Modulith que declaran las interfaces publicadas. Cualquier otra
+     * cosa de Spring ahí sería colar una dependencia por la puerta de atrás.
+     */
+    @Test
+    void loUnicoDeSpringEnElNucleoSonLasAnotacionesDeModulith() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("dev.lacre.sif..")
+                .and().resideOutsideOfPackage(ADAPTADORES)
+                .and().haveSimpleName("package-info")
+                .should().dependOnClassesThat(
+                        com.tngtech.archunit.base.DescribedPredicate.describe(
+                                "son de Spring pero no de Modulith",
+                                clase -> clase.getPackageName().startsWith("org.springframework")
+                                        && !clase.getPackageName().startsWith("org.springframework.modulith")))
+                .because("la excepción cubre solo la declaración de interfaces con nombre");
+
+        regla.allowEmptyShould(true).check(clases);
     }
 
     @Test
