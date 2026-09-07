@@ -1,5 +1,6 @@
 package dev.lacre.sif.huella;
 
+import dev.lacre.sif.registro.RegistroAnterior;
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
@@ -48,7 +49,7 @@ class EncadenadorRegistrosTest {
     @Test
     void reproduceLaHuellaDelSegundoRegistroDelEjemploOficial() {
         RegistroEncadenado registro = encadenador(CASO_2)
-                .encadenar(datos("12345679/G34"), Optional.of(HUELLA_CASO_1));
+                .encadenar(datos("12345679/G34"), Optional.of(Registros.anterior(HUELLA_CASO_1)));
 
         assertThat(registro.huella()).isEqualTo(HUELLA_CASO_2);
     }
@@ -58,11 +59,11 @@ class EncadenadorRegistrosTest {
         RegistroEncadenado primero = encadenador(CASO_1)
                 .encadenar(datos("12345678/G33"), Optional.empty());
         RegistroEncadenado segundo = encadenador(CASO_2)
-                .encadenar(datos("12345679/G34"), Optional.of(primero.huella()));
+                .encadenar(datos("12345679/G34"), Optional.of(Registros.anterior(primero.huella())));
 
         assertThat(primero.huella()).isEqualTo(HUELLA_CASO_1);
         assertThat(segundo.huella()).isEqualTo(HUELLA_CASO_2);
-        assertThat(segundo.huellaAnterior()).contains(primero.huella());
+        assertThat(segundo.registroAnterior()).map(RegistroAnterior::huella).contains(primero.huella());
     }
 
     // --- Sensibilidad de la huella ---
@@ -172,7 +173,7 @@ class EncadenadorRegistrosTest {
         TipoFactura tipo = TipoFactura.F1;
         Importe cuota = Importe.de("12.35");
         Importe total = Importe.de("123.45");
-        Optional<Huella> anterior = Optional.empty();
+        Optional<RegistroAnterior> anterior = Optional.empty();
         Instant momento = CASO_1;
 
         switch (campo) {
@@ -182,7 +183,7 @@ class EncadenadorRegistrosTest {
             case TIPO_FACTURA -> tipo = TipoFactura.F2;
             case CUOTA_TOTAL -> cuota = Importe.de("12.36");
             case IMPORTE_TOTAL -> total = Importe.de("123.46");
-            case HUELLA_ANTERIOR -> anterior = Optional.of(HUELLA_CASO_1);
+            case HUELLA_ANTERIOR -> anterior = Optional.of(Registros.anterior(HUELLA_CASO_1));
             case FECHA_HORA_HUSO -> momento = CASO_1.plusSeconds(1);
         }
 

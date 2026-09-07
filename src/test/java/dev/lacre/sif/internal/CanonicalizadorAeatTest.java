@@ -1,5 +1,6 @@
 package dev.lacre.sif.internal;
 
+import dev.lacre.sif.registro.RegistroAnterior;
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
@@ -51,7 +52,7 @@ class CanonicalizadorAeatTest {
     void caso2ConRegistroAnterior() {
         String cadena = CANONICALIZADOR.canonicalizar(
                 datos("12345679/G34", "12.35", "123.45"),
-                Optional.of(HUELLA_CASO_1),
+                Optional.of(Registros.anterior(HUELLA_CASO_1)),
                 OffsetDateTime.parse("2024-01-01T19:20:35+01:00"));
 
         assertThat(cadena).isEqualTo("IDEmisorFactura=89890001K"

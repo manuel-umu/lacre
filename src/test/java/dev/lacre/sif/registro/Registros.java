@@ -1,5 +1,6 @@
 package dev.lacre.sif.registro;
 
+import dev.lacre.shared.Huella;
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
 import dev.lacre.shared.Porcentaje;
@@ -40,6 +41,11 @@ public final class Registros {
                 .cuotaTotal(Importe.de("12.35"))
                 .importeTotal(Importe.de("123.45"))
                 .sistemaInformatico(sistemaInformatico());
+    }
+
+    /** Enlace con un registro anterior ficticio, para probar la cadena. */
+    public static RegistroAnterior anterior(Huella huella) {
+        return new RegistroAnterior(idFactura("12345678/G32"), huella);
     }
 
     public static IdFactura idFactura(String numSerie) {

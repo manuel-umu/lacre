@@ -1,6 +1,6 @@
 package dev.lacre.sif.huella;
 
-import dev.lacre.shared.Huella;
+import dev.lacre.sif.registro.RegistroAnterior;
 import dev.lacre.sif.internal.CalculadorHuella;
 import dev.lacre.sif.registro.DatosRegistroAlta;
 import dev.lacre.sif.registro.RegistroEncadenado;
@@ -33,19 +33,19 @@ public final class EncadenadorRegistros {
     }
 
     /**
-     * @param huellaAnterior vacío si es el primer registro de la cadena del obligado
+     * @param registroAnterior vacío si es el primer registro de la cadena del obligado
      */
-    public RegistroEncadenado encadenar(DatosRegistroAlta datos, Optional<Huella> huellaAnterior) {
+    public RegistroEncadenado encadenar(DatosRegistroAlta datos, Optional<RegistroAnterior> registroAnterior) {
         Objects.requireNonNull(datos, "datos");
-        Objects.requireNonNull(huellaAnterior, "huellaAnterior");
+        Objects.requireNonNull(registroAnterior, "registroAnterior");
 
         // El registro se fecha al segundo (art. 10.1.p del RD 1007/2023). Truncar aquí, y no al
         // formatear, evita que lo que se firma y lo que se guarda difieran en los nanosegundos.
         OffsetDateTime fechaHoraHusoGenRegistro =
                 OffsetDateTime.now(reloj).truncatedTo(ChronoUnit.SECONDS);
 
-        String cadenaCanonica = canonicalizador.canonicalizar(datos, huellaAnterior, fechaHoraHusoGenRegistro);
-        return new RegistroEncadenado(datos, huellaAnterior, fechaHoraHusoGenRegistro,
+        String cadenaCanonica = canonicalizador.canonicalizar(datos, registroAnterior, fechaHoraHusoGenRegistro);
+        return new RegistroEncadenado(datos, registroAnterior, fechaHoraHusoGenRegistro,
                 CalculadorHuella.calcular(cadenaCanonica));
     }
 }

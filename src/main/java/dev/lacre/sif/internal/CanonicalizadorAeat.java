@@ -3,10 +3,10 @@ package dev.lacre.sif.internal;
 import dev.lacre.shared.Huella;
 import dev.lacre.sif.huella.Canonicalizador;
 import dev.lacre.sif.registro.DatosRegistroAlta;
+import dev.lacre.sif.registro.RegistroAnterior;
 import dev.lacre.sif.registro.TipoFactura;
 
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.StringJoiner;
 
@@ -25,28 +25,19 @@ import java.util.StringJoiner;
  */
 public final class CanonicalizadorAeat implements Canonicalizador {
 
-    private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-
-    /**
-     * Patrón explícito en lugar de {@code ISO_OFFSET_DATE_TIME}: ese omite los segundos cuando
-     * valen cero, lo que produciría una cadena distinta y una huella que la AEAT rechazaría.
-     */
-    private static final DateTimeFormatter FECHA_HORA_HUSO =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
-
     @Override
-    public String canonicalizar(DatosRegistroAlta datos, Optional<Huella> huellaAnterior,
+    public String canonicalizar(DatosRegistroAlta datos, Optional<RegistroAnterior> registroAnterior,
                                 OffsetDateTime fechaHoraHusoGenRegistro) {
 
         StringJoiner cadena = new StringJoiner("&");
         cadena.add(campo("IDEmisorFactura", datos.idFactura().emisor().valor()));
         cadena.add(campo("NumSerieFactura", datos.idFactura().numSerieFactura()));
-        cadena.add(campo("FechaExpedicionFactura", datos.idFactura().fechaExpedicion().format(FECHA)));
+        cadena.add(campo("FechaExpedicionFactura", FormatosAeat.fecha(datos.idFactura().fechaExpedicion())));
         cadena.add(campo("TipoFactura", datos.tipoFactura().codigo()));
-        cadena.add(campo("CuotaTotal", datos.cuotaTotal().valor().toPlainString()));
-        cadena.add(campo("ImporteTotal", datos.importeTotal().valor().toPlainString()));
-        cadena.add(campo("Huella", huellaAnterior.map(Huella::valor).orElse("")));
-        cadena.add(campo("FechaHoraHusoGenRegistro", fechaHoraHusoGenRegistro.format(FECHA_HORA_HUSO)));
+        cadena.add(campo("CuotaTotal", FormatosAeat.importe(datos.cuotaTotal())));
+        cadena.add(campo("ImporteTotal", FormatosAeat.importe(datos.importeTotal())));
+        cadena.add(campo("Huella", registroAnterior.map(anterior -> anterior.huella().valor()).orElse("")));
+        cadena.add(campo("FechaHoraHusoGenRegistro", FormatosAeat.fechaHoraHuso(fechaHoraHusoGenRegistro)));
         return cadena.toString();
     }
 

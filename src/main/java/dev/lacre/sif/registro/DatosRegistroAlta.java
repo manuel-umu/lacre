@@ -23,7 +23,7 @@ import java.util.List;
  * pero <strong>no tiene significado normativo</strong>: el orden que importa es el de la
  * concatenación para la huella, y ese vive en {@link Canonicalizador}.
  * <p>
- * Con veintitrés componentes, construirlo posicionalmente es un riesgo real —dos {@link Importe}
+ * Con veinticinco componentes, construirlo posicionalmente es un riesgo real —dos {@link Importe}
  * intercambiados compilan y fallan en silencio—, así que lo normal es usar {@link #builder()}.
  */
 public record DatosRegistroAlta(
@@ -49,7 +49,9 @@ public record DatosRegistroAlta(
         Desglose desglose,
         Importe cuotaTotal,
         Importe importeTotal,
-        SistemaInformatico sistemaInformatico) {
+        SistemaInformatico sistemaInformatico,
+        String numRegistroAcuerdoFacturacion,
+        String idAcuerdoSistemaInformatico) {
 
     /** Única versión admitida por {@code VersionType}. */
     public static final String ID_VERSION = "1.0";
@@ -62,6 +64,8 @@ public record DatosRegistroAlta(
     public static final int MAXIMO_LONGITUD_DESCRIPCION = 500;
     public static final int MAXIMO_FACTURAS_REFERENCIADAS = 1000;
     public static final int MAXIMO_DESTINATARIOS = 1000;
+    public static final int MAXIMO_LONGITUD_NUM_ACUERDO = 15;
+    public static final int MAXIMO_LONGITUD_ID_ACUERDO = 16;
 
     /** Margen que admite la AEAT al contrastar los totales con el desglose. */
     public static final Importe MARGEN_CUADRE = Importe.de("10.00");
@@ -90,6 +94,10 @@ public record DatosRegistroAlta(
         if (sistemaInformatico == null) {
             throw new ValorInvalidoException("El sistema informático es obligatorio");
         }
+        numRegistroAcuerdoFacturacion = Textos.opcional(numRegistroAcuerdoFacturacion,
+                MAXIMO_LONGITUD_NUM_ACUERDO, "El número de registro del acuerdo de facturación");
+        idAcuerdoSistemaInformatico = Textos.opcional(idAcuerdoSistemaInformatico,
+                MAXIMO_LONGITUD_ID_ACUERDO, "El identificador del acuerdo de sistema informático");
 
         facturasRectificadas = listaSegura(
                 facturasRectificadas, MAXIMO_FACTURAS_REFERENCIADAS, "Las facturas rectificadas");
@@ -192,6 +200,8 @@ public record DatosRegistroAlta(
         private Importe cuotaTotal;
         private Importe importeTotal;
         private SistemaInformatico sistemaInformatico;
+        private String numRegistroAcuerdoFacturacion;
+        private String idAcuerdoSistemaInformatico;
 
         private Builder() {
         }
@@ -311,13 +321,24 @@ public record DatosRegistroAlta(
             return this;
         }
 
+        public Builder numRegistroAcuerdoFacturacion(String numRegistroAcuerdoFacturacion) {
+            this.numRegistroAcuerdoFacturacion = numRegistroAcuerdoFacturacion;
+            return this;
+        }
+
+        public Builder idAcuerdoSistemaInformatico(String idAcuerdoSistemaInformatico) {
+            this.idAcuerdoSistemaInformatico = idAcuerdoSistemaInformatico;
+            return this;
+        }
+
         public DatosRegistroAlta build() {
             return new DatosRegistroAlta(idFactura, refExterna, nombreRazonEmisor, subsanacion,
                     rechazoPrevio, tipoFactura, tipoRectificativa, facturasRectificadas,
                     facturasSustituidas, importeRectificacion, fechaOperacion, descripcionOperacion,
                     facturaSimplificadaArt7273, facturaSinIdentifDestinatarioArt61d, macrodato,
                     emitidaPorTerceroODestinatario, tercero, destinatarios, cupon, desglose,
-                    cuotaTotal, importeTotal, sistemaInformatico);
+                    cuotaTotal, importeTotal, sistemaInformatico, numRegistroAcuerdoFacturacion,
+                    idAcuerdoSistemaInformatico);
         }
     }
 }

@@ -44,14 +44,14 @@ class EncadenadorRegistrosProperties {
                                                               @ForAll("huellas") Huella otra) {
         Assume.that(!una.equals(otra));
 
-        assertThat(ENCADENADOR.encadenar(DATOS, Optional.of(una)).huella())
-                .isNotEqualTo(ENCADENADOR.encadenar(DATOS, Optional.of(otra)).huella());
+        assertThat(ENCADENADOR.encadenar(DATOS, Optional.of(Registros.anterior(una))).huella())
+                .isNotEqualTo(ENCADENADOR.encadenar(DATOS, Optional.of(Registros.anterior(otra))).huella());
     }
 
     @Property
     void laHuellaAnteriorSiempreEntraEnLaCadenaCanonica(@ForAll("huellas") Huella anterior) {
         String cadena = new CanonicalizadorAeat().canonicalizar(
-                DATOS, Optional.of(anterior), ENCADENADOR.encadenar(DATOS, Optional.empty())
+                DATOS, Optional.of(Registros.anterior(anterior)), ENCADENADOR.encadenar(DATOS, Optional.empty())
                         .fechaHoraHusoGenRegistro());
 
         assertThat(cadena).contains("&Huella=" + anterior.valor() + "&");
@@ -59,13 +59,13 @@ class EncadenadorRegistrosProperties {
 
     @Property
     void encadenarEsDeterministaParaLaMismaHuellaAnterior(@ForAll("huellas") Huella anterior) {
-        assertThat(ENCADENADOR.encadenar(DATOS, Optional.of(anterior)))
-                .isEqualTo(ENCADENADOR.encadenar(DATOS, Optional.of(anterior)));
+        assertThat(ENCADENADOR.encadenar(DATOS, Optional.of(Registros.anterior(anterior))))
+                .isEqualTo(ENCADENADOR.encadenar(DATOS, Optional.of(Registros.anterior(anterior))));
     }
 
     @Property
     void ningunaHuellaAnteriorProduceLaHuellaDelPrimerRegistro(@ForAll("huellas") Huella anterior) {
-        assertThat(ENCADENADOR.encadenar(DATOS, Optional.of(anterior)).huella())
+        assertThat(ENCADENADOR.encadenar(DATOS, Optional.of(Registros.anterior(anterior))).huella())
                 .isNotEqualTo(ENCADENADOR.encadenar(DATOS, Optional.empty()).huella());
     }
 }

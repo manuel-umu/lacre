@@ -1,6 +1,6 @@
 package dev.lacre.sif.huella;
 
-import dev.lacre.shared.Huella;
+import dev.lacre.sif.registro.RegistroAnterior;
 import dev.lacre.sif.registro.DatosRegistroAlta;
 
 import java.time.OffsetDateTime;
@@ -15,6 +15,6 @@ import java.util.Optional;
  */
 public interface Canonicalizador {
 
-    String canonicalizar(DatosRegistroAlta datos, Optional<Huella> huellaAnterior,
+    String canonicalizar(DatosRegistroAlta datos, Optional<RegistroAnterior> registroAnterior,
                          OffsetDateTime fechaHoraHusoGenRegistro);
 }
