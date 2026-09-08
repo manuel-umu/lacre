@@ -2,10 +2,15 @@
 -- el agregado del módulo identidad.
 --
 -- La zona horaria ERA configuración del despliegue (lacre.sistema-informatico.zona-horaria) y
--- pasa a ser dato de cada obligado. No es cosmético: FechaHoraHusoGenRegistro entra en el
--- cálculo de la huella con su desplazamiento, y Canarias es Atlantic/Canary, una hora por
--- detrás del peninsular. Un ERP que factura para obligados de ambos sitios generaba con la
--- configuración única huellas que la AEAT no reconoce para uno de los dos.
+-- pasa a ser dato de cada obligado. No es cosmético: el diseño de registro de la AEAT dice que
+-- el huso de FechaHoraHusoGenRegistro es "el que está usando el sistema informático de
+-- facturación en el momento de generación", y Canarias es Atlantic/Canary, una hora por detrás
+-- del peninsular. Con una sola zona de despliegue, un ERP que factura para obligados de ambos
+-- sitios no puede declarar la verdad sobre ninguno de los dos.
+--
+-- Ojo con el motivo: la huella NO se rompe por esto. La AEAT recalcula el hash sobre el XML que
+-- recibe, así que cuadra con cualquier huso que se emita. Lo que se protege aquí es la
+-- veracidad del dato, no la aritmética.
 
 alter table obligado
     add column zona_horaria varchar(60)  not null default 'Europe/Madrid',

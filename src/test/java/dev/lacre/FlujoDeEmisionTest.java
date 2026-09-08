@@ -2,6 +2,7 @@ package dev.lacre;
 
 import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
+import dev.lacre.remision.EnvioRegistro;
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.Envios;
 import dev.lacre.verifactu.internal.adaptador.CadenaDeRegistros;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +47,29 @@ class FlujoDeEmisionTest {
         assertThat(envios.findByRegistroId(registro.id())).hasValueSatisfying(envio -> {
             assertThat(envio.estado()).isEqualTo(EstadoEnvio.PENDIENTE);
             assertThat(envio.creadoEn()).isNotNull();
+        });
+    }
+
+    /**
+     * El desenlace va y vuelve de Postgres, y de paso demuestra que es un {@code UPDATE} y no
+     * una fila nueva: la versión sube, que es lo que hace {@code @Version}. El outbox sí se
+     * modifica, al contrario que la cadena de registros.
+     */
+    @Test
+    void elDesenlaceDeUnEnvioSeGuardaYSeRecupera() {
+        UUID obligado = ObligadosDePrueba.nuevo(obligados);
+        RegistroFacturacion registro = cadena.anadir(obligado, Registros.alta().build());
+        EnvioRegistro pendiente = envios.findByRegistroId(registro.id()).orElseThrow();
+
+        envios.save(pendiente.aceptadoConErrores(
+                OffsetDateTime.now(), 2000, "El cálculo de la huella suministrada es incorrecta."));
+
+        assertThat(envios.findByRegistroId(registro.id())).hasValueSatisfying(guardado -> {
+            assertThat(guardado.estado()).isEqualTo(EstadoEnvio.ACEPTADO_CON_ERRORES);
+            assertThat(guardado.codigoError()).isEqualTo(2000);
+            assertThat(guardado.descripcionError()).startsWith("El cálculo de la huella");
+            assertThat(guardado.enviadoEn()).isNotNull();
+            assertThat(guardado.version()).isGreaterThan(pendiente.version());
         });
     }
 

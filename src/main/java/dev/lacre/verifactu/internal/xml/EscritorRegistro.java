@@ -37,10 +37,9 @@ import java.util.List;
  * modo que el fragmento sea autónomo.
  * <p>
  * Los indicadores opcionales solo se emiten cuando valen {@code S}. Un elemento ausente y uno
- * con valor {@code N} son ambos válidos según el esquema; se ha elegido el documento mínimo.
- *
- * @implNote TODO Confirmar contra el Portal de Pruebas Externas que omitir los indicadores en
- * {@code N} se interpreta igual que informarlos.
+ * con valor {@code N} son ambos válidos según el esquema; se ha elegido el documento mínimo, y
+ * el diseño de registro oficial lo confirma campo por campo: «Si no se informa este campo se
+ * entenderá que tiene valor "N"».
  */
 public final class EscritorRegistro {
 
