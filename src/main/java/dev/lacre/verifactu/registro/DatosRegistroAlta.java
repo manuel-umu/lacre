@@ -122,6 +122,25 @@ public record DatosRegistroAlta(
                     "Solo una factura F3 puede referenciar facturas sustituidas, y esta es "
                             + tipoFactura.codigo());
         }
+
+        // Validaciones_Errores_Veri-Factu.pdf §3.1.3. Las tres de aquí abajo provocan el rechazo
+        // del registro por la AEAT —no están en la lista cerrada de errores admisibles del §4.3—,
+        // así que se rechazan al construir: un registro que la AEAT no va a admitir no debe
+        // entrar en una cadena de solo inserción, donde ya solo cabría subsanarlo.
+        if (tipoRectificativa == null && tipoFactura.esRectificativa()) {
+            throw new ValorInvalidoException(
+                    "Una factura rectificativa debe declarar si rectifica por sustitución o por "
+                            + "diferencias, y esta es " + tipoFactura.codigo());
+        }
+        if (tipoRectificativa != null && !tipoFactura.esRectificativa()) {
+            throw new ValorInvalidoException(
+                    "Solo una factura rectificativa lleva tipo de rectificativa, y esta es "
+                            + tipoFactura.codigo());
+        }
+        if (!subsanacion && (rechazoPrevio == RechazoPrevio.S || rechazoPrevio == RechazoPrevio.X)) {
+            throw new ValorInvalidoException(
+                    "RechazoPrevio = " + rechazoPrevio.codigo() + " solo cabe en una subsanación");
+        }
     }
 
     /**

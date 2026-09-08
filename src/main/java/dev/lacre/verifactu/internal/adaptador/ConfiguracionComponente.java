@@ -10,32 +10,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
-import java.time.ZoneId;
-import java.util.UUID;
-import java.util.function.Supplier;
 
 /**
  * Cablea el núcleo puro de {@code verifactu} con Spring. El núcleo no conoce anotaciones; es aquí
- * donde se le da un reloj, una identidad y un generador de identificadores.
+ * donde se le da su identidad y el reloj que declara {@code ConfiguracionComun}.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(PropiedadesComponente.class)
 class ConfiguracionComponente {
-
-    /**
-     * La zona del reloj <strong>entra en el cálculo de la huella</strong>, porque
-     * {@code FechaHoraHusoGenRegistro} se serializa con su huso. Por eso es configuración y no
-     * una constante: un obligado en Canarias factura en {@code Atlantic/Canary}, que difiere en
-     * una hora del peninsular, y con la zona equivocada la huella no cuadraría con la que
-     * recalcula la AEAT.
-     *
-     * @implNote TODO Cuando el módulo {@code identidad} gestione varios obligados, la zona pasa a
-     * ser un dato de cada obligado y no del despliegue.
-     */
-    @Bean
-    Clock relojDelObligado(PropiedadesComponente propiedades) {
-        return Clock.system(ZoneId.of(propiedades.zonaHoraria()));
-    }
 
     @Bean
     EncadenadorRegistros encadenadorRegistros(Clock reloj) {
@@ -57,11 +39,5 @@ class ConfiguracionComponente {
                 true,
                 propiedades.multiObligado(),
                 propiedades.sirveAVariosObligados());
-    }
-
-    /** Inyectado y no llamado directamente, para que los tests puedan fijar los identificadores. */
-    @Bean
-    Supplier<UUID> generadorDeIdentificadores() {
-        return UUID::randomUUID;
     }
 }

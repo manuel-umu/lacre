@@ -17,6 +17,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +28,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class EncadenadorRegistrosTest {
 
-    private static final ZoneOffset MADRID_INVIERNO = ZoneOffset.ofHours(1);
+    private static final ZoneId MADRID = ZoneId.of("Europe/Madrid");
+    private static final ZoneId CANARIAS = ZoneId.of("Atlantic/Canary");
     private static final Instant CASO_1 = Instant.parse("2024-01-01T18:20:30Z");
     private static final Instant CASO_2 = Instant.parse("2024-01-01T18:20:35Z");
 
@@ -41,7 +43,7 @@ class EncadenadorRegistrosTest {
     @Test
     void reproduceLaHuellaDelPrimerRegistroDelEjemploOficial() {
         RegistroEncadenado registro = encadenador(CASO_1)
-                .encadenar(datos("12345678/G33"), Optional.empty());
+                .encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
 
         assertThat(registro.huella()).isEqualTo(HUELLA_CASO_1);
     }
@@ -49,7 +51,7 @@ class EncadenadorRegistrosTest {
     @Test
     void reproduceLaHuellaDelSegundoRegistroDelEjemploOficial() {
         RegistroEncadenado registro = encadenador(CASO_2)
-                .encadenar(datos("12345679/G34"), Optional.of(Registros.anterior(HUELLA_CASO_1)));
+                .encadenar(datos("12345679/G34"), Optional.of(Registros.anterior(HUELLA_CASO_1)), MADRID);
 
         assertThat(registro.huella()).isEqualTo(HUELLA_CASO_2);
     }
@@ -57,9 +59,9 @@ class EncadenadorRegistrosTest {
     @Test
     void dosRegistrosSeguidosFormanLaCadenaDelDocumento() {
         RegistroEncadenado primero = encadenador(CASO_1)
-                .encadenar(datos("12345678/G33"), Optional.empty());
+                .encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
         RegistroEncadenado segundo = encadenador(CASO_2)
-                .encadenar(datos("12345679/G34"), Optional.of(Registros.anterior(primero.huella())));
+                .encadenar(datos("12345679/G34"), Optional.of(Registros.anterior(primero.huella())), MADRID);
 
         assertThat(primero.huella()).isEqualTo(HUELLA_CASO_1);
         assertThat(segundo.huella()).isEqualTo(HUELLA_CASO_2);
@@ -87,20 +89,26 @@ class EncadenadorRegistrosTest {
                 .macrodato(true)
                 .build();
 
-        RegistroEncadenado registro = encadenador(CASO_1).encadenar(otraDescripcion, Optional.empty());
+        RegistroEncadenado registro = encadenador(CASO_1).encadenar(otraDescripcion, Optional.empty(), MADRID);
 
         assertThat(registro.huella()).isEqualTo(base().huella());
     }
 
+    /**
+     * El mismo instante en dos zonas da dos huellas. Por eso la zona es dato del obligado: un
+     * ERP que factura para un obligado peninsular y otro canario desde la misma instalación
+     * necesita las dos, y con una sola la AEAT no reconocería la mitad de las huellas.
+     */
     @Test
-    void laZonaDelRelojCambiaLaHuellaAunqueElInstanteSeaElMismo() {
-        RegistroEncadenado enMadrid = encadenador(CASO_1)
-                .encadenar(datos("12345678/G33"), Optional.empty());
-        RegistroEncadenado enUtc = new EncadenadorRegistros(
-                Clock.fixed(CASO_1, ZoneOffset.UTC), new CanonicalizadorAeat())
-                .encadenar(datos("12345678/G33"), Optional.empty());
+    void laZonaDelObligadoCambiaLaHuellaAunqueElInstanteSeaElMismo() {
+        EncadenadorRegistros encadenador = encadenador(CASO_1);
 
-        assertThat(enMadrid.huella()).isNotEqualTo(enUtc.huella());
+        RegistroEncadenado enMadrid = encadenador.encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
+        RegistroEncadenado enCanarias = encadenador.encadenar(datos("12345678/G33"), Optional.empty(), CANARIAS);
+
+        assertThat(enMadrid.fechaHoraHusoGenRegistro().toInstant())
+                .isEqualTo(enCanarias.fechaHoraHusoGenRegistro().toInstant());
+        assertThat(enMadrid.huella()).isNotEqualTo(enCanarias.huella());
     }
 
     // --- Contrato del servicio ---
@@ -113,8 +121,8 @@ class EncadenadorRegistrosTest {
     @Test
     void fechaElRegistroConElRelojInyectadoYAlSegundo() {
         RegistroEncadenado registro = new EncadenadorRegistros(
-                Clock.fixed(CASO_1.plusMillis(750), MADRID_INVIERNO), new CanonicalizadorAeat())
-                .encadenar(datos("12345678/G33"), Optional.empty());
+                Clock.fixed(CASO_1.plusMillis(750), ZoneOffset.UTC), new CanonicalizadorAeat())
+                .encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
 
         assertThat(registro.fechaHoraHusoGenRegistro().toString()).isEqualTo("2024-01-01T19:20:30+01:00");
         assertThat(registro.huella()).isEqualTo(HUELLA_CASO_1);
@@ -129,8 +137,8 @@ class EncadenadorRegistrosTest {
         };
         DatosRegistroAlta datos = datos("12345678/G33");
 
-        new EncadenadorRegistros(Clock.fixed(CASO_1, MADRID_INVIERNO), espia)
-                .encadenar(datos, Optional.empty());
+        new EncadenadorRegistros(Clock.fixed(CASO_1, ZoneOffset.UTC), espia)
+                .encadenar(datos, Optional.empty(), MADRID);
 
         assertThat(invocaciones).singleElement().satisfies(argumentos -> {
             assertThat(argumentos[0]).isSameAs(datos);
@@ -146,16 +154,18 @@ class EncadenadorRegistrosTest {
                 .isInstanceOf(NullPointerException.class);
         assertThatThrownBy(() -> new EncadenadorRegistros(Clock.systemUTC(), null))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> encadenador(CASO_1).encadenar(null, Optional.empty()))
+        assertThatThrownBy(() -> encadenador(CASO_1).encadenar(null, Optional.empty(), MADRID))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> encadenador(CASO_1).encadenar(datos("FA/1"), null))
+        assertThatThrownBy(() -> encadenador(CASO_1).encadenar(datos("FA/1"), null, MADRID))
+                .isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> encadenador(CASO_1).encadenar(datos("FA/1"), Optional.empty(), null))
                 .isInstanceOf(NullPointerException.class);
     }
 
     // --- Apoyo ---
 
     private static EncadenadorRegistros encadenador(Instant momento) {
-        return new EncadenadorRegistros(Clock.fixed(momento, MADRID_INVIERNO), new CanonicalizadorAeat());
+        return new EncadenadorRegistros(Clock.fixed(momento, ZoneOffset.UTC), new CanonicalizadorAeat());
     }
 
     private static DatosRegistroAlta datos(String numSerie) {
@@ -163,7 +173,7 @@ class EncadenadorRegistrosTest {
     }
 
     private static RegistroEncadenado base() {
-        return encadenador(CASO_1).encadenar(datos("12345678/G33"), Optional.empty());
+        return encadenador(CASO_1).encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
     }
 
     private static RegistroEncadenado variando(CampoDeLaHuella campo) {
@@ -193,6 +203,6 @@ class EncadenadorRegistrosTest {
                 .cuotaTotal(cuota)
                 .importeTotal(total)
                 .build();
-        return encadenador(momento).encadenar(datos, anterior);
+        return encadenador(momento).encadenar(datos, anterior, MADRID);
     }
 }

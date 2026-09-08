@@ -1,10 +1,16 @@
 package dev.lacre.verifactu.internal.adaptador;
 
 import dev.lacre.TestcontainersConfiguration;
+import dev.lacre.identidad.ObligadoDesconocidoException;
+import dev.lacre.identidad.Obligados;
+import dev.lacre.identidad.ObligadosDePrueba;
 import dev.lacre.shared.Huella;
 import dev.lacre.verifactu.registro.Registros;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -23,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * La cadena bajo concurrencia real, contra Postgres real.
@@ -33,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * prohíbe.
  */
 @Import(TestcontainersConfiguration.class)
+@ExtendWith(OutputCaptureExtension.class)
 @SpringBootTest
 class CadenaDeRegistrosTest {
 
@@ -44,24 +52,14 @@ class CadenaDeRegistrosTest {
     @Autowired
     private JdbcClient jdbc;
 
-    /** El contenedor se reutiliza entre tests, y el NIF del obligado es único en la tabla. */
-    private static final AtomicInteger SECUENCIA = new AtomicInteger();
+    @Autowired
+    private Obligados obligados;
 
     private UUID obligado;
 
     @BeforeEach
     void crearObligado() {
-        obligado = nuevoObligado();
-    }
-
-    private UUID nuevoObligado() {
-        UUID id = UUID.randomUUID();
-        jdbc.sql("insert into obligado (id, nif, nombre_razon) values (:id, :nif, :nombre)")
-                .param("id", id)
-                .param("nif", "%08dZ".formatted(SECUENCIA.incrementAndGet()))
-                .param("nombre", "Obligado de prueba SL")
-                .update();
-        return id;
+        obligado = ObligadosDePrueba.nuevo(obligados);
     }
 
     @Test
@@ -86,7 +84,7 @@ class CadenaDeRegistrosTest {
 
     @Test
     void cadaObligadoTieneSuPropiaCadena() {
-        UUID otro = nuevoObligado();
+        UUID otro = ObligadosDePrueba.nuevo(obligados);
 
         cadena.anadir(obligado, Registros.alta().build());
         RegistroFacturacion primeroDelOtro = cadena.anadir(otro, Registros.alta().build());
@@ -117,6 +115,83 @@ class CadenaDeRegistrosTest {
                 .isEqualTo(guardado.fechaHoraConSuHusoOriginal());
         assertThat(leido.fechaHoraConSuHusoOriginal().getOffset().getTotalSeconds())
                 .isEqualTo(guardado.husoOffsetSegundos());
+    }
+
+    /**
+     * La zona con la que se fecha el registro <strong>entra en el cálculo de la huella</strong> y
+     * es dato del obligado, no del despliegue: Canarias va una hora por detrás del peninsular.
+     * Con una única zona de configuración, la mitad de las huellas de un ERP que factura para
+     * ambos no cuadrarían con las que recalcula la AEAT.
+     */
+    @Test
+    void cadaObligadoFechaSusRegistrosConSuPropiaZona() {
+        UUID canario = ObligadosDePrueba.nuevo(obligados, ObligadosDePrueba.CANARIAS);
+
+        RegistroFacturacion peninsular = cadena.anadir(obligado, Registros.alta().build());
+        RegistroFacturacion enCanarias = cadena.anadir(canario, Registros.alta().build());
+
+        // Canarias va una hora por detrás todo el año, tanto en horario de invierno (+00:00
+        // frente a +01:00) como de verano (+01:00 frente a +02:00).
+        assertThat(peninsular.husoOffsetSegundos() - enCanarias.husoOffsetSegundos())
+                .isEqualTo(3600);
+    }
+
+    @Test
+    void facturarPorUnObligadoQueNoExisteFallaConUnErrorDelDominio() {
+        assertThatThrownBy(() -> cadena.anadir(UUID.randomUUID(), Registros.alta().build()))
+                .isInstanceOf(ObligadoDesconocidoException.class);
+    }
+
+    // --- Comprobación previa del art. 7.i de la OM HAC/1177/2024 ---
+
+    /**
+     * <strong>El requisito de la norma es que avise, no que impida emitir.</strong> La FAQ 15 es
+     * explícita: «será preciso generar el siguiente RF, ya que la facturación por este motivo
+     * NUNCA debe interrumpirse». Un lanzamiento aquí sería incumplir, no ser más estricto.
+     * <p>
+     * La cadena se rompe con un {@code INSERT} directo, que la tabla sí admite; un {@code UPDATE}
+     * lo pararía el trigger.
+     */
+    @Test
+    void unaCadenaRotaSeDenunciaPeroNoImpideFacturar(CapturedOutput salida) {
+        RegistroFacturacion primero = cadena.anadir(obligado, Registros.alta().build());
+        insertarEslabonRoto(primero);
+
+        RegistroFacturacion tercero = cadena.anadir(obligado,
+                Registros.alta().idFactura(Registros.idFactura("FA/3")).build());
+
+        assertThat(tercero.posicion()).isEqualTo(3);
+        assertThat(salida).contains("HUELLA_ANTERIOR_NO_CUADRA")
+                .contains("art. 7.i");
+    }
+
+    @Test
+    void unaCadenaSanaNoDenunciaNada(CapturedOutput salida) {
+        cadena.anadir(obligado, Registros.alta().build());
+        cadena.anadir(obligado, Registros.alta().idFactura(Registros.idFactura("FA/2")).build());
+
+        assertThat(salida).doesNotContain("art. 7.i");
+    }
+
+    /** Una fila válida salvo por su huella anterior, que no es la del registro que le precede. */
+    private void insertarEslabonRoto(RegistroFacturacion anterior) {
+        jdbc.sql("""
+                insert into registro_facturacion (
+                    id, obligado_id, posicion, tipo, emisor, num_serie_factura,
+                    fecha_expedicion_factura, huella, huella_anterior,
+                    fecha_hora_huso_gen_registro, huso_offset_segundos, xml)
+                values (:id, :obligado, 2, 'ALTA', :emisor, 'FA/2', :fecha,
+                        :huella, :huellaAnterior, :fechaHora, :huso, '<roto/>')
+                """)
+                .param("id", UUID.randomUUID())
+                .param("obligado", obligado)
+                .param("emisor", anterior.emisor().valor())
+                .param("fecha", anterior.fechaExpedicionFactura())
+                .param("huella", "C".repeat(64))
+                .param("huellaAnterior", "D".repeat(64))
+                .param("fechaHora", anterior.fechaHoraConSuHusoOriginal())
+                .param("huso", anterior.husoOffsetSegundos())
+                .update();
     }
 
     // --- El test que justifica el cerrojo ---

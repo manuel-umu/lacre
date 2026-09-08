@@ -13,8 +13,8 @@ lacre:
     version: ${LACRE_SIF_VERSION:0.0.1}
     numero-instalacion: ${LACRE_SIF_INSTALACION:0001}
 
-    # Entra en el cálculo de la huella. Canarias es Atlantic/Canary, no Europe/Madrid.
-    zona-horaria: ${LACRE_ZONA_HORARIA:Europe/Madrid}
+    # La zona horaria no está aquí: entra en el cálculo de la huella y es dato de cada obligado
+    # tributario, no del despliegue. Canarias es Atlantic/Canary, no Europe/Madrid.
 
     # Un componente integrado en un ERP da servicio a varios obligados: apartado 1.f) de la
     # declaración responsable.

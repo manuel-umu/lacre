@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Optional;
 
@@ -27,15 +28,16 @@ class DatosRegistroAnulacionTest {
     private static final Huella HUELLA_CASO_3 = new Huella(
             "177547C0D57AC74748561D054A9CEC14B4C4EA23D1BEFD6F2E69E3A388F90C68");
 
+    private static final ZoneId MADRID = ZoneId.of("Europe/Madrid");
     private static final EncadenadorRegistros ENCADENADOR = new EncadenadorRegistros(
-            Clock.fixed(Instant.parse("2024-01-01T18:20:40Z"), ZoneOffset.ofHours(1)),
+            Clock.fixed(Instant.parse("2024-01-01T18:20:40Z"), ZoneOffset.UTC),
             new CanonicalizadorAeat());
 
     @Test
     void reproduceLaHuellaDelEjemploOficialDeAnulacion() {
         RegistroEncadenado registro = ENCADENADOR.encadenar(
                 Registros.anulacion(),
-                Optional.of(new RegistroAnterior(Registros.idFactura("12345679/G34"), HUELLA_CASO_2)));
+                Optional.of(new RegistroAnterior(Registros.idFactura("12345679/G34"), HUELLA_CASO_2)), MADRID);
 
         assertThat(registro.huella()).isEqualTo(HUELLA_CASO_3);
     }
@@ -44,7 +46,7 @@ class DatosRegistroAnulacionTest {
     void unaAnulacionEncadenaConElAltaAnterior() {
         RegistroEncadenado anulacion = ENCADENADOR.encadenar(
                 Registros.anulacion(),
-                Optional.of(new RegistroAnterior(Registros.idFactura("12345679/G34"), HUELLA_CASO_2)));
+                Optional.of(new RegistroAnterior(Registros.idFactura("12345679/G34"), HUELLA_CASO_2)), MADRID);
 
         assertThat(anulacion.datos().tipo()).isEqualTo(TipoRegistro.ANULACION);
         assertThat(anulacion.registroAnterior()).map(RegistroAnterior::huella).contains(HUELLA_CASO_2);
@@ -52,18 +54,18 @@ class DatosRegistroAnulacionTest {
 
     @Test
     void laCadenaNoDistingueElTipoDeRegistro() {
-        RegistroEncadenado alta = ENCADENADOR.encadenar(Registros.alta().build(), Optional.empty());
+        RegistroEncadenado alta = ENCADENADOR.encadenar(Registros.alta().build(), Optional.empty(), MADRID);
         RegistroEncadenado anulacion = ENCADENADOR.encadenar(
                 Registros.anulacion(),
-                Optional.of(new RegistroAnterior(alta.datos().idFactura(), alta.huella())));
+                Optional.of(new RegistroAnterior(alta.datos().idFactura(), alta.huella())), MADRID);
 
         assertThat(anulacion.registroAnterior()).map(RegistroAnterior::huella).contains(alta.huella());
     }
 
     @Test
     void unAltaYUnaAnulacionConLosMismosDatosDanHuellasDistintas() {
-        RegistroEncadenado alta = ENCADENADOR.encadenar(Registros.alta().build(), Optional.empty());
-        RegistroEncadenado anulacion = ENCADENADOR.encadenar(Registros.anulacion(), Optional.empty());
+        RegistroEncadenado alta = ENCADENADOR.encadenar(Registros.alta().build(), Optional.empty(), MADRID);
+        RegistroEncadenado anulacion = ENCADENADOR.encadenar(Registros.anulacion(), Optional.empty(), MADRID);
 
         assertThat(anulacion.huella()).isNotEqualTo(alta.huella());
     }

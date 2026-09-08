@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -41,8 +42,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EscritorRegistroTest {
 
     private static final Instant MOMENTO = Instant.parse("2024-01-01T18:20:30Z");
+    private static final ZoneId MADRID = ZoneId.of("Europe/Madrid");
     private static final EncadenadorRegistros ENCADENADOR = new EncadenadorRegistros(
-            Clock.fixed(MOMENTO, ZoneOffset.ofHours(1)), new CanonicalizadorAeat());
+            Clock.fixed(MOMENTO, ZoneOffset.UTC), new CanonicalizadorAeat());
 
     private static final Huella HUELLA_ANTERIOR = new Huella(
             "3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60");
@@ -100,7 +102,7 @@ class EscritorRegistroTest {
                 .build();
 
         String xml = EscritorRegistro.escribir(
-                ENCADENADOR.encadenar(datos, Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
+                ENCADENADOR.encadenar(datos, Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
 
         assertThat(validar(xml)).isEmpty();
     }
@@ -112,7 +114,7 @@ class EscritorRegistroTest {
                         new IdOtro("FR", TipoIdentificacion.PASAPORTE, "12AB34567"))))
                 .build();
 
-        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(datos, Optional.empty()));
+        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(datos, Optional.empty(), MADRID));
 
         assertThat(validar(xml)).isEmpty();
         assertThat(xml)
@@ -143,7 +145,7 @@ class EscritorRegistroTest {
     @Test
     void unaAnulacionValidaContraElEsquemaOficial() {
         String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(
-                Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
+                Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
 
         assertThat(validar(xml)).isEmpty();
         assertThat(xml)
@@ -157,7 +159,7 @@ class EscritorRegistroTest {
     @Test
     void unaAnulacionNoLlevaDesgloseNiImportes() {
         String xml = EscritorRegistro.escribir(
-                ENCADENADOR.encadenar(Registros.anulacion(), Optional.empty()));
+                ENCADENADOR.encadenar(Registros.anulacion(), Optional.empty(), MADRID));
 
         assertThat(xml)
                 .doesNotContain("Desglose")
@@ -176,7 +178,7 @@ class EscritorRegistroTest {
                         Registros.sistemaInformatico());
 
         String xml = EscritorRegistro.escribir(
-                ENCADENADOR.encadenar(datos, Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
+                ENCADENADOR.encadenar(datos, Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
 
         assertThat(validar(xml)).isEmpty();
         assertThat(xml)
@@ -188,7 +190,7 @@ class EscritorRegistroTest {
     @Test
     void coincideConElFicheroGoldenDeAnulacion() throws Exception {
         String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(
-                Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
+                Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
 
         Diff diff = DiffBuilder.compare(golden("registro-anulacion.xml"))
                 .withTest(xml).ignoreWhitespace().checkForSimilar().build();
@@ -215,7 +217,7 @@ class EscritorRegistroTest {
     }
 
     private static RegistroEncadenado encadenar(Optional<RegistroAnterior> anterior) {
-        return ENCADENADOR.encadenar(Registros.alta().build(), anterior);
+        return ENCADENADOR.encadenar(Registros.alta().build(), anterior, MADRID);
     }
 
     /** Devuelve el mensaje del error de validación, o vacío si el documento es válido. */

@@ -13,11 +13,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * —{@code SistemaInformatico}, y los campos que lo componen— es el del esquema oficial de la
  * AEAT y se conserva tal cual: es terminología normativa, no nuestra.
  *
- * @param zonaHoraria zona con la que se fecha cada registro. <strong>Entra en el cálculo de la
- *                    huella</strong>, porque {@code FechaHoraHusoGenRegistro} se serializa con
- *                    su desplazamiento. Canarias no es {@code Europe/Madrid}: es
- *                    {@code Atlantic/Canary}, y usar la zona equivocada produce una huella que
- *                    la AEAT no reconoce.
+ * La zona horaria <strong>no está aquí</strong>: entra en el cálculo de la huella y es dato de
+ * cada obligado, no del despliegue. Vive en {@code identidad.ObligadoTributario}.
+ *
  * @param multiObligado si el sistema puede dar soporte a la facturación de varios obligados.
  *                      Para un producto integrado en un ERP es que sí, y debe declararse igual
  *                      en el apartado 1.f) de la declaración responsable.
@@ -31,13 +29,6 @@ public record PropiedadesComponente(
         String idSistemaInformatico,
         String version,
         String numeroInstalacion,
-        String zonaHoraria,
         boolean multiObligado,
         boolean sirveAVariosObligados) {
-
-    public PropiedadesComponente {
-        if (zonaHoraria == null || zonaHoraria.isBlank()) {
-            zonaHoraria = "Europe/Madrid";
-        }
-    }
 }

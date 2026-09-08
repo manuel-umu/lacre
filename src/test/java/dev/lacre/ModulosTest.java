@@ -22,29 +22,41 @@ class ModulosTest {
     }
 
     /**
-     * Los tres subpaquetes de concepto de {@code verifactu} tienen que estar publicados como
-     * interfaces con nombre. Si alguno perdiera su {@code @NamedInterface}, quedaría interno y
-     * los demás módulos dejarían de verlo: este test lo detecta antes que un fallo de compilación
-     * a mitad de la Fase 6.
+     * Los subpaquetes publicados de {@code verifactu}: los tres de concepto más {@code evento},
+     * que es por donde {@code remision} ve {@code RegistroCreado}. Si alguno perdiera su
+     * {@code @NamedInterface} quedaría interno y los demás módulos dejarían de verlo: este test
+     * lo detecta antes que un fallo de compilación a mitad de la Fase 6.
      */
     @Test
-    void verifactuPublicaSusTresInterfacesDeConcepto() {
-        var interfacesPublicadas = modulos.getModuleByName("verifactu").orElseThrow()
-                .getNamedInterfaces().stream()
-                .map(nombrada -> nombrada.getName())
-                .toList();
+    void verifactuPublicaSusInterfacesDeConcepto() {
+        assertThat(interfacesPublicadasDeVerifactu())
+                .contains("registro", "desglose", "huella", "evento");
+    }
 
-        assertThat(interfacesPublicadas).contains("registro", "desglose", "huella");
+    /**
+     * El paquete raíz de {@code verifactu} está vacío desde que sus tipos se repartieron por
+     * concepto, y tiene que seguir estándolo: cualquier clase que alguien deje ahí se convertiría
+     * en API pública del módulo <strong>sin decidirlo</strong>, porque el raíz es la interfaz sin
+     * nombre. Lo que se publica se publica a propósito.
+     */
+    @Test
+    void elPaqueteRaizDeVerifactuNoPublicaNadaPorDescuido() {
+        var sinNombre = modulos.getModuleByName("verifactu").orElseThrow()
+                .getNamedInterfaces().getUnnamedInterface();
+
+        assertThat(sinNombre).isEmpty();
     }
 
     @Test
     void elAdaptadorNoEstaPublicado() {
-        var interfacesPublicadas = modulos.getModuleByName("verifactu").orElseThrow()
+        assertThat(interfacesPublicadasDeVerifactu()).doesNotContain("internal", "adaptador");
+    }
+
+    private java.util.List<String> interfacesPublicadasDeVerifactu() {
+        return modulos.getModuleByName("verifactu").orElseThrow()
                 .getNamedInterfaces().stream()
                 .map(nombrada -> nombrada.getName())
                 .toList();
-
-        assertThat(interfacesPublicadas).doesNotContain("internal", "adaptador");
     }
 
     @Test

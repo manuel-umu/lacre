@@ -8,6 +8,7 @@ import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
 import org.springframework.data.jdbc.repository.config.AbstractJdbcConfiguration;
 
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -17,9 +18,8 @@ import java.util.List;
  * {@code shared} viaja con la librería que se publica en Maven Central y no puede depender de
  * Spring. Es una consecuencia directa del ADR 0002, y la vigila {@code ArquitecturaTest}.
  * <p>
- * Solo están los de {@link Nif} y {@link Huella} porque son los únicos que hoy ocupan una
- * columna. {@code Importe} y {@code Porcentaje} viajan dentro del XML; tendrán su conversor
- * cuando exista la tabla de facturas.
+ * Están los de {@link Nif}, {@link Huella} y {@link ZoneId}, que son los tipos que hoy ocupan
+ * una columna. {@code Importe} y {@code Porcentaje} viajan dentro del XML y no la necesitan.
  */
 @Configuration(proxyBeanMethods = false)
 public class ConfiguracionJdbc extends AbstractJdbcConfiguration {
@@ -28,7 +28,8 @@ public class ConfiguracionJdbc extends AbstractJdbcConfiguration {
     protected List<?> userConverters() {
         return List.of(
                 new NifAColumna(), new ColumnaANif(),
-                new HuellaAColumna(), new ColumnaAHuella());
+                new HuellaAColumna(), new ColumnaAHuella(),
+                new ZonaAColumna(), new ColumnaAZona());
     }
 
     @WritingConverter
@@ -60,6 +61,23 @@ public class ConfiguracionJdbc extends AbstractJdbcConfiguration {
         @Override
         public Huella convert(String valor) {
             return new Huella(valor);
+        }
+    }
+
+    @WritingConverter
+    static class ZonaAColumna implements Converter<ZoneId, String> {
+        @Override
+        public String convert(ZoneId zona) {
+            return zona.getId();
+        }
+    }
+
+    /** {@code ZoneId.of} rechaza una zona que no exista, que es la validación que queremos. */
+    @ReadingConverter
+    static class ColumnaAZona implements Converter<String, ZoneId> {
+        @Override
+        public ZoneId convert(String valor) {
+            return ZoneId.of(valor);
         }
     }
 }

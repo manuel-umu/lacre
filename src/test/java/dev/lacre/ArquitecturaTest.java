@@ -6,6 +6,8 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
@@ -115,28 +117,67 @@ class ArquitecturaTest {
 
     // --- Fronteras entre módulos ---
 
+    /**
+     * El núcleo no conoce a nadie. Es lo que permite extraerlo como librería: quien la use no
+     * arrastra ni la identidad de los obligados ni el envío a la AEAT.
+     * <p>
+     * Sustituye a la regla que vigilaba la frontera con {@code facturacion}, módulo que
+     * desapareció al pasar lacre a ser un componente integrado en el ERP: quien expide la
+     * factura es el ERP, no nosotros.
+     */
     @Test
-    void verifactuYFacturacionNoSeConocen() {
-        noClasses().that().resideInAPackage("dev.lacre.verifactu..")
-                .should().dependOnClassesThat().resideInAPackage("dev.lacre.facturacion..")
-                .because("la frontera entre ambos es lo que permite extraer el módulo; "
-                        + "se cruza con eventos de dominio, no con imports")
-                .check(clases);
+    void elNucleoNoConoceAlRestoDeModulos() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("dev.lacre.verifactu..")
+                .and().resideOutsideOfPackage(ADAPTADORES)
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "dev.lacre.identidad..", "dev.lacre.remision..", "dev.lacre.api..")
+                .because("el núcleo se publica solo; se comunica con eventos, no con imports");
 
-        // allowEmptyShould porque el módulo facturacion todavía no existe: la regla queda puesta
-        // para que el día que exista no se pueda cruzar la frontera sin que este test avise.
-        noClasses().that().resideInAPackage("dev.lacre.facturacion..")
-                .should().dependOnClassesThat().resideInAPackage("dev.lacre.verifactu..")
-                .allowEmptyShould(true)
-                .check(clases);
+        regla.check(clases);
     }
 
+    /**
+     * La dirección que de verdad importa: {@code remision} puede escuchar los eventos que
+     * publica {@code verifactu}, pero solo a través de su API publicada.
+     */
     @Test
-    void nadieDeFueraDelModuloEntraEnSuPaqueteInterno() {
+    void remisionNoEntraEnElInteriorDelNucleo() {
         ArchRule regla = noClasses()
-                .that().resideOutsideOfPackage("dev.lacre.verifactu..")
+                .that().resideInAPackage("dev.lacre.remision..")
                 .should().dependOnClassesThat().resideInAPackage("dev.lacre.verifactu.internal..")
-                .because("la API pública del módulo es su paquete raíz");
+                .because("la API pública del núcleo es su paquete raíz");
+
+        regla.check(clases);
+    }
+
+    /**
+     * {@code identidad} solo dice quién es el obligado y con qué zona se fechan sus registros.
+     * Si un día importase {@code verifactu}, el ciclo dejaría a los dos módulos inseparables.
+     */
+    @Test
+    void identidadNoConoceAlRestoDeModulos() {
+        ArchRule regla = noClasses()
+                .that().resideInAPackage("dev.lacre.identidad..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "dev.lacre.verifactu..", "dev.lacre.remision..", "dev.lacre.api..")
+                .because("identidad es el suelo de los obligados; la dependencia va en un solo sentido");
+
+        regla.check(clases);
+    }
+
+    /**
+     * Vale para todos los módulos que tengan {@code internal}, no solo para el núcleo: un módulo
+     * cuyo interior se pueda tocar desde fuera deja de poder cambiar sin romper a nadie. Añadir
+     * un módulo es añadir su nombre aquí.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"verifactu", "remision"})
+    void nadieDeFueraDelModuloEntraEnSuPaqueteInterno(String modulo) {
+        ArchRule regla = noClasses()
+                .that().resideOutsideOfPackage("dev.lacre." + modulo + "..")
+                .should().dependOnClassesThat().resideInAPackage("dev.lacre." + modulo + ".internal..")
+                .because("la API pública de " + modulo + " es su paquete raíz");
 
         regla.check(clases);
     }
@@ -153,17 +194,32 @@ class ArquitecturaTest {
         regla.check(clases);
     }
 
+    /**
+     * Ya no es solo el dominio de {@code verifactu}: <strong>toda</strong> la aplicación recibe el
+     * instante y los identificadores inyectados, y la única clase autorizada a producirlos es
+     * {@code ConfiguracionComun}. Se amplió al escribir {@code remision}, cuyo oyente también
+     * fecha filas: una segunda fuente de indeterminismo escondida en otro módulo es igual de
+     * mala aunque no entre en la huella.
+     * <p>
+     * Ojo, no prohíbe {@code OffsetDateTime.now(Clock)}, que es precisamente lo que hay que
+     * usar: la regla persigue las variantes sin argumentos, que leen el reloj del sistema.
+     * <p>
+     * La exención de {@code ConfiguracionComun} <strong>hoy no hace nada</strong>, y se comprobó:
+     * ArchUnit no ve la referencia a método {@code UUID::randomUUID}, solo las llamadas
+     * directas. Se deja porque escribirla como lambda sería legítimo y pondría roja la única
+     * clase que tiene permiso para producir indeterminismo.
+     */
     @Test
-    void elDominioNoLeeElRelojDelSistema() {
+    void soloUnaClaseProduceIndeterminismo() {
         ArchRule regla = noClasses()
-                .that().resideInAPackage("dev.lacre.verifactu..")
-                .and().resideOutsideOfPackage(ADAPTADORES)
+                .that().resideInAPackage("dev.lacre..")
+                .and().doNotHaveSimpleName("ConfiguracionComun")
                 .should().callMethod(java.time.Instant.class, "now")
                 .orShould().callMethod(java.time.LocalDate.class, "now")
                 .orShould().callMethod(java.time.OffsetDateTime.class, "now")
                 .orShould().callMethod(java.util.UUID.class, "randomUUID")
-                .because("el dominio recibe un Clock y un generador de identificadores; "
-                        + "la fecha y hora entra en el cálculo de la huella y debe ser reproducible");
+                .because("el reloj y el generador de identificadores se inyectan, y la fecha y "
+                        + "hora entra en el cálculo de la huella: debe ser reproducible");
 
         regla.check(clases);
     }

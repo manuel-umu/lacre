@@ -38,12 +38,14 @@ class RegistroFacturacionAppendOnlyTest {
     @BeforeEach
     void insertarUnRegistro() {
         jdbc.sql("""
-                insert into obligado (id, nif, nombre_razon) values (:id, :nif, :nombre)
+                insert into obligado (id, nif, nombre_razon, zona_horaria)
+                values (:id, :nif, :nombre, :zona)
                 on conflict (id) do nothing
                 """)
                 .param("id", OBLIGADO)
                 .param("nif", "89890001K")
                 .param("nombre", "Obligado de prueba SL")
+                .param("zona", "Europe/Madrid")
                 .update();
 
         registro = insertar(siguientePosicion(), HUELLA);
@@ -77,9 +79,19 @@ class RegistroFacturacionAppendOnlyTest {
                 .hasMessageContaining("solo inserción");
     }
 
+    /**
+     * Desde que existe el outbox, su clave ajena rechaza el {@code truncate} a secas antes de
+     * que el trigger llegue a ejecutarse. Truncar las dos tablas a la vez esquiva la clave ajena
+     * y sí llega al trigger, que es la capa que aquí se prueba: sin ese segundo caso, este test
+     * pasaría en verde sin demostrar nada del trigger.
+     */
     @Test
     void unTruncateRevienta() {
         assertThatThrownBy(() -> jdbc.sql("truncate registro_facturacion").update())
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("foreign key");
+
+        assertThatThrownBy(() -> jdbc.sql("truncate registro_facturacion, envio_registro").update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("solo inserción");
     }

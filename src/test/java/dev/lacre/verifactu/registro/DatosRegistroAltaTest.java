@@ -11,6 +11,7 @@ import dev.lacre.verifactu.desglose.DetalleDesglose;
 import dev.lacre.verifactu.desglose.Impuesto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
@@ -77,11 +78,59 @@ class DatosRegistroAltaTest {
     void soloUnaRectificativaPuedeReferenciarFacturasRectificadas(String tipo) {
         DatosRegistroAlta datos = Registros.alta()
                 .tipoFactura(TipoFactura.valueOf(tipo))
+                .tipoRectificativa(ClaveTipoRectificativa.I)
                 .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
                 .build();
 
         assertThat(datos.facturasRectificadas()).hasSize(1);
         assertThat(datos.tipoFactura().esRectificativa()).isTrue();
+    }
+
+    /**
+     * Las tres reglas de {@code Validaciones_Errores_Veri-Factu.pdf} §3.1.3 que faltaban.
+     * <p>
+     * Estas <strong>sí rechazan</strong>, al contrario que el cuadre de totales o la
+     * comprobación del art. 7.i: no figuran en la lista cerrada de errores admisibles del §4.3,
+     * así que la AEAT rechaza el registro. Y un registro rechazado que ya está en la cadena solo
+     * se puede subsanar, porque la cadena es de solo inserción.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"R1", "R2", "R3", "R4", "R5"})
+    void unaRectificativaSinTipoDeRectificativaNoVale(String tipo) {
+        assertThatThrownBy(() -> Registros.alta()
+                .tipoFactura(TipoFactura.valueOf(tipo))
+                .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
+                .build())
+                .isInstanceOf(ValorInvalidoException.class)
+                .hasMessageContaining("sustitución");
+    }
+
+    @Test
+    void unaFacturaQueNoEsRectificativaNoPuedeLlevarTipoDeRectificativa() {
+        assertThatThrownBy(() -> Registros.alta()
+                .tipoFactura(TipoFactura.F1)
+                .tipoRectificativa(ClaveTipoRectificativa.S)
+                .build())
+                .isInstanceOf(ValorInvalidoException.class)
+                .hasMessageContaining("rectificativa");
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = RechazoPrevio.class, names = {"S", "X"})
+    void elRechazoPrevioSoloCabeEnUnaSubsanacion(RechazoPrevio rechazo) {
+        assertThatThrownBy(() -> Registros.alta().subsanacion(false).rechazoPrevio(rechazo).build())
+                .isInstanceOf(ValorInvalidoException.class)
+                .hasMessageContaining("subsanación");
+
+        assertThat(Registros.alta().subsanacion(true).rechazoPrevio(rechazo).build().rechazoPrevio())
+                .isEqualTo(rechazo);
+    }
+
+    @Test
+    void unaFacturaQueNoEsSubsanacionSiPuedeDecirQueNoHuboRechazoPrevio() {
+        assertThat(Registros.alta().subsanacion(false).rechazoPrevio(RechazoPrevio.N).build()
+                .rechazoPrevio()).isEqualTo(RechazoPrevio.N);
+        assertThat(Registros.alta().subsanacion(false).build().rechazoPrevio()).isNull();
     }
 
     @Test
