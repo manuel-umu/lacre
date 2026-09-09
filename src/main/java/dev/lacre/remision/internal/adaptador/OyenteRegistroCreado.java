@@ -39,7 +39,7 @@ class OyenteRegistroCreado {
 
     @EventListener
     void alCrearseUnRegistro(RegistroCreado evento) {
-        envios.save(EnvioRegistro.pendiente(
-                generadorDeIdentificadores.get(), evento.registroId(), OffsetDateTime.now(reloj)));
+        envios.save(EnvioRegistro.pendiente(generadorDeIdentificadores.get(),
+                evento.registroId(), evento.obligadoId(), OffsetDateTime.now(reloj)));
     }
 }

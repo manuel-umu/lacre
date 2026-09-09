@@ -1,5 +1,6 @@
 package dev.lacre.remision.internal.adaptador;
 
+import dev.lacre.remision.EnvioRechazadoException;
 import dev.lacre.remision.EstadoEnvioAeat;
 import dev.lacre.remision.EstadoRegistroAeat;
 import dev.lacre.remision.LineaRespuesta;
@@ -7,6 +8,7 @@ import dev.lacre.remision.RespuestaIlegibleException;
 import dev.lacre.remision.RespuestaRemision;
 import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.registro.IdFactura;
+import dev.lacre.verifactu.registro.TipoRegistro;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamConstants;
@@ -45,6 +47,13 @@ final class LectorRespuestaAeat {
      */
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
+    /**
+     * La AEAT antepone el código del catálogo al texto del Fault, con esta forma exacta:
+     * {@code Codigo[4104].Error en la cabecera: ...}. Verificado contra el Portal de Pruebas el
+     * 2026-09-09, sobre una respuesta real.
+     */
+    private static final String PREFIJO_DEL_CODIGO = "Codigo[";
+
     private LectorRespuestaAeat() {
     }
 
@@ -54,6 +63,7 @@ final class LectorRespuestaAeat {
         String csv = null;
         List<LineaRespuesta> lineas = new ArrayList<>();
 
+        String faultstring = null;
         Linea enCurso = null;
         try {
             XMLStreamReader lector = entradaSegura().createXMLStreamReader(new StringReader(xml));
@@ -74,6 +84,7 @@ final class LectorRespuestaAeat {
                 }
                 if (enCurso == null) {
                     switch (elemento) {
+                        case "faultstring" -> faultstring = lector.getElementText();
                         case "CSV" -> csv = lector.getElementText();
                         case "TiempoEsperaEnvio" -> espera = segundos(lector.getElementText());
                         case "EstadoEnvio" -> estado = EstadoEnvioAeat.desde(lector.getElementText());
@@ -86,6 +97,7 @@ final class LectorRespuestaAeat {
                     case "NumSerieFactura" -> enCurso.numSerie = lector.getElementText();
                     case "FechaExpedicionFactura" ->
                             enCurso.fecha = LocalDate.parse(lector.getElementText().trim(), FECHA);
+                    case "TipoOperacion" -> enCurso.tipo = tipoDeOperacion(lector.getElementText());
                     case "EstadoRegistro" ->
                             enCurso.estado = EstadoRegistroAeat.desde(lector.getElementText());
                     case "CodigoErrorRegistro" ->
@@ -101,10 +113,34 @@ final class LectorRespuestaAeat {
             throw new RespuestaIlegibleException("no se pudo parsear la respuesta de la AEAT", e);
         }
 
+        // Un rechazo del envío completo llega como SOAP Fault, sin EstadoEnvio ni líneas. No es
+        // una respuesta ilegible: es una respuesta perfectamente clara que dice que no se
+        // procesó nada.
+        if (faultstring != null) {
+            throw rechazo(faultstring);
+        }
         if (estado == null) {
             throw new RespuestaIlegibleException("la respuesta no trae EstadoEnvio");
         }
         return new RespuestaRemision(estado, espera, csv, lineas);
+    }
+
+    /**
+     * Se parte el texto a mano y no con una expresión regular: el formato es un prefijo fijo y un
+     * corchete, y una regular para esto solo añade escapes que confundir.
+     */
+    private static EnvioRechazadoException rechazo(String faultstring) {
+        String texto = faultstring.trim();
+        if (texto.startsWith(PREFIJO_DEL_CODIGO)) {
+            int cierre = texto.indexOf(']');
+            String digitos = cierre < 0 ? "" : texto.substring(PREFIJO_DEL_CODIGO.length(), cierre);
+            if (digitos.chars().allMatch(Character::isDigit) && !digitos.isEmpty()) {
+                String resto = texto.substring(cierre + 1);
+                return new EnvioRechazadoException(Integer.valueOf(digitos),
+                        resto.startsWith(".") ? resto.substring(1).trim() : resto.trim());
+            }
+        }
+        return new EnvioRechazadoException(null, texto);
     }
 
     /**
@@ -118,6 +154,19 @@ final class LectorRespuestaAeat {
         return factoria;
     }
 
+    /**
+     * {@code TipoOperacionType} solo admite {@code Alta} y {@code Anulacion}. No se usa
+     * {@code valueOf} porque la caja no coincide con la de nuestro enum, y porque un valor
+     * inesperado tiene que fallar diciendo qué llegó.
+     */
+    private static TipoRegistro tipoDeOperacion(String valor) {
+        return switch (valor.trim()) {
+            case "Alta" -> TipoRegistro.ALTA;
+            case "Anulacion" -> TipoRegistro.ANULACION;
+            default -> throw new RespuestaIlegibleException("tipo de operación desconocido: " + valor);
+        };
+    }
+
     private static Duration segundos(String valor) {
         String limpio = valor.trim();
         return limpio.isEmpty() ? Duration.ZERO : Duration.ofSeconds(Long.parseLong(limpio));
@@ -128,12 +177,13 @@ final class LectorRespuestaAeat {
         private Nif emisor;
         private String numSerie;
         private LocalDate fecha;
+        private TipoRegistro tipo;
         private EstadoRegistroAeat estado;
         private Integer codigoError;
         private String descripcionError;
 
         LineaRespuesta aLinea() {
-            return new LineaRespuesta(new IdFactura(emisor, numSerie, fecha), estado,
+            return new LineaRespuesta(new IdFactura(emisor, numSerie, fecha), tipo, estado,
                     codigoError, descripcionError);
         }
     }

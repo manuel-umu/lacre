@@ -8,6 +8,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyStore;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -143,6 +147,35 @@ class AlmacenCertificadosEnDiscoTest {
         assertThatThrownBy(() -> sinConfigurar.de(VIGENTE))
                 .isInstanceOf(CertificadoNoDisponibleException.class)
                 .hasMessageContaining("lacre.certificados.directorio");
+    }
+
+    /**
+     * El error que de verdad va a cometer quien despliegue esto: dejar un certificado donde iba
+     * un almacén de claves. Un {@code .cer} o un {@code .pem} son solo la parte pública, y el TLS
+     * mutuo necesita firmar con la privada.
+     * <p>
+     * El almacén se fabrica sacando el certificado de nuestro propio PKCS#12 y metiéndolo en uno
+     * nuevo <em>sin</em> su clave, que es exactamente lo que queda al exportar un {@code .cer}.
+     * No se apoya en ningún fichero de fuera del repositorio: un test que dependiera de la
+     * carpeta de certificados de quien programa no valdría para nadie más.
+     * <p>
+     * Lo que se fija es el <strong>mensaje</strong>: quien se equivoque tiene que leer qué le
+     * falta, no un {@code NullPointerException} tres capas más abajo.
+     */
+    @Test
+    void unCertificadoSinClavePrivadaNoSirveParaAutenticarse() throws Exception {
+        KeyStore conClave = KeyStore.getInstance("PKCS12");
+        try (InputStream entrada = Files.newInputStream(Path.of(DIRECTORIO, "89890001K.p12"))) {
+            conClave.load(entrada, "cambiar".toCharArray());
+        }
+        KeyStore soloPublico = KeyStore.getInstance("PKCS12");
+        soloPublico.load(null, null);
+        soloPublico.setCertificateEntry("elCertificado", conClave.getCertificate("obligado"));
+
+        assertThatThrownBy(() ->
+                CertificadoDeObligado.desde(soloPublico, "da igual".toCharArray(), VIGENTE.valor()))
+                .isInstanceOf(CertificadoNoDisponibleException.class)
+                .hasMessageContaining("no contiene ninguna clave privada");
     }
 
     /**

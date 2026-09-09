@@ -1,11 +1,14 @@
 package dev.lacre.remision.internal.adaptador;
 
+import dev.lacre.remision.EnvioRechazadoException;
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.EstadoEnvioAeat;
 import dev.lacre.remision.EstadoRegistroAeat;
 import dev.lacre.remision.LineaRespuesta;
+import dev.lacre.remision.RemisionFallidaException;
 import dev.lacre.remision.RespuestaIlegibleException;
 import dev.lacre.remision.RespuestaRemision;
+import dev.lacre.verifactu.registro.TipoRegistro;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -48,6 +51,14 @@ class LectorRespuestaAeatTest {
     }
 
     private static String linea(String numSerie, String estado, String error) {
+        return linea(numSerie, "Alta", estado, error);
+    }
+
+    /**
+     * El bloque {@code Operacion} no es opcional en el esquema, y sin él no se sabe si la línea
+     * habla del alta o de la anulación de la misma factura.
+     */
+    private static String linea(String numSerie, String tipoOperacion, String estado, String error) {
         return """
                 <tikR:RespuestaLinea>
                   <tikR:IDFactura>
@@ -55,10 +66,13 @@ class LectorRespuestaAeatTest {
                     <tik:NumSerieFactura>%s</tik:NumSerieFactura>
                     <tik:FechaExpedicionFactura>01-01-2024</tik:FechaExpedicionFactura>
                   </tikR:IDFactura>
+                  <tikR:Operacion>
+                    <tik:TipoOperacion>%s</tik:TipoOperacion>
+                  </tikR:Operacion>
                   <tikR:EstadoRegistro>%s</tikR:EstadoRegistro>
                   %s
                 </tikR:RespuestaLinea>
-                """.formatted(numSerie, estado, error);
+                """.formatted(numSerie, tipoOperacion, estado, error);
     }
 
     // --- Los cuatro desenlaces ---
@@ -150,6 +164,28 @@ class LectorRespuestaAeatTest {
                 .containsExactly(null, 1130, null);
     }
 
+    /**
+     * El tipo de operación es lo único que separa el alta de la anulación de una misma factura,
+     * así que se lee y se conserva.
+     */
+    @Test
+    void distingueElTipoDeOperacionDeCadaLinea() {
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Correcto",
+                linea("FA/1", "Alta", "Correcto", "")
+                        + linea("FA/1", "Anulacion", "Correcto", "")));
+
+        assertThat(respuesta.lineas()).extracting(LineaRespuesta::tipo)
+                .containsExactly(TipoRegistro.ALTA, TipoRegistro.ANULACION);
+    }
+
+    @Test
+    void unTipoDeOperacionDesconocidoHaceIlegibleLaRespuesta() {
+        assertThatThrownBy(() -> LectorRespuestaAeat.leer(respuesta("Correcto",
+                linea("FA/1", "Rectificacion", "Correcto", ""))))
+                .isInstanceOf(RespuestaIlegibleException.class)
+                .hasMessageContaining("Rectificacion");
+    }
+
     @Test
     void unEnvioSinLineasSeLeeIgual() {
         RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Incorrecto", ""));
@@ -158,6 +194,61 @@ class LectorRespuestaAeatTest {
     }
 
     // --- Lo que no se puede leer ---
+
+    // --- Rechazo del envío completo, que llega como SOAP Fault ---
+
+    /**
+     * Documento real devuelto por el Portal de Pruebas el 2026-09-09. Los 44 códigos que el
+     * catálogo clasifica como «rechazo del envío completo» llegan así: un Fault, sin
+     * {@code EstadoEnvio} y sin una sola línea, porque no se ha procesado ningún registro.
+     * <p>
+     * Leerlo como «respuesta ilegible» sería perder la única información útil que trae.
+     */
+    @Test
+    void unRechazoDelEnvioCompletoLlegaComoSoapFault() {
+        String fault = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+                  <env:Body>
+                    <env:Fault>
+                      <faultcode>env:Client</faultcode>
+                      <faultstring>Codigo[4104].Error en la cabecera: el valor del campo NIF del bloque ObligadoEmision no está identificado.. NIF:99999999R</faultstring>
+                    </env:Fault>
+                  </env:Body>
+                </env:Envelope>
+                """;
+
+        assertThatThrownBy(() -> LectorRespuestaAeat.leer(fault))
+                .isInstanceOf(EnvioRechazadoException.class)
+                .hasMessageContaining("4104")
+                .hasMessageContaining("no está identificado");
+    }
+
+    /** Sin código reconocible, el texto del Fault sigue llegando entero. */
+    @Test
+    void unFaultSinCodigoTambienEsUnRechazo() {
+        String fault = """
+                <env:Envelope xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"><env:Body>
+                  <env:Fault><faultcode>env:Server</faultcode>
+                  <faultstring>Servicio no disponible</faultstring></env:Fault>
+                </env:Body></env:Envelope>
+                """;
+
+        assertThatThrownBy(() -> LectorRespuestaAeat.leer(fault))
+                .isInstanceOf(EnvioRechazadoException.class)
+                .hasMessageContaining("Servicio no disponible");
+    }
+
+    /**
+     * Un rechazo del envío es un fallo de remisión, no un desenlace: hereda de
+     * {@code RemisionFallidaException} para que el despachador deje el lote pendiente sin tener
+     * que saber distinguirlos. Ningún registro quedó presentado.
+     */
+    @Test
+    void unRechazoDelEnvioSeTrataComoFalloDeRemision() {
+        assertThat(new EnvioRechazadoException(4104, "lo que sea"))
+                .isInstanceOf(RemisionFallidaException.class);
+    }
 
     @Test
     void sinEstadoDeEnvioLaRespuestaEsIlegible() {

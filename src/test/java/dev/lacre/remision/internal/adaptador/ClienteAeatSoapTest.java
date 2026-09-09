@@ -221,6 +221,9 @@ class ClienteAeatSoapTest {
                     <tik:NumSerieFactura>%s</tik:NumSerieFactura>
                     <tik:FechaExpedicionFactura>01-01-2024</tik:FechaExpedicionFactura>
                   </tikR:IDFactura>
+                  <tikR:Operacion>
+                    <tik:TipoOperacion>Alta</tik:TipoOperacion>
+                  </tikR:Operacion>
                   <tikR:EstadoRegistro>%s</tikR:EstadoRegistro>
                   %s
                 </tikR:RespuestaLinea>

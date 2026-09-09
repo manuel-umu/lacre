@@ -27,12 +27,13 @@ class EnvioRegistroTest {
 
     private static final UUID ID = UUID.fromString("00000000-0000-0000-0000-0000000000e1");
     private static final UUID REGISTRO = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
+    private static final UUID OBLIGADO = UUID.fromString("00000000-0000-0000-0000-0000000000b1");
     private static final OffsetDateTime CREADO =
             OffsetDateTime.of(2024, 1, 1, 19, 20, 30, 0, ZoneOffset.ofHours(1));
     private static final OffsetDateTime RESPUESTA = CREADO.plusMinutes(2);
 
     private static EnvioRegistro pendiente() {
-        return EnvioRegistro.pendiente(ID, REGISTRO, CREADO);
+        return EnvioRegistro.pendiente(ID, REGISTRO, OBLIGADO, CREADO);
     }
 
     @Test
@@ -117,14 +118,14 @@ class EnvioRegistroTest {
     @Test
     void unEnvioTerminadoSinFechaDeRespuestaNoSePuedeConstruir() {
         assertThatThrownBy(() -> new EnvioRegistro(
-                ID, REGISTRO, EstadoEnvio.ACEPTADO, CREADO, null, null, null, 0))
+                ID, REGISTRO, OBLIGADO, EstadoEnvio.ACEPTADO, CREADO, null, null, null, 0, 0))
                 .isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test
     void unEnvioPendienteConFechaDeRespuestaTampoco() {
         assertThatThrownBy(() -> new EnvioRegistro(
-                ID, REGISTRO, EstadoEnvio.PENDIENTE, CREADO, RESPUESTA, null, null, 0))
+                ID, REGISTRO, OBLIGADO, EstadoEnvio.PENDIENTE, CREADO, RESPUESTA, null, null, 0, 0))
                 .isInstanceOf(ValorInvalidoException.class);
     }
 

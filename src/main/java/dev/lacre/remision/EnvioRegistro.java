@@ -18,6 +18,10 @@ import java.util.UUID;
  * identificador existe es la clave ajena, y quien impide que un registro tenga dos envíos es el
  * {@code UNIQUE} de esa misma columna.
  * <p>
+ * Lleva también el obligado, que ya viaja en el evento {@code RegistroCreado}. Es dato repetido
+ * respecto de {@code registro_facturacion}, y a cambio el despachador agrupa sus lotes sin
+ * consultar la tabla de otro módulo en cada pasada.
+ * <p>
  * Lleva {@code @Version} porque sí se modifica —el estado cambia con lo que responda la AEAT—,
  * al contrario que {@code RegistroFacturacion}, que es de solo inserción.
  * <p>
@@ -33,18 +37,21 @@ import java.util.UUID;
 public record EnvioRegistro(
         @Id UUID id,
         UUID registroId,
+        UUID obligadoId,
         EstadoEnvio estado,
         OffsetDateTime creadoEn,
         OffsetDateTime enviadoEn,
         Integer codigoError,
         String descripcionError,
+        int intentos,
         @Version long version) {
 
     public static final int MAXIMO_LONGITUD_DESCRIPCION_ERROR = 500;
 
     public EnvioRegistro {
-        if (id == null || registroId == null) {
-            throw new ValorInvalidoException("El envío necesita identificador y registro");
+        if (id == null || registroId == null || obligadoId == null) {
+            throw new ValorInvalidoException(
+                    "El envío necesita identificador, registro y obligado");
         }
         if (estado == null || creadoEn == null) {
             throw new ValorInvalidoException("El envío necesita estado y fecha de creación");
@@ -59,8 +66,10 @@ public record EnvioRegistro(
     }
 
     /** Alta en el outbox: pendiente de despachar. */
-    public static EnvioRegistro pendiente(UUID id, UUID registroId, OffsetDateTime creadoEn) {
-        return new EnvioRegistro(id, registroId, EstadoEnvio.PENDIENTE, creadoEn, null, null, null, 0);
+    public static EnvioRegistro pendiente(UUID id, UUID registroId, UUID obligadoId,
+                                          OffsetDateTime creadoEn) {
+        return new EnvioRegistro(id, registroId, obligadoId, EstadoEnvio.PENDIENTE, creadoEn,
+                null, null, null, 0, 0);
     }
 
     /** La AEAT lo aceptó sin reparos. */
@@ -87,6 +96,18 @@ public record EnvioRegistro(
                 EstadoEnvio.CODIGO_REGISTRO_DUPLICADO, descripcion);
     }
 
+    /**
+     * Un intento que no obtuvo respuesta interpretable. La fila sigue pendiente: no sabemos si la
+     * AEAT llegó a registrar el lote, así que lo único honesto es reintentar.
+     */
+    public EnvioRegistro otroIntentoFallido() {
+        if (estado.esTerminal()) {
+            throw new EnvioYaResueltoException(id, estado, estado);
+        }
+        return new EnvioRegistro(id, registroId, obligadoId, estado, creadoEn, null, null, null,
+                intentos + 1, version);
+    }
+
     private EnvioRegistro resuelto(EstadoEnvio desenlace, OffsetDateTime cuando,
                                    Integer codigo, String descripcion) {
         if (estado.esTerminal()) {
@@ -99,7 +120,7 @@ public record EnvioRegistro(
             throw new ValorInvalidoException(
                     "La AEAT no puede haber respondido antes de que el envío existiera");
         }
-        return new EnvioRegistro(id, registroId, desenlace, creadoEn, cuando,
-                codigo, descripcion, version);
+        return new EnvioRegistro(id, registroId, obligadoId, desenlace, creadoEn, cuando,
+                codigo, descripcion, intentos, version);
     }
 }

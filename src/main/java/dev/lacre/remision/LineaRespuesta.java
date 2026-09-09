@@ -2,18 +2,26 @@ package dev.lacre.remision;
 
 import dev.lacre.shared.ValorInvalidoException;
 import dev.lacre.verifactu.registro.IdFactura;
+import dev.lacre.verifactu.registro.TipoRegistro;
 
 /**
  * Lo que la AEAT responde sobre un registro concreto del lote.
+ * <p>
+ * <strong>La identificación de la factura no basta para saber a qué registro se refiere.</strong>
+ * En un mismo lote pueden ir el alta y la anulación de la misma factura, que comparten
+ * {@code IDFactura}; lo que las distingue es el {@code TipoOperacion} que la propia AEAT devuelve.
+ * Emparejar solo por la factura pegaría el desenlace al registro equivocado.
  *
+ * @param tipo del bloque {@code Operacion/TipoOperacion} de la respuesta
  * @param codigoError código del catálogo de la AEAT, nulo si no hubo error
  */
-public record LineaRespuesta(IdFactura idFactura, EstadoRegistroAeat estado,
+public record LineaRespuesta(IdFactura idFactura, TipoRegistro tipo, EstadoRegistroAeat estado,
                              Integer codigoError, String descripcionError) {
 
     public LineaRespuesta {
-        if (idFactura == null || estado == null) {
-            throw new ValorInvalidoException("La respuesta identifica la factura y su estado");
+        if (idFactura == null || estado == null || tipo == null) {
+            throw new ValorInvalidoException(
+                    "La respuesta identifica la factura, el tipo de operación y su estado");
         }
     }
 

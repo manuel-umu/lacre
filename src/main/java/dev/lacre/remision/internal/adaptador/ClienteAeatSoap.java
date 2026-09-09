@@ -77,8 +77,14 @@ class ClienteAeatSoap implements ClienteAeat {
         }
 
         if (respuesta.statusCode() != 200) {
-            // El cuerpo no se registra: puede traer datos del obligado, y quien depura tiene el
-            // código y el CSV de la respuesta buena para localizar el envío.
+            // Mismo criterio que abajo: el cuerpo va a DEBUG y no al mensaje. Un 403 se ha visto
+            // de verdad contra el Portal de Pruebas —certificado no autorizado para el
+            // servicio—, y sin poder mirar lo que venga es un callejón sin salida.
+            // Las cabeceras importan tanto como el cuerpo: un 3xx no trae explicación en el
+            // cuerpo, la trae en Location, y un 302 contra este servicio significa casi siempre
+            // que no llegó un certificado de cliente utilizable.
+            log.debug("La AEAT respondió HTTP {} con cabeceras {} y cuerpo: {}",
+                    respuesta.statusCode(), respuesta.headers().map(), respuesta.body());
             throw new RemisionFallidaException(
                     "la AEAT respondió HTTP " + respuesta.statusCode() + ", no un mensaje SOAP");
         }
@@ -90,6 +96,12 @@ class ClienteAeatSoap implements ClienteAeat {
                     leida.tiempoEspera().toSeconds());
             return leida;
         } catch (RespuestaIlegibleException e) {
+            // El cuerpo va a DEBUG y no al mensaje de la excepción: puede traer datos del
+            // obligado, y el mensaje acaba en el log de quien integra. Pero sin poder verlo,
+            // una respuesta que no entendemos es indiagnosticable, y eso es peor: quien opera
+            // esto necesita saber qué contestó la AEAT. Se activa cuando hace falta.
+            log.debug("Respuesta no interpretable de la AEAT (HTTP {}): {}",
+                    respuesta.statusCode(), respuesta.body());
             throw new RemisionFallidaException("la respuesta no se pudo interpretar", e);
         }
     }
