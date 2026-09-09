@@ -149,6 +149,18 @@
 			<version>1.4.1</version>
 			<scope>test</scope>
 		</dependency>
+		<!--
+			WireMock para los escenarios del adaptador de la AEAT que exige CLAUDE.md: aceptado,
+			aceptado con errores, rechazado y timeout. Se usa el artefacto standalone, que trae
+			Jetty y Jackson sombreados: sin sombrear, arrastraría al classpath de test una versión
+			de Jetty distinta de la de Spring Boot.
+		-->
+		<dependency>
+			<groupId>org.wiremock</groupId>
+			<artifactId>wiremock-standalone</artifactId>
+			<version>3.13.1</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

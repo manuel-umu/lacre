@@ -20,3 +20,21 @@ lacre:
     # declaración responsable.
     multi-obligado: ${LACRE_MULTI_OBLIGADO:true}
     sirve-a-varios-obligados: ${LACRE_SIRVE_A_VARIOS:true}
+
+  # Certificados con los que cada obligado se autentica ante la AEAT: un PKCS#12 por obligado,
+  # nombrado con su NIF, en un volumen que monta quien despliega. Rotar uno es sustituir su
+  # fichero. lacre NO guarda claves privadas ajenas en su base de datos.
+  #
+  # Las contraseñas NUNCA se escriben aquí: vienen de variables de entorno o de un fichero de
+  # secretos montado en el contenedor. La forma del mapa es
+  # lacre.certificados.contrasenas.<NIF>, porque cada PKCS#12 trae la suya.
+  certificados:
+    directorio: ${LACRE_CERTIFICADOS_DIR:}
+
+  # Remisión a la AEAT. El WSDL declara cuatro endpoints y elegir el que toca es decisión de
+  # despliegue: www1 (producción), www10 (producción con certificado de sello), prewww1 (pruebas)
+  # y prewww10 (pruebas con sello). Los de sello son OTRO HOST, no otra ruta: enviar un
+  # certificado de sello al host que no toca falla en el TLS, antes de leer el mensaje.
+  aeat:
+    endpoint: ${LACRE_AEAT_ENDPOINT:https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP}
+    timeout: ${LACRE_AEAT_TIMEOUT:60s}
