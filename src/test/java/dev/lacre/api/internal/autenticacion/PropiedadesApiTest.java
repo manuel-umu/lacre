@@ -1,4 +1,4 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.autenticacion;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

@@ -1,4 +1,4 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.autenticacion;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;

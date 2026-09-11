@@ -1,4 +1,4 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.consulta;
 
 import dev.lacre.identidad.ObligadoDesconocidoException;
 import dev.lacre.identidad.ObligadoTributario;
@@ -21,12 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/v1/obligados")
-class CadenasController {
+class CadenaController {
 
     private final Obligados obligados;
     private final RegistrosGuardados registros;
 
-    CadenasController(Obligados obligados, RegistrosGuardados registros) {
+    CadenaController(Obligados obligados, RegistrosGuardados registros) {
         this.obligados = obligados;
         this.registros = registros;
     }

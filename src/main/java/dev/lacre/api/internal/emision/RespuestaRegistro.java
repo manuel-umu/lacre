@@ -1,4 +1,4 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.emision;
 
 import java.util.UUID;
 

@@ -1,6 +1,11 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.emision.anulacion;
 
+import dev.lacre.api.internal.emision.IdFacturaDto;
+import dev.lacre.api.internal.emision.PersonaDto;
+import dev.lacre.api.internal.emision.PeticionRegistro;
+import dev.lacre.verifactu.registro.DatosRegistroAnulacion;
 import dev.lacre.verifactu.registro.GeneradoPor;
+import dev.lacre.verifactu.registro.SistemaInformatico;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
@@ -8,7 +13,8 @@ import jakarta.validation.constraints.NotNull;
  * Anulación de una factura ya expedida.
  * <p>
  * Mucho más pequeña que el alta: una anulación no lleva desglose ni importes, solo dice qué
- * factura se anula y quién lo hace.
+ * factura se anula y quién lo hace. Por eso el mapeo va aquí mismo y no en una clase aparte: son
+ * siete líneas, y {@code MapeadorDeAnulacion} sería un fichero que solo existiría por simetría.
  * <p>
  * <strong>No anula un registro, anula una factura.</strong> El registro de anulación es un
  * eslabón <em>nuevo</em> de la cadena, no un borrado del anterior: la cadena es de solo
@@ -34,5 +40,27 @@ public record PeticionAnulacion(
     @Override
     public IdFacturaDto factura() {
         return idFacturaAnulada;
+    }
+
+    @Override
+    public DatosRegistroAnulacion aDatos(SistemaInformatico sistemaInformatico) {
+        return new DatosRegistroAnulacion(
+                idFacturaAnulada.aDominio(),
+                refExterna,
+                PeticionRegistro.si(sinRegistroPrevio),
+                PeticionRegistro.si(rechazoPrevio),
+                generadoPor,
+                PersonaDto.opcional(generador),
+                sistemaInformatico);
+    }
+
+    /**
+     * Sin nada más: una factura se anula una vez, y lo que hay que distinguir es esto de un alta
+     * sobre la misma factura. Si llegara a hacer falta anularla dos veces con claves distintas,
+     * el problema no sería este discriminante.
+     */
+    @Override
+    public String discriminante() {
+        return "ANULACION";
     }
 }

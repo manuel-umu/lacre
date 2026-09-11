@@ -1,8 +1,13 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.emision.alta;
 
+import dev.lacre.api.internal.emision.IdFacturaDto;
+import dev.lacre.api.internal.emision.PersonaDto;
+import dev.lacre.api.internal.emision.PeticionRegistro;
 import dev.lacre.verifactu.registro.ClaveTipoRectificativa;
+import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.EmitidaPor;
 import dev.lacre.verifactu.registro.RechazoPrevio;
+import dev.lacre.verifactu.registro.SistemaInformatico;
 import dev.lacre.verifactu.registro.TipoFactura;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -11,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -32,7 +38,7 @@ import java.util.List;
  * </ul>
  * Los tipos enumerados se envían con el código de la AEAT ({@code F1}, {@code S}, {@code T}…),
  * que es el nombre de la constante. Los dos catálogos cuyo código es numérico —impuesto y tipo
- * de identificación— viajan como texto y los traduce {@link Mapeador}.
+ * de identificación— viajan como texto y los traducen {@link MapeadorDeAlta} y {@link PersonaDto}.
  * <p>
  * Los indicadores son {@code Boolean} y no {@code boolean} para que se puedan omitir, que es lo
  * que hará casi siempre el integrador. El diseño de registro oficial lo dice para todos ellos:
@@ -69,6 +75,21 @@ public record PeticionAlta(
         return idFactura;
     }
 
+    @Override
+    public DatosRegistroAlta aDatos(SistemaInformatico sistemaInformatico) {
+        return MapeadorDeAlta.aDatos(this, sistemaInformatico);
+    }
+
+    /**
+     * El importe total entra en la huella de la petición normalizado a dos decimales: {@code 100}
+     * y {@code 100.00} son la misma factura y no deben dar un 409.
+     */
+    @Override
+    public String discriminante() {
+        return "ALTA:" + (importeTotal == null
+                ? ""
+                : importeTotal.setScale(2, RoundingMode.HALF_UP).toPlainString());
+    }
 
     /**
      * Una línea del desglose. Va aplanado —una lista, no un objeto {@code desglose} con una

@@ -1,6 +1,7 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.emision.anulacion;
 
 import dev.lacre.TestcontainersConfiguration;
+import dev.lacre.api.internal.ApiDePrueba;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
 import dev.lacre.remision.EstadoEnvio;

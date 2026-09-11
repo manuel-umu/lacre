@@ -1,5 +1,7 @@
 package dev.lacre.api.internal;
 
+import dev.lacre.api.internal.consulta.RegistroDesconocidoException;
+import dev.lacre.api.internal.emision.ClaveIdempotenciaReutilizadaException;
 import dev.lacre.identidad.ObligadoDesconocidoException;
 import dev.lacre.shared.ValorInvalidoException;
 import org.springframework.http.HttpHeaders;

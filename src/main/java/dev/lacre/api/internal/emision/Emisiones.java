@@ -1,4 +1,4 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.emision;
 
 import dev.lacre.identidad.ObligadoDesconocidoException;
 import dev.lacre.identidad.ObligadoTributario;
@@ -6,12 +6,11 @@ import dev.lacre.identidad.Obligados;
 import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.emision.EmisorDeRegistros;
 import dev.lacre.verifactu.emision.RegistroEmitido;
+import dev.lacre.verifactu.registro.SistemaInformatico;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -42,15 +41,15 @@ import java.util.UUID;
 class Emisiones {
 
     private final EmisorDeRegistros emisor;
-    private final Mapeador mapeador;
+    private final SistemaInformatico sistemaInformatico;
     private final Obligados obligados;
     private final JdbcClient jdbc;
     private final Clock reloj;
 
-    Emisiones(EmisorDeRegistros emisor, Mapeador mapeador, Obligados obligados,
+    Emisiones(EmisorDeRegistros emisor, SistemaInformatico sistemaInformatico, Obligados obligados,
               JdbcClient jdbc, Clock reloj) {
         this.emisor = emisor;
-        this.mapeador = mapeador;
+        this.sistemaInformatico = sistemaInformatico;
         this.obligados = obligados;
         this.jdbc = jdbc;
         this.reloj = reloj;
@@ -68,7 +67,7 @@ class Emisiones {
             return anotada.get().comoRespuestaSiCoincide(clave, huellaPeticion);
         }
 
-        RegistroEmitido emitido = emisor.emitir(obligado.id(), mapeador.aDatos(peticion));
+        RegistroEmitido emitido = emisor.emitir(obligado.id(), peticion.aDatos(sistemaInformatico));
         anotar(obligado.id(), clave, huellaPeticion, emitido);
         return new RespuestaRegistro(emitido.id(), emitido.posicion(), emitido.huella().valor());
     }
@@ -132,25 +131,17 @@ class Emisiones {
      * cambie la descripción de la operación o el orden de un campo no es eso: sigue siendo la
      * misma petición y merece la misma respuesta, no un 409 por una diferencia de bytes.
      * <p>
-     * El tipo entra en la huella porque la misma factura puede tener alta y anulación: usar la
-     * misma clave para las dos es un error del integrador, y debe verlo.
+     * El tipo entra por {@link PeticionRegistro#discriminante()}, y no por un {@code switch}
+     * sobre la clase: la misma factura puede tener alta y anulación, y usar la misma clave para
+     * las dos es un error del integrador que debe ver. Cada petición sabe qué la distingue.
      */
     private static String huellaDe(PeticionRegistro peticion) {
         IdFacturaDto id = peticion.factura();
-        String discriminante = switch (peticion) {
-            case PeticionAlta alta -> "ALTA:" + normalizado(alta.importeTotal());
-            case PeticionAnulacion ignorada -> "ANULACION";
-        };
         return sha256(String.join("|",
                 String.valueOf(id.idEmisorFactura()),
                 String.valueOf(id.numSerieFactura()),
                 String.valueOf(id.fechaExpedicionFactura()),
-                discriminante));
-    }
-
-    /** Dos decimales fijos: {@code 100} y {@code 100.00} son la misma factura. */
-    private static String normalizado(BigDecimal importe) {
-        return importe == null ? "" : importe.setScale(2, RoundingMode.HALF_UP).toPlainString();
+                peticion.discriminante()));
     }
 
     private static String sha256(String texto) {

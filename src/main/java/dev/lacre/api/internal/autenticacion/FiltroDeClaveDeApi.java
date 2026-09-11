@@ -1,4 +1,4 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.autenticacion;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

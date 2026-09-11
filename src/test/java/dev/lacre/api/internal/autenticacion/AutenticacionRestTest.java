@@ -1,6 +1,7 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.autenticacion;
 
 import dev.lacre.TestcontainersConfiguration;
+import dev.lacre.api.internal.ApiDePrueba;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

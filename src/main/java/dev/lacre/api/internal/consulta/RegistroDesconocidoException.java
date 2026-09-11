@@ -1,4 +1,4 @@
-package dev.lacre.api.internal;
+package dev.lacre.api.internal.consulta;
 
 import java.util.UUID;
 
@@ -8,9 +8,9 @@ import java.util.UUID;
  * Aquí sí es 404, al contrario que el obligado no censado: lo que identifica el recurso es la
  * ruta, y no hay ningún recurso en esa ruta.
  */
-class RegistroDesconocidoException extends RuntimeException {
+public class RegistroDesconocidoException extends RuntimeException {
 
-    RegistroDesconocidoException(UUID id) {
+    public RegistroDesconocidoException(UUID id) {
         super("No hay ningún registro de facturación con identificador " + id);
     }
 }
