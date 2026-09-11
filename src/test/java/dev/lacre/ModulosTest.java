@@ -22,15 +22,16 @@ class ModulosTest {
     }
 
     /**
-     * Los subpaquetes publicados de {@code verifactu}: los tres de concepto más {@code evento},
-     * que es por donde {@code remision} ve {@code RegistroCreado}. Si alguno perdiera su
+     * Los subpaquetes publicados de {@code verifactu}: los tres de concepto, {@code evento} —por
+     * donde {@code remision} ve {@code RegistroCreado}— y los dos puertos de la aplicación,
+     * {@code emision} y {@code consulta}. Si alguno perdiera su
      * {@code @NamedInterface} quedaría interno y los demás módulos dejarían de verlo: este test
      * lo detecta antes que un fallo de compilación a mitad de la Fase 6.
      */
     @Test
     void verifactuPublicaSusInterfacesDeConcepto() {
         assertThat(interfacesPublicadasDeVerifactu())
-                .contains("registro", "desglose", "huella", "evento");
+                .contains("registro", "desglose", "huella", "evento", "emision", "consulta");
     }
 
     /**

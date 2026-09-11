@@ -3,6 +3,18 @@ spring:
     name: lacre
 
 lacre:
+  # Credencial con la que el ERP llama a la API. UNA por despliegue: lacre lo despliega el
+  # cliente, así que un despliegue es un ERP y el ERP es la frontera de confianza.
+  #
+  # NUNCA se escribe aquí. Viene de una variable de entorno o de un fichero de secretos montado
+  # en el contenedor, igual que las contraseñas de los PKCS#12. Sin ella lacre NO ARRANCA: una
+  # API de facturación abierta deja el registro fiscal de sus obligados al alcance de cualquiera
+  # que llegue al puerto.
+  #
+  #     openssl rand -base64 32
+  api:
+    clave: ${LACRE_API_CLAVE:}
+
   # Identidad del sistema informático de facturación. Viaja en cada registro y debe coincidir
   # con la declaración responsable que firme quien comercializa el sistema.
   sistema-informatico:

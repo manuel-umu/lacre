@@ -5,6 +5,8 @@ import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Nif;
+import dev.lacre.verifactu.emision.EmisorDeRegistros;
+import dev.lacre.verifactu.emision.RegistroEmitido;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
 import dev.lacre.verifactu.internal.xml.EscritorRegistro;
 import dev.lacre.verifactu.registro.DatosRegistro;
@@ -47,7 +49,7 @@ import java.util.function.Supplier;
  * publicable sigue sin conocer a ningún módulo, y {@code ArquitecturaTest} lo vigila.
  */
 @Service
-public class CadenaDeRegistros {
+public class CadenaDeRegistros implements EmisorDeRegistros {
 
     private static final Logger log = LoggerFactory.getLogger(CadenaDeRegistros.class);
 
@@ -69,6 +71,16 @@ public class CadenaDeRegistros {
         this.generadorDeIdentificadores = generadorDeIdentificadores;
         this.eventos = eventos;
         this.reloj = reloj;
+    }
+
+    /**
+     * El puerto publicado. Delega en {@link #anadir}, que devuelve el asiento completo: ese tipo
+     * vive en el adaptador y no puede cruzar la frontera del módulo.
+     */
+    @Override
+    public RegistroEmitido emitir(UUID obligadoId, DatosRegistro datos) {
+        RegistroFacturacion guardado = anadir(obligadoId, datos);
+        return new RegistroEmitido(guardado.id(), guardado.posicion(), guardado.huella());
     }
 
     @Transactional

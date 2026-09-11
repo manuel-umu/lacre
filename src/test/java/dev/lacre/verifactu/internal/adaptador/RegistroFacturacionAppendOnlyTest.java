@@ -81,9 +81,13 @@ class RegistroFacturacionAppendOnlyTest {
 
     /**
      * Desde que existe el outbox, su clave ajena rechaza el {@code truncate} a secas antes de
-     * que el trigger llegue a ejecutarse. Truncar las dos tablas a la vez esquiva la clave ajena
-     * y sí llega al trigger, que es la capa que aquí se prueba: sin ese segundo caso, este test
-     * pasaría en verde sin demostrar nada del trigger.
+     * que el trigger llegue a ejecutarse. Truncar a la vez todas las tablas que apuntan al
+     * registro esquiva la clave ajena y sí llega al trigger, que es la capa que aquí se prueba:
+     * sin ese segundo caso, este test pasaría en verde sin demostrar nada del trigger.
+     * <p>
+     * La lista crece con cada tabla que referencie al registro —hoy el outbox y la idempotencia
+     * de la API—, y crecer es lo correcto: si se olvidara una, el caso volvería a quedarse en la
+     * clave ajena sin llegar al trigger, y el test avisa.
      */
     @Test
     void unTruncateRevienta() {
@@ -91,7 +95,7 @@ class RegistroFacturacionAppendOnlyTest {
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("foreign key");
 
-        assertThatThrownBy(() -> jdbc.sql("truncate registro_facturacion, envio_registro").update())
+        assertThatThrownBy(() -> jdbc.sql("truncate registro_facturacion, envio_registro, peticion_idempotente").update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("solo inserción");
     }

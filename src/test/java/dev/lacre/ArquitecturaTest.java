@@ -172,7 +172,7 @@ class ArquitecturaTest {
      * un módulo es añadir su nombre aquí.
      */
     @ParameterizedTest
-    @ValueSource(strings = {"verifactu", "identidad", "remision"})
+    @ValueSource(strings = {"verifactu", "identidad", "remision", "api"})
     void nadieDeFueraDelModuloEntraEnSuPaqueteInterno(String modulo) {
         ArchRule regla = noClasses()
                 .that().resideOutsideOfPackage("dev.lacre." + modulo + "..")
