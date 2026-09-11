@@ -14,14 +14,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Persona física o jurídica: destinatario del alta, o generador de la anulación. Por eso vive en
- * la raíz de {@code emision} y no en ninguno de los dos subpaquetes.
- * <p>
- * El XSD modela la identificación como un {@code choice} entre {@code NIF} e {@code IDOtro}, y
- * aquí se conserva: hay que aportar <strong>uno de los dos</strong>. Un extranjero sin NIF
- * español se identifica con {@code idOtro}. Que sea exactamente uno lo comprueba
- * {@link #aDominio()} y no una anotación: el mensaje que sale de ahí explica la regla, y un
- * {@code @AssertTrue} anónimo no.
+ * Persona física o jurídica en la API: destinatario del alta o generador de la anulación. Se
+ * identifica con {@code nif} o con {@code idOtro}, exactamente uno de los dos.
  */
 public record PersonaDto(
         @NotBlank String nombreRazon,
@@ -39,11 +33,7 @@ public record PersonaDto(
             .stream(TipoIdentificacion.values())
             .collect(Collectors.toUnmodifiableMap(TipoIdentificacion::codigo, tipo -> tipo));
 
-    /**
-     * Admite nulo y devuelve nulo: el tercero del alta y el generador de la anulación son
-     * opcionales. Nombre distinto del de abajo y no una sobrecarga: con el mismo nombre, un
-     * {@code PersonaDto::aDominio} en un {@code stream} queda ambiguo y no compila.
-     */
+    /** Admite nulo y devuelve nulo. */
     public static PersonaFisicaJuridica opcional(PersonaDto dto) {
         return dto == null ? null : dto.aDominio();
     }

@@ -21,21 +21,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Añade un registro a la cadena, una sola vez por clave de idempotencia. Vale para el alta y
- * para la anulación: para este servicio son el mismo caso de uso con distinto contenido.
- * <p>
- * Un ERP reintenta: por un timeout, por un reinicio, porque su cliente HTTP lo hace solo. Y un
- * reintento no puede añadir un segundo eslabón a la cadena con los mismos datos, porque la
- * cadena es de solo inserción y lo único que quedaría después sería anular uno de los dos.
- * <p>
- * <strong>Todo ocurre en una transacción</strong>, y empieza tomando un cerrojo consultivo por
- * clave. Es el mismo mecanismo que usa {@code CadenaDeRegistros} para serializar la cadena, y
- * por la misma razón: sin él, dos reintentos simultáneos leerían los dos que no hay anotación
- * y emitirían los dos. La clave primaria de la tabla pararía al segundo, pero perdiendo la
- * transacción entera en vez de devolverle la respuesta que ya existía.
- * <p>
- * El orden de los dos cerrojos es siempre el mismo —primero la clave, después la cadena—, que
- * es lo que evita que dos peticiones cruzadas se bloqueen mutuamente.
+ * Caso de uso de emisión: añade un registro a la cadena una sola vez por clave de idempotencia,
+ * en una transacción y bajo un cerrojo consultivo por clave. Vale para el alta y la anulación.
  */
 @Service
 class Emisiones {
@@ -72,11 +59,7 @@ class Emisiones {
         return new RespuestaRegistro(emitido.id(), emitido.posicion(), emitido.huella().valor());
     }
 
-    /**
-     * El obligado no se pide en el cuerpo: en Veri*Factu el emisor de la factura <em>es</em> el
-     * obligado por cuya cuenta se expide, tanto al expedirla como al anularla. Pedirlo aparte
-     * solo añadiría una forma de que los dos no coincidieran.
-     */
+    /** El obligado es el emisor de la factura; no se pide aparte. */
     private ObligadoTributario obligadoDe(PeticionRegistro peticion) {
         Nif emisorFactura = new Nif(peticion.factura().idEmisorFactura());
         return obligados.findByNif(emisorFactura)
@@ -123,17 +106,8 @@ class Emisiones {
     }
 
     /**
-     * Identidad fiscal de lo que se pide, no el cuerpo entero del JSON.
-     * <p>
-     * Se eligió así a propósito. Lo que hay que detectar es que alguien reutilice una clave para
-     * <strong>otra factura</strong>, porque devolverle entonces el registro de la primera le
-     * haría dar por registrada —o por anulada— una factura que no lo está. Que un reintento
-     * cambie la descripción de la operación o el orden de un campo no es eso: sigue siendo la
-     * misma petición y merece la misma respuesta, no un 409 por una diferencia de bytes.
-     * <p>
-     * El tipo entra por {@link PeticionRegistro#discriminante()}, y no por un {@code switch}
-     * sobre la clase: la misma factura puede tener alta y anulación, y usar la misma clave para
-     * las dos es un error del integrador que debe ver. Cada petición sabe qué la distingue.
+     * Huella de la petición para la idempotencia: identidad fiscal de la factura más el
+     * {@link PeticionRegistro#discriminante()}, no el cuerpo entero.
      */
     private static String huellaDe(PeticionRegistro peticion) {
         IdFacturaDto id = peticion.factura();
@@ -154,7 +128,7 @@ class Emisiones {
         }
     }
 
-    /** Lo que se respondió a una clave, tal y como quedó guardado. */
+    /** Respuesta guardada para una clave de idempotencia. */
     private record Anotacion(UUID registroId, long posicion, String huella, String huellaPeticion) {
 
         RespuestaRegistro comoRespuestaSiCoincide(String clave, String huellaPeticion) {

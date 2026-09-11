@@ -14,22 +14,10 @@ import java.net.URL;
 import java.util.Map;
 
 /**
- * Compila los esquemas oficiales de la AEAT resolviendo <strong>todo</strong> desde el
- * classpath.
- * <p>
- * Hace falta porque {@code SuministroInformacion.xsd} importa el esquema de firma XML con una
- * URL absoluta a la W3C. Tal cual, cada validación se iría a la red y el CI dependería de que
- * {@code w3.org} responda.
- * <p>
- * Se vendorizan tres ficheros del W3C: el esquema de firma y las dos DTD que arrastra su
- * {@code DOCTYPE} ({@code XMLSchema.dtd} y, a través de ella, {@code datatypes.dtd}). Servir
- * una DTD vacía no vale: Xerces la ignora, sale a la red igualmente y el documento acaba sin
- * parsear.
- * <p>
- * El resolutor <strong>lanza</strong> ante cualquier recurso que no tenga en local, en lugar de
- * devolver {@code null}. Devolver {@code null} le diría al parser que resuelva por su cuenta,
- * es decir, que salga a la red en silencio: exactamente lo que se quiere impedir. Que estos
- * tests pasen demuestra que no hay ni una petición saliente.
+ * Compila los esquemas oficiales de la AEAT resolviendo todo desde el classpath.
+ * {@code SuministroInformacion.xsd} importa el esquema de firma de la W3C por URL absoluta, así
+ * que se vendorizan ese esquema y sus dos DTD. El resolutor lanza ante cualquier recurso que no
+ * tenga en local, en vez de dejar que el parser salga a la red.
  */
 public final class EsquemasAeat {
 
@@ -59,19 +47,15 @@ public final class EsquemasAeat {
         SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         factory.setResourceResolver(new ResolutorLocal());
         try {
-            // RespuestaConsultaLR.xsd declara maxOccurs="10000" y la JDK corta en 5.000 para
-            // protegerse de esquemas hostiles. Aquí solo se compilan los XSD oficiales, ya
-            // vendorizados en el classpath, así que subir el límite no abre ninguna puerta.
+            // RespuestaConsultaLR.xsd declara maxOccurs="10000" y la JDK corta en 5.000.
             factory.setProperty(LIMITE_OCURRENCIAS, "20000");
         } catch (SAXException e) {
             throw new IllegalStateException(
                     "Esta JVM no admite la propiedad " + LIMITE_OCURRENCIAS, e);
         }
         try {
-            // Sin ACCESS_EXTERNAL_SCHEMA: esa restricción se aplica antes de consultar al
-            // resolutor y hace que el import del xmldsig se descarte en silencio, con lo que
-            // ds:Signature queda sin declarar. Quien garantiza que no hay red es el resolutor,
-            // que lanza ante cualquier recurso que no tenga en local.
+            // Sin ACCESS_EXTERNAL_SCHEMA: se aplica antes del resolutor y descartaría el import
+            // del xmldsig. La ausencia de red la garantiza el resolutor.
             return factory.newSchema(new StreamSource(recurso(fichero).toExternalForm()));
         } catch (SAXException e) {
             throw new IllegalStateException("No se pudo compilar el esquema " + fichero, e);

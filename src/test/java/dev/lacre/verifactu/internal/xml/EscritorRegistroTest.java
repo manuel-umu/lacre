@@ -35,9 +35,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * El XSD es la autoridad: {@code RegistroFacturacionAltaType} es una {@code sequence}, así que
- * un solo elemento fuera de orden invalida el documento. Estos tests validan contra el esquema
- * oficial, no contra lo que a nosotros nos parezca correcto.
+ * Serialización validada contra el XSD oficial: {@code RegistroFacturacionAltaType} es una
+ * {@code sequence} y un elemento fuera de orden invalida el documento.
  */
 class EscritorRegistroTest {
 

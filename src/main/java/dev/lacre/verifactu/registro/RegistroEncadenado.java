@@ -7,14 +7,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Registro de alta con su huella ya calculada y su enlace al registro anterior.
- * <p>
- * No lleva posición dentro de la cadena: esa la asigna la capa de persistencia bajo el
- * cerrojo del obligado, y el dominio puro no tiene forma de generarla.
+ * Registro con su huella calculada y su enlace al anterior. La posición en la cadena la asigna
+ * la persistencia.
  *
- * @param registroAnterior          vacío si es el primer registro de la cadena
- * @param fechaHoraHusoGenRegistro  con huso horario y truncado a segundos, porque así entra
- *                                  en el cálculo de la huella y así se serializa al XML
+ * @param registroAnterior         vacío en el primer registro de la cadena
+ * @param fechaHoraHusoGenRegistro con huso horario y truncada a segundos
  */
 public record RegistroEncadenado(
         DatosRegistro datos,

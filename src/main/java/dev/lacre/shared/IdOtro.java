@@ -14,7 +14,7 @@ public record IdOtro(String codigoPais, TipoIdentificacion tipo, String id) impl
 
     public static final int MAXIMO_LONGITUD_ID = 20;
 
-    /** Los 246 códigos de {@code CountryType2}, extraídos del XSD. */
+    /** Códigos de país de {@code CountryType2}. */
     private static final Set<String> CODIGOS_PAIS = Set.of(
             "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AZ",
             "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BM", "BN", "BO", "BQ", "BR", "BS",

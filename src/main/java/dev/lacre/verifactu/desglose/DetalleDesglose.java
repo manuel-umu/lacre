@@ -5,13 +5,8 @@ import dev.lacre.shared.Porcentaje;
 import dev.lacre.shared.ValorInvalidoException;
 
 /**
- * Una línea del desglose de impuestos, {@code DetalleType} del XSD.
- * <p>
- * Solo {@link #calificacion()} y {@link #baseImponibleOimporteNoSujeto()} son obligatorios;
- * el resto son {@code minOccurs="0"} en el esquema y aquí pueden ser nulos. Se ha preferido
- * admitir nulos a envolver seis componentes en {@code Optional}: un record de nueve campos con
- * seis {@code Optional} es peor de construir y de leer, y la ausencia se traduce
- * directamente a «el elemento no se emite» al serializar.
+ * Línea del desglose de impuestos, {@code DetalleType} del XSD. Solo {@link #calificacion()} y
+ * {@link #baseImponibleOimporteNoSujeto()} son obligatorios; el resto admite nulo.
  */
 public record DetalleDesglose(
         Impuesto impuesto,

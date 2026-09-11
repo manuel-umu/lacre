@@ -23,10 +23,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Invariantes de la cadena: lo que tiene que seguir siendo cierto para cualquier huella
- * anterior, no solo para los tres ejemplos del documento de la AEAT.
- */
+/** Invariantes de la cadena para cualquier huella anterior. */
 class EncadenadorRegistrosProperties {
 
     private static final ZoneId MADRID = ZoneId.of("Europe/Madrid");

@@ -24,20 +24,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * El alta por HTTP, de extremo a extremo y contra Postgres de verdad: contrato, mapeo al modelo
- * fiscal, idempotencia y forma de los errores.
- * <p>
- * Un solo test de integración en vez de una batería con {@code Altas} simulado. Lo que puede
- * romperse aquí son las costuras —que Jackson no sepa construir el {@code record}, que un
- * catálogo no se traduzca, que la anotación de idempotencia y el registro no vayan en la misma
- * transacción—, y ninguna de esas se ve con un doble de por medio.
+ * El alta por HTTP, de extremo a extremo y contra Postgres: contrato, mapeo al modelo fiscal,
+ * idempotencia y forma de los errores.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 class AltaRestTest {
 
-    /** Válido pero sin dar de alta como obligado: sirve para el caso del emisor desconocido. */
+    /** Válido, pero no dado de alta como obligado. */
     private static final String NIF_NO_CENSADO = "89890001K";
 
     @Autowired
@@ -57,10 +52,7 @@ class AltaRestTest {
         nifDelObligado = obligados.findById(id).orElseThrow().nif().valor();
     }
 
-    /**
-     * El 201 no dice que la AEAT lo haya aceptado, sino que el registro está en la cadena y su
-     * envío en el outbox. Se comprueban las dos cosas: es el invariante del flujo principal.
-     */
+    /** Un 201 significa registro en la cadena y envío en el outbox. */
     @Test
     void elAltaDevuelveLaHuellaYDejaSuEnvioPendiente() throws Exception {
         MvcResult respuesta = mvc.perform(alta("clave-1", cuerpo("FA/1", "123.45")))
@@ -73,10 +65,6 @@ class AltaRestTest {
                 .hasValueSatisfying(envio -> assertThat(envio.estado()).isEqualTo(EstadoEnvio.PENDIENTE));
     }
 
-    /**
-     * Lo que esta fase existe para evitar: que un reintento del ERP añada un segundo eslabón con
-     * los mismos datos. Que la posición siga siendo 1 lo demuestra mejor que contar filas.
-     */
     @Test
     void elReintentoConLaMismaClaveNoAnadeUnSegundoEslabon() throws Exception {
         String cuerpo = cuerpo("FA/1", "123.45");
@@ -91,10 +79,6 @@ class AltaRestTest {
         assertThat(registroId(segunda)).isEqualTo(registroId(primera));
     }
 
-    /**
-     * Reutilizar la clave para otra factura no puede devolver el registro de la primera: el ERP
-     * daría por registrada una factura que no lo está y no habría forma de que se enterase.
-     */
     @Test
     void laMismaClaveConOtraFacturaEsConflicto() throws Exception {
         mvc.perform(alta("clave-2", cuerpo("FA/1", "123.45"))).andExpect(status().isCreated());
@@ -113,7 +97,7 @@ class AltaRestTest {
                 .andExpect(status().isBadRequest());
     }
 
-    /** Fase 7.3: el error dice qué campo falta, no «Invalid request content». */
+    /** El error nombra el campo que falta. */
     @Test
     void unCampoObligatorioQueFaltaSeDicePorSuNombre() throws Exception {
         String sinDescripcion = cuerpo("FA/3", "123.45")

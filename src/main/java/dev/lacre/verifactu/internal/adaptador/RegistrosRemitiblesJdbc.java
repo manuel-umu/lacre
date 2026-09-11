@@ -15,10 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Lado de lectura con SQL explícito, según la regla de CQRS deliberado de {@code CLAUDE.md}: no
- * pasa por el agregado porque no hace falta el agregado.
- */
+/** Lado de lectura de los registros que hay que remitir, con SQL explícito. */
 @Component
 class RegistrosRemitiblesJdbc implements RegistrosRemitibles {
 
@@ -49,8 +46,7 @@ class RegistrosRemitiblesJdbc implements RegistrosRemitibles {
                         rs.getString("xml"))))
                 .list();
 
-        // En el orden pedido, no en el que salga de la base de datos: quien llama empareja el
-        // resultado con su propia lista, y otro orden se lo pegaría al registro equivocado.
+        // En el orden pedido: quien llama empareja el resultado con su propia lista.
         return registroIds.stream().map(porId::get).filter(Objects::nonNull).toList();
     }
 }

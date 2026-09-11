@@ -32,21 +32,9 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * Añade registros a la cadena de un obligado, en orden y sin bifurcaciones.
- * <p>
- * Es el caso de uso, y vive en el adaptador y no en el núcleo a propósito: la librería que se
- * publica ofrece el motor de huella y la serialización, mientras que decidir la posición y
- * escribir en una base de datos es asunto de la aplicación. Ver ADR 0002.
- * <p>
- * <strong>Toda la operación va en una transacción</strong> y empieza tomando un cerrojo
- * consultivo por obligado. Sin él, dos hilos podrían leer el mismo último registro y calcular
- * la misma posición: uno de los dos fallaría por la restricción {@code UNIQUE}, que es la
- * tercera capa de defensa, pero perdiendo la factura. El cerrojo evita llegar a eso.
- * <p>
- * Es el adaptador, no el núcleo, quien conoce a {@code identidad}: la zona horaria con la que se
- * fecha el registro <strong>entra en la huella</strong> y es dato del obligado, así que se
- * resuelve aquí en vez de confiar en que quien llame acierte con el parámetro. El núcleo
- * publicable sigue sin conocer a ningún módulo, y {@code ArquitecturaTest} lo vigila.
+ * Caso de uso de emisión: añade registros a la cadena de un obligado, en orden y sin
+ * bifurcaciones. Toda la operación va en una transacción bajo un cerrojo consultivo por
+ * obligado, y resuelve la zona horaria del obligado, que entra en la huella.
  */
 @Service
 public class CadenaDeRegistros implements EmisorDeRegistros {
@@ -73,10 +61,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         this.reloj = reloj;
     }
 
-    /**
-     * El puerto publicado. Delega en {@link #anadir}, que devuelve el asiento completo: ese tipo
-     * vive en el adaptador y no puede cruzar la frontera del módulo.
-     */
+    /** Puerto publicado; delega en {@link #anadir}. */
     @Override
     public RegistroEmitido emitir(UUID obligadoId, DatosRegistro datos) {
         RegistroFacturacion guardado = anadir(obligadoId, datos);
@@ -102,23 +87,14 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
                 generadorDeIdentificadores.get(), obligadoId, posicion, encadenado,
                 EscritorRegistro.escribir(encadenado)));
 
-        // Publicado aquí y no con @DomainEvents en el agregado: RegistroFacturacion es un record
-        // inmutable, y ese mecanismo pide además un método que limpie los eventos ya publicados.
-        // Los oyentes son síncronos, así que corren antes de que esta transacción confirme.
+        // Oyentes síncronos: corren antes de que confirme esta transacción.
         eventos.publishEvent(new RegistroCreado(guardado.id(), obligadoId));
         return guardado;
     }
 
     /**
-     * Art. 7.i de la OM HAC/1177/2024. <strong>Avisa, no impide emitir</strong>: la FAQ 15 dice
-     * que «será preciso generar el siguiente RF, ya que la facturación por este motivo NUNCA
-     * debe interrumpirse». Lanzar aquí sería incumplir la norma, no ser más estricto.
-     * <p>
-     * El primer registro de la cadena está exento, y con un solo registro guardado no hay
-     * eslabón que comprobar: el suyo se comprobó cuando se generó.
-     *
-     * @implNote TODO Cuando exista la API (Fase 7.3), estas anomalías deben viajar también en la
-     * respuesta al integrador, no solo al log.
+     * Comprobación previa del art. 7.i de la OM HAC/1177/2024. Avisa en el log y no impide
+     * emitir; el primer registro de la cadena está exento.
      */
     private void comprobacionPreviaDelArticulo7i(UUID obligadoId, List<Enlace> cola) {
         if (cola.isEmpty()) {
@@ -138,11 +114,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         }
     }
 
-    /**
-     * Cerrojo consultivo transaccional: se libera solo al terminar la transacción, así que no
-     * hay forma de olvidarse de soltarlo. Nada de Redis ni de {@code synchronized}: habrá más
-     * de una instancia de la aplicación y un cerrojo en memoria no serviría de nada.
-     */
+    /** Cerrojo consultivo por obligado; se libera al terminar la transacción. */
     private void serializarLaCadenaDe(UUID obligadoId) {
         jdbc.sql("select pg_advisory_xact_lock(hashtext(:clave))")
                 .param("clave", "cadena:" + obligadoId)
@@ -151,11 +123,8 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
     }
 
     /**
-     * Lado de lectura: SQL explícito, sin pasar por el agregado.
-     * <p>
-     * Dos filas y no una: la primera es con la que se encadena el registro nuevo, y la segunda
-     * hace falta para la comprobación previa del art. 7.i, que verifica que la primera enlaza
-     * bien con ella.
+     * Los dos últimos registros de la cadena: el primero para encadenar el nuevo, el segundo
+     * para la comprobación previa.
      */
     private List<Enlace> losDosUltimosDe(UUID obligadoId) {
         return jdbc.sql("""
@@ -186,11 +155,10 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
     }
 
     /**
-     * Un registro guardado, visto desde la cadena: con qué enlaza hacia atrás y cuándo se generó.
+     * Registro guardado visto desde la cadena.
      *
-     * @param huellaAnterior nula solo en el primer registro de la cadena
-     * @param fechaHora reconstruida con el huso con el que se calculó la huella, no con el de la
-     *                  sesión de base de datos
+     * @param huellaAnterior nula en el primer registro de la cadena
+     * @param fechaHora con el huso original con el que se calculó la huella
      */
     record Enlace(long posicion, Nif emisor, String numSerieFactura, LocalDate fechaExpedicion,
                   Huella huella, Huella huellaAnterior, OffsetDateTime fechaHora) {

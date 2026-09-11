@@ -23,25 +23,16 @@ import java.security.SecureRandom;
 import java.util.List;
 
 /**
- * Habla con el servicio web de la AEAT: SOAP 1.1 en modo {@code document}/{@code literal} sobre
- * HTTPS con autenticación mutua, según el
- * <a href="../../../../../../docs/adr/0006-cliente-soap-a-mano.md">ADR 0006</a>.
- * <p>
- * Sin JAX-WS ni Spring-WS: es <strong>una</strong> operación, sin WS-Security ni WS-Addressing,
- * cuyo cuerpo describe íntegramente un XSD que ya validamos. El sobre lo pone
- * {@link EscritorLote} y la respuesta la lee {@link LectorRespuestaAeat}.
- * <p>
- * <strong>Un {@link HttpClient} por obligado, y no uno compartido</strong>: el TLS mutuo se
- * autentica con el certificado de <em>cada</em> obligado, así que el material de clave es parte
- * de la conexión y no puede compartirse entre ellos. Reutilizar un cliente sería remitir por
- * cuenta de quien no toca.
+ * Cliente del servicio web de la AEAT: SOAP 1.1 {@code document}/{@code literal} sobre HTTPS con
+ * autenticación mutua, con {@link HttpClient} de la JDK. Un cliente por obligado, porque el TLS
+ * se autentica con el certificado de cada uno.
  */
 @Component
 class ClienteAeatSoap implements ClienteAeat {
 
     private static final Logger log = LoggerFactory.getLogger(ClienteAeatSoap.class);
 
-    /** El WSDL declara {@code soapAction=""} para esta operación: la cabecera va, pero vacía. */
+    /** El WSDL declara {@code soapAction=""} para esta operación. */
     private static final String SOAP_ACTION = "";
 
     private static final String TIPO_CONTENIDO = "text/xml; charset=utf-8";
@@ -77,12 +68,7 @@ class ClienteAeatSoap implements ClienteAeat {
         }
 
         if (respuesta.statusCode() != 200) {
-            // Mismo criterio que abajo: el cuerpo va a DEBUG y no al mensaje. Un 403 se ha visto
-            // de verdad contra el Portal de Pruebas —certificado no autorizado para el
-            // servicio—, y sin poder mirar lo que venga es un callejón sin salida.
-            // Las cabeceras importan tanto como el cuerpo: un 3xx no trae explicación en el
-            // cuerpo, la trae en Location, y un 302 contra este servicio significa casi siempre
-            // que no llegó un certificado de cliente utilizable.
+            // Cuerpo y cabeceras van a DEBUG, no al mensaje: pueden traer datos del obligado.
             log.debug("La AEAT respondió HTTP {} con cabeceras {} y cuerpo: {}",
                     respuesta.statusCode(), respuesta.headers().map(), respuesta.body());
             throw new RemisionFallidaException(
@@ -96,21 +82,14 @@ class ClienteAeatSoap implements ClienteAeat {
                     leida.tiempoEspera().toSeconds());
             return leida;
         } catch (RespuestaIlegibleException e) {
-            // El cuerpo va a DEBUG y no al mensaje de la excepción: puede traer datos del
-            // obligado, y el mensaje acaba en el log de quien integra. Pero sin poder verlo,
-            // una respuesta que no entendemos es indiagnosticable, y eso es peor: quien opera
-            // esto necesita saber qué contestó la AEAT. Se activa cuando hace falta.
+            // El cuerpo va a DEBUG, no al mensaje: puede traer datos del obligado.
             log.debug("Respuesta no interpretable de la AEAT (HTTP {}): {}",
                     respuesta.statusCode(), respuesta.body());
             throw new RemisionFallidaException("la respuesta no se pudo interpretar", e);
         }
     }
 
-    /**
-     * El almacén de confianza va a {@code null} a propósito: eso deja el del sistema, que es
-     * quien valida el certificado de servidor de la AEAT. Sustituirlo por uno propio obligaría a
-     * mantener las CA a mano y a arreglarlo cada vez que la AEAT rote la suya.
-     */
+    /** Almacén de confianza del sistema, que valida el certificado de servidor de la AEAT. */
     private HttpClient clienteDe(CertificadoDeObligado certificado) {
         try {
             SSLContext contexto = SSLContext.getInstance("TLS");

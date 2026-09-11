@@ -27,19 +27,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Lee el outbox y remite a la AEAT respetando el control de flujo del art. 16.2 de la
- * OM HAC/1177/2024.
- * <p>
- * <strong>El turno se reserva y se confirma antes de enviar</strong>, nunca durante. La
- * alternativa —mantener bloqueada la fila de control mientras dura la llamada— también sería
- * correcta, pero deja una transacción abierta durante una operación de red de hasta un minuto, y
- * con muchos obligados eso se come el pool de conexiones. El precio de reservar antes es que, si
- * el proceso muere entre la reserva y el envío, ese obligado pierde un turno. Se prefiere perder
- * un turno a tener transacciones colgando de la red, y sobre todo <strong>nunca se remite más
- * deprisa de lo que permite la norma</strong>, que es lo que no se puede incumplir.
- * <p>
- * No hay backoff propio: el control de flujo ya impone un mínimo entre envíos, así que es el
- * backoff. Escribir otro encima sería inventar una política que la norma ya fija.
+ * Lee el outbox y remite lotes a la AEAT respetando el control de flujo. El turno se reserva y
+ * confirma antes de enviar, nunca durante.
  */
 @Component
 public class DespachadorLotes {
@@ -68,10 +57,7 @@ public class DespachadorLotes {
         this.transaccion = transaccion;
     }
 
-    /**
-     * Despacha un lote de cada obligado que tenga envíos pendientes y turno. Devuelve cuántos
-     * lotes salieron de verdad.
-     */
+    /** Despacha un lote de cada obligado con envíos pendientes y turno. Devuelve cuántos salieron. */
     public int despachar() {
         int lotes = 0;
         for (UUID obligadoId : controlDeFlujo.obligadosConPendientes()) {
@@ -83,15 +69,8 @@ public class DespachadorLotes {
     }
 
     /**
-     * La transacción cubre la reserva del lote —que es donde vive el {@code for update skip
-     * locked}, y sin ella los bloqueos se soltarían al instante— y la escritura de los
-     * desenlaces. La reserva del turno y la suma de intentos van en transacción propia, por lo
-     * dicho arriba.
-     * <p>
-     * Se abre con {@code TransactionTemplate} y no con {@code @Transactional}: esto se llama
-     * desde {@link #despachar()}, que está en esta misma clase, y una llamada interna no pasa por
-     * el proxy de Spring. La anotación no daría error, simplemente <strong>no haría nada</strong>,
-     * y el fallo sería invisible hasta que dos instancias se pisaran el mismo lote.
+     * Un lote de un obligado. Se ejecuta dentro de la transacción que abre {@link #despachar()},
+     * que cubre la reserva del lote y la escritura de los desenlaces.
      */
     boolean despacharUnLoteDe(UUID obligadoId) {
         List<UUID> reservados = cola.reservarLoteDe(obligadoId, EscritorLote.MAXIMO_REGISTROS_POR_ENVIO);
@@ -113,7 +92,7 @@ public class DespachadorLotes {
         List<RegistroRemitible> remitibles = registros.de(
                 lote.stream().map(EnvioRegistro::registroId).toList());
         if (remitibles.size() != lote.size()) {
-            // No debería poder pasar: hay clave ajena. Si pasa, no se remite un lote a medias.
+            // No debería pasar: hay clave ajena. No se remite un lote a medias.
             log.error("El obligado {} tiene {} envíos pendientes pero solo {} registros guardados",
                     obligadoId, lote.size(), remitibles.size());
             return false;
@@ -126,8 +105,8 @@ public class DespachadorLotes {
             aplicar(respuesta, lote, remitibles);
             return true;
         } catch (RemisionFallidaException e) {
-            // No sabemos si la AEAT lo registró, así que el lote se queda PENDIENTE. Si sí había
-            // entrado, el reintento traerá el código 3000 y se resolverá como DUPLICADO.
+            // No se sabe si la AEAT lo registró: el lote sigue PENDIENTE. Si había entrado, el
+            // reintento devolverá el código 3000 y se resolverá como DUPLICADO.
             cola.sumarIntento(lote);
             log.warn("No se pudo remitir el lote de {} registros del obligado {}: {}",
                     lote.size(), obligadoId, e.getMessage());
@@ -136,12 +115,8 @@ public class DespachadorLotes {
     }
 
     /**
-     * Empareja cada respuesta con su envío por <strong>factura y tipo de operación</strong>, no
-     * por posición: que la AEAT devuelva las líneas en el mismo orden en que se enviaron no lo
-     * dice el documento en ninguna parte.
-     * <p>
-     * Lo que no se empareja se queda {@code PENDIENTE} y suma un intento. Un envío nunca se da
-     * por resuelto sin una línea que lo diga.
+     * Empareja cada línea de respuesta con su envío por factura y tipo de operación. Lo que no
+     * se empareja sigue pendiente y suma un intento.
      */
     private void aplicar(RespuestaRemision respuesta, List<EnvioRegistro> lote,
                          List<RegistroRemitible> remitibles) {
@@ -183,7 +158,7 @@ public class DespachadorLotes {
         };
     }
 
-    /** Lo que identifica de forma única un registro dentro de un lote. */
+    /** Identifica un registro dentro de un lote. */
     private record Clave(IdFactura idFactura, TipoRegistro tipo) {
     }
 }

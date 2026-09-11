@@ -1,10 +1,8 @@
 package dev.lacre.identidad;
 
 /**
- * No se ha podido obtener el certificado de un obligado.
- * <p>
- * El mensaje nombra el origen y el motivo, pero <strong>nunca la contraseña</strong>: es un error
- * que va a acabar en un log de alguien que integra, y una contraseña filtrada ahí no se recupera.
+ * No se ha podido obtener el certificado de un obligado. El mensaje nunca incluye la
+ * contraseña.
  */
 public class CertificadoNoDisponibleException extends RuntimeException {
 

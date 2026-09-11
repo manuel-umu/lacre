@@ -15,14 +15,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * La máquina de estados del outbox, que se resume en una frase: de {@code PENDIENTE} se sale una
- * vez y no se vuelve.
- * <p>
- * Importa porque los dos desenlaces con error tampoco se reintentan. Un registro rechazado o
- * aceptado con errores se arregla <strong>subsanando</strong>, que es generar un registro nuevo;
- * reenviar este duplicaría la presentación ante la AEAT.
- */
+/** Máquina de estados del outbox: de {@code PENDIENTE} se sale una vez y no se vuelve. */
 class EnvioRegistroTest {
 
     private static final UUID ID = UUID.fromString("00000000-0000-0000-0000-0000000000e1");
@@ -93,10 +86,7 @@ class EnvioRegistroTest {
                 envio -> envio.duplicado(RESPUESTA, "x"));
     }
 
-    /**
-     * Cada uno de los cuatro desenlaces, aplicado sobre cada uno de los cuatro estados
-     * terminales: dieciséis combinaciones, todas prohibidas.
-     */
+    /** Cada desenlace sobre cada estado terminal: dieciséis combinaciones prohibidas. */
     @ParameterizedTest
     @MethodSource("desenlaces")
     void ningunDesenlaceSaleDeOtroDesenlace(UnaryOperator<EnvioRegistro> desenlace) {

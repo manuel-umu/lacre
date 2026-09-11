@@ -3,10 +3,8 @@ package dev.lacre.shared;
 import java.math.BigDecimal;
 
 /**
- * Tipo impositivo o de recargo, entre 0 y 100, con dos decimales.
- * <p>
- * {@link #aplicarA(Importe)} es el único sitio donde se multiplica un importe por un
- * porcentaje, para que el redondeo fiscal no se improvise en cada cálculo.
+ * Tipo impositivo o de recargo, entre 0 y 100, con dos decimales. {@link #aplicarA(Importe)}
+ * centraliza el redondeo fiscal.
  */
 public record Porcentaje(BigDecimal valor) {
 

@@ -18,12 +18,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * La lectura de la respuesta de la AEAT, sobre documentos con la forma que fija
- * {@code RespuestaSuministro.xsd}.
- * <p>
- * Aquí se cubren a nivel de documento los desenlaces que exige {@code CLAUDE.md} —aceptado,
- * aceptado con errores y rechazado—, más el duplicado, que es el que no se ve venir. El timeout
- * y el transporte son del cliente HTTP y se prueban con WireMock.
+ * Lectura de la respuesta de la AEAT sobre documentos con la forma de
+ * {@code RespuestaSuministro.xsd}: los cuatro desenlaces, varias líneas, el SOAP Fault y lo
+ * ilegible.
  */
 class LectorRespuestaAeatTest {
 
@@ -54,10 +51,7 @@ class LectorRespuestaAeatTest {
         return linea(numSerie, "Alta", estado, error);
     }
 
-    /**
-     * El bloque {@code Operacion} no es opcional en el esquema, y sin él no se sabe si la línea
-     * habla del alta o de la anulación de la misma factura.
-     */
+    /** El bloque {@code Operacion} es obligatorio en el esquema. */
     private static String linea(String numSerie, String tipoOperacion, String estado, String error) {
         return """
                 <tikR:RespuestaLinea>
@@ -121,11 +115,7 @@ class LectorRespuestaAeatTest {
         });
     }
 
-    /**
-     * El caso que no se ve venir: un {@code Incorrecto} con código 3000 significa que el registro
-     * <strong>ya estaba presentado</strong>. Leerlo como rechazo llevaría a reintentar para
-     * siempre algo que ya está hecho.
-     */
+    /** Un {@code Incorrecto} con código 3000 es un duplicado, no un rechazo. */
     @Test
     void unRechazoPorDuplicadoNoEsUnRechazo() {
         RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Incorrecto",
@@ -144,11 +134,7 @@ class LectorRespuestaAeatTest {
 
     // --- Varias líneas ---
 
-    /**
-     * Una línea se cierra cuando empieza la siguiente, porque sus dos últimos campos son
-     * opcionales y no hay nada que marque su fin. Con tres líneas de las que solo la de en medio
-     * trae error, un fallo en esa lógica se ve enseguida: el error se pegaría a la equivocada.
-     */
+    /** Tres líneas de las que solo la de en medio trae error. */
     @Test
     void separaBienLasLineasAunqueSoloAlgunasTraiganError() {
         RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("ParcialmenteCorrecto",
@@ -164,10 +150,6 @@ class LectorRespuestaAeatTest {
                 .containsExactly(null, 1130, null);
     }
 
-    /**
-     * El tipo de operación es lo único que separa el alta de la anulación de una misma factura,
-     * así que se lee y se conserva.
-     */
     @Test
     void distingueElTipoDeOperacionDeCadaLinea() {
         RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Correcto",
@@ -198,11 +180,8 @@ class LectorRespuestaAeatTest {
     // --- Rechazo del envío completo, que llega como SOAP Fault ---
 
     /**
-     * Documento real devuelto por el Portal de Pruebas el 2026-09-09. Los 44 códigos que el
-     * catálogo clasifica como «rechazo del envío completo» llegan así: un Fault, sin
-     * {@code EstadoEnvio} y sin una sola línea, porque no se ha procesado ningún registro.
-     * <p>
-     * Leerlo como «respuesta ilegible» sería perder la única información útil que trae.
+     * Documento real devuelto por la AEAT: un rechazo del envío completo llega como Fault, sin
+     * {@code EstadoEnvio} ni líneas.
      */
     @Test
     void unRechazoDelEnvioCompletoLlegaComoSoapFault() {
@@ -239,11 +218,7 @@ class LectorRespuestaAeatTest {
                 .hasMessageContaining("Servicio no disponible");
     }
 
-    /**
-     * Un rechazo del envío es un fallo de remisión, no un desenlace: hereda de
-     * {@code RemisionFallidaException} para que el despachador deje el lote pendiente sin tener
-     * que saber distinguirlos. Ningún registro quedó presentado.
-     */
+    /** Un rechazo del envío hereda de {@code RemisionFallidaException}: el lote queda pendiente. */
     @Test
     void unRechazoDelEnvioSeTrataComoFalloDeRemision() {
         assertThat(new EnvioRechazadoException(4104, "lo que sea"))

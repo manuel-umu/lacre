@@ -11,13 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Verificación de la cadena de un obligado.
- * <p>
- * Va bajo {@code /v1/obligados/{nif}} y no bajo {@code /v1/registros} porque el recurso que se
- * verifica es la cadena entera, que es del obligado: no hay un registro del que colgarla.
- * <p>
- * Lo que responde <strong>no es una verificación completa</strong>, y la respuesta lo dice en su
- * campo {@code alcance}. Ver {@link RespuestaVerificacion}.
+ * Controlador REST de verificación de la cadena de un obligado. La respuesta declara su
+ * {@code alcance}; ver {@link RespuestaVerificacion}.
  */
 @RestController
 @RequestMapping("/v1/obligados")

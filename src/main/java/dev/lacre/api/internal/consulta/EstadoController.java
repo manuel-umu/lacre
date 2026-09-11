@@ -11,10 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 /**
- * En qué quedó un registro: dónde está en la cadena y qué contestó la AEAT.
- * <p>
- * Es la otra mitad del 201 de {@code emision.EmisionController}: allí se responde que está
- * guardado, y aquí en qué acabó su remisión, que es asíncrona.
+ * Controlador REST de consulta del estado de un registro: posición en la cadena y desenlace de
+ * la remisión.
  */
 @RestController
 @RequestMapping("/v1/registros")

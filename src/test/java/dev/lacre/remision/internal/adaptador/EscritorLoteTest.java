@@ -26,14 +26,7 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * El sobre SOAP del envío.
- * <p>
- * Lo que de verdad prueba esto es la <strong>validación del cuerpo contra el XSD oficial</strong>.
- * El sobre se arma concatenando marcado estático con los fragmentos ya serializados, y esa
- * concatenación solo es defendible si algo comprueba que el resultado sigue siendo un
- * {@code RegFactuSistemaFacturacion} válido. Ese algo es este test.
- */
+/** El sobre SOAP del envío, con su cuerpo validado contra el XSD oficial. */
 class EscritorLoteTest {
 
     private static final ObligadoTributario OBLIGADO = ObligadoTributario.nuevo(
@@ -80,10 +73,7 @@ class EscritorLoteTest {
                 .endsWith("</soapenv:Envelope>");
     }
 
-    /**
-     * El nombre o razón social es el único dato variable del sobre, y por eso es el único que
-     * pasa por StAX: concatenado a mano, un {@code &} rompería el documento entero.
-     */
+    /** El nombre del obligado es el único dato variable del sobre y pasa por StAX. */
     @Test
     void escapaElNombreDelObligado() {
         ObligadoTributario conAmpersand = ObligadoTributario.nuevo(OBLIGADO.id(), OBLIGADO.nif(),
@@ -103,7 +93,7 @@ class EscritorLoteTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    /** Mil registros por envío es tope de la AEAT, no una elección nuestra. */
+    /** Tope de la AEAT por envío. */
     @Test
     void masDeMilRegistrosSeRechazanAntesDeSalir() {
         List<String> demasiados = IntStream.rangeClosed(1, EscritorLote.MAXIMO_REGISTROS_POR_ENVIO + 1)
@@ -115,10 +105,7 @@ class EscritorLoteTest {
                 .hasMessageContaining("1000");
     }
 
-    /**
-     * El sobre SOAP no lo describe ningún XSD de la AEAT, así que se valida su contenido: el
-     * elemento {@code RegFactuSistemaFacturacion}, que es lo que ella sí especifica.
-     */
+    /** Valida el elemento {@code RegFactuSistemaFacturacion}; el sobre SOAP no lo describe el XSD. */
     private static Optional<String> validarCuerpo(String sobre) {
         int inicio = sobre.indexOf("<sfLR:RegFactuSistemaFacturacion>");
         String cuerpo = sobre.substring(inicio, sobre.indexOf("</sfLR:RegFactuSistemaFacturacion>")

@@ -71,7 +71,7 @@ class DatosRegistroAltaTest {
         assertThat(Registros.alta().refExterna("   ").build().refExterna()).isNull();
     }
 
-    // --- Relaciones que el propio XSD documenta ---
+    // --- Relaciones entre el tipo de factura y sus referencias ---
 
     @ParameterizedTest
     @ValueSource(strings = {"R1", "R2", "R3", "R4", "R5"})
@@ -86,14 +86,7 @@ class DatosRegistroAltaTest {
         assertThat(datos.tipoFactura().esRectificativa()).isTrue();
     }
 
-    /**
-     * Las tres reglas de {@code Validaciones_Errores_Veri-Factu.pdf} §3.1.3 que faltaban.
-     * <p>
-     * Estas <strong>sí rechazan</strong>, al contrario que el cuadre de totales o la
-     * comprobación del art. 7.i: no figuran en la lista cerrada de errores admisibles del §4.3,
-     * así que la AEAT rechaza el registro. Y un registro rechazado que ya está en la cadena solo
-     * se puede subsanar, porque la cadena es de solo inserción.
-     */
+    /** Reglas que provocan el rechazo del registro por la AEAT, y por eso lanzan al construir. */
     @ParameterizedTest
     @ValueSource(strings = {"R1", "R2", "R3", "R4", "R5"})
     void unaRectificativaSinTipoDeRectificativaNoVale(String tipo) {
@@ -213,10 +206,7 @@ class DatosRegistroAltaTest {
         assertThat(Registros.alta().cuotaTotal(Importe.de("22.36")).build().cuadraLaCuotaTotal()).isFalse();
     }
 
-    /**
-     * Un descuadre no impide construir el registro: la AEAT lo acepta con errores y la norma
-     * prohíbe interrumpir la facturación por esto.
-     */
+    /** Un descuadre no impide construir el registro: la AEAT lo acepta con errores. */
     @Test
     void unDescuadreNoImpideConstruirElRegistro() {
         DatosRegistroAlta descuadrado = Registros.alta().importeTotal(Importe.de("999.99")).build();

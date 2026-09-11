@@ -10,28 +10,11 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Fila del outbox: un registro de facturación pendiente de remitir, o ya remitido.
- * <p>
- * Referencia al registro por {@code UUID} pelado y no con {@code AggregateReference}: el tipo
- * del agregado vive en {@code verifactu.internal.adaptador} y este módulo tiene prohibido
- * verlo, que es justo la frontera que permite extraer el núcleo. Quien garantiza que el
- * identificador existe es la clave ajena, y quien impide que un registro tenga dos envíos es el
- * {@code UNIQUE} de esa misma columna.
- * <p>
- * Lleva también el obligado, que ya viaja en el evento {@code RegistroCreado}. Es dato repetido
- * respecto de {@code registro_facturacion}, y a cambio el despachador agrupa sus lotes sin
- * consultar la tabla de otro módulo en cada pasada.
- * <p>
- * Lleva {@code @Version} porque sí se modifica —el estado cambia con lo que responda la AEAT—,
- * al contrario que {@code RegistroFacturacion}, que es de solo inserción.
- * <p>
- * <strong>El estado no se asigna, se transita.</strong> No hay forma de escribir un estado
- * arbitrario: los cuatro desenlaces se producen con los métodos de abajo, que solo salen de
- * {@link EstadoEnvio#PENDIENTE}. Un envío ya resuelto no cambia de opinión.
+ * Fila del outbox: un registro de facturación pendiente de remitir o ya remitido. El estado no
+ * se asigna, se transita: los desenlaces solo salen de {@link EstadoEnvio#PENDIENTE}.
  *
- * @param enviadoEn momento en que la AEAT respondió; nulo mientras está pendiente
- * @param codigoError código del catálogo de la AEAT, presente también cuando se aceptó con
- *                    errores, porque ahí queda algo que subsanar
+ * @param enviadoEn   momento en que respondió la AEAT; nulo mientras está pendiente
+ * @param codigoError código del catálogo de la AEAT; presente también si se aceptó con errores
  */
 @Table("envio_registro")
 public record EnvioRegistro(
@@ -77,15 +60,12 @@ public record EnvioRegistro(
         return resuelto(EstadoEnvio.ACEPTADO, cuando, null, null);
     }
 
-    /**
-     * Aceptado y registrado, pero con un error admisible que hay que subsanar. El código es
-     * obligatorio: sin él nadie sabría qué subsanar, que es lo único que este estado significa.
-     */
+    /** Aceptado y registrado, con un error admisible que hay que subsanar. */
     public EnvioRegistro aceptadoConErrores(OffsetDateTime cuando, int codigo, String descripcion) {
         return resuelto(EstadoEnvio.ACEPTADO_CON_ERRORES, cuando, codigo, descripcion);
     }
 
-    /** La AEAT lo rechazó. Se arregla generando un registro nuevo, no reenviando este. */
+    /** La AEAT lo rechazó; se subsana con un registro nuevo. */
     public EnvioRegistro rechazado(OffsetDateTime cuando, int codigo, String descripcion) {
         return resuelto(EstadoEnvio.RECHAZADO, cuando, codigo, descripcion);
     }
@@ -96,10 +76,7 @@ public record EnvioRegistro(
                 EstadoEnvio.CODIGO_REGISTRO_DUPLICADO, descripcion);
     }
 
-    /**
-     * Un intento que no obtuvo respuesta interpretable. La fila sigue pendiente: no sabemos si la
-     * AEAT llegó a registrar el lote, así que lo único honesto es reintentar.
-     */
+    /** Un intento sin respuesta interpretable; la fila sigue pendiente. */
     public EnvioRegistro otroIntentoFallido() {
         if (estado.esTerminal()) {
             throw new EnvioYaResueltoException(id, estado, estado);

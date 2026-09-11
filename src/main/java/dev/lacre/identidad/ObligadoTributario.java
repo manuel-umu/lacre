@@ -11,17 +11,8 @@ import java.time.ZoneId;
 import java.util.UUID;
 
 /**
- * Obligado tributario por cuya cuenta se expiden facturas, en el sentido del art. 3 del
- * RD 1007/2023.
- * <p>
- * Su {@code zonaHoraria} <strong>entra en el cálculo de la huella</strong>: cada registro se
- * fecha con {@code FechaHoraHusoGenRegistro}, que se serializa con su desplazamiento, de modo
- * que el mismo instante en {@code Europe/Madrid} y en {@code Atlantic/Canary} produce dos
- * huellas distintas. Es dato del obligado y no del despliegue porque una sola instalación
- * factura para obligados de ambos sitios.
- * <p>
- * Lleva {@code @Version} porque es un agregado mutable: con un {@code @Id} asignado a mano,
- * Spring Data JDBC no puede distinguir un alta de una modificación sin él.
+ * Obligado tributario por cuya cuenta se expiden facturas (art. 3 del RD 1007/2023). Su zona
+ * horaria entra en el cálculo de la huella de cada registro.
  */
 @Table("obligado")
 public record ObligadoTributario(
@@ -45,7 +36,7 @@ public record ObligadoTributario(
         nombreRazon = Textos.obligatorio(nombreRazon, 120, "El nombre o razón social del obligado");
     }
 
-    /** Alta: la versión la lleva Spring Data JDBC a partir de aquí. */
+    /** Alta de un obligado; la versión la gestiona Spring Data JDBC. */
     public static ObligadoTributario nuevo(UUID id, Nif nif, String nombreRazon, ZoneId zonaHoraria) {
         return new ObligadoTributario(id, nif, nombreRazon, zonaHoraria, 0);
     }

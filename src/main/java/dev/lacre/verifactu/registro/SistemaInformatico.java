@@ -7,13 +7,12 @@ import dev.lacre.shared.ValorInvalidoException;
  * Datos del sistema informático de facturación que genera el registro,
  * {@code SistemaInformaticoType} del XSD.
  *
- * @param productor                   quien produce y comercializa el SIF, con su identificación fiscal
+ * @param productor                   quien produce y comercializa el sistema, con su NIF
  * @param nombreSistemaInformatico    nombre comercial del sistema
  * @param idSistemaInformatico        identificador del sistema dentro del productor, 2 caracteres
  * @param version                     versión del sistema
  * @param numeroInstalacion           identificador de esta instalación concreta
- * @param tipoUsoPosibleSoloVerifactu si el sistema solo puede operar en modalidad VERI*FACTU;
- *                                    en lacre es siempre cierto, por la decisión de alcance
+ * @param tipoUsoPosibleSoloVerifactu si el sistema solo puede operar en modalidad VERI*FACTU
  * @param tipoUsoPosibleMultiOT       si el sistema puede dar servicio a varios obligados
  * @param indicadorMultiplesOT        si en esta instalación lo está haciendo efectivamente
  */

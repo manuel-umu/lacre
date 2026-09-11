@@ -1,11 +1,6 @@
 package dev.lacre.verifactu.desglose;
 
-/**
- * Impuesto de una línea de desglose, lista L1 del anexo de la Orden HAC/1177/2024.
- * <p>
- * A diferencia del resto de catálogos, aquí el código no puede ser el nombre de la constante
- * —empieza por dígito—, así que va en un campo aparte.
- */
+/** Impuesto de una línea de desglose, lista L1 del anexo de la Orden HAC/1177/2024. */
 public enum Impuesto {
 
     /** Impuesto sobre el Valor Añadido. */

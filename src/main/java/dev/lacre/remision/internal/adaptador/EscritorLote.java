@@ -9,18 +9,9 @@ import java.io.StringWriter;
 import java.util.List;
 
 /**
- * Envuelve los registros ya serializados en el mensaje SOAP que espera la AEAT.
- * <p>
- * El <a href="../../../../../../docs/adr/0003-serializacion-xml-con-stax.md">ADR 0003</a> dejó
- * dicho que {@code EscritorRegistro} serializa <em>un registro</em> y que la envoltura
- * {@code RegFactuSistemaFacturacion} la construye este módulo, porque es quien sabe agrupar
- * hasta 1000 registros por envío.
- * <p>
- * <strong>Los fragmentos se insertan tal cual.</strong> Cada uno declara su propio espacio de
- * nombres —por eso el ADR 0003 los hizo autónomos— y su contenido ya salió escapado de StAX, así
- * que concatenar solo une marcado estático. No es «montar XML con plantillas»: el único valor
- * variable de este fichero es la cabecera, y esa sí se escribe con StAX. Quien lo demuestra es la
- * validación del cuerpo contra el XSD oficial, que corre en el test.
+ * Envuelve los registros ya serializados en el mensaje SOAP {@code RegFactuSistemaFacturacion}.
+ * Los fragmentos se insertan tal cual; la cabecera, que lleva datos variables, se escribe con
+ * StAX.
  */
 final class EscritorLote {
 
@@ -59,14 +50,7 @@ final class EscritorLote {
                 .toString();
     }
 
-    /**
-     * El único trozo con datos variables, y por eso el único que pasa por StAX: un nombre o razón
-     * social con un {@code &} rompería el documento si se concatenase a mano.
-     * <p>
-     * Sin {@code RemisionVoluntaria}: sus dos hijos son opcionales y solo aplican a casos
-     * concretos —cese de Veri*Factu a fin de año e incidencia—, así que el documento mínimo la
-     * omite, igual que hace el ejemplo oficial del documento de descripción del servicio.
-     */
+    /** Cabecera con el obligado de emisión. Omite {@code RemisionVoluntaria}, que es opcional. */
     private static String cabecera(ObligadoTributario obligado) {
         StringWriter destino = new StringWriter();
         try {

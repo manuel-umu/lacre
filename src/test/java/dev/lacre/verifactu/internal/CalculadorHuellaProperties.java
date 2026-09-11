@@ -11,10 +11,8 @@ import net.jqwik.api.constraints.StringLength;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Los caracteres generados se limitan al rango anterior a los sustitutos (U+D800–U+DFFF)
- * porque un sustituto suelto no es codificable en UTF-8 y se sustituye por el mismo byte de
- * reemplazo: dos cadenas distintas darían la misma huella y las propiedades 3 y 4 fallarían
- * por un artefacto de la generación, no por un defecto del cálculo.
+ * Los caracteres generados se limitan al rango anterior a los sustitutos (U+D800–U+DFFF): un
+ * sustituto suelto no es codificable en UTF-8 y dos cadenas distintas darían la misma huella.
  */
 class CalculadorHuellaProperties {
 

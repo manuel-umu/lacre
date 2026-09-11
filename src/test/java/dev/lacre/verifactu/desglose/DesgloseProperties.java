@@ -17,13 +17,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * El cuadre del desglose con los totales es lo que la AEAT recalcula y contrasta. Estas
- * propiedades fijan que las sumas son consistentes para cualquier desglose válido, no solo
- * para los ejemplos escritos a mano.
- * <p>
- * Los importes generados se acotan a seis dígitos enteros para que la suma de doce líneas no
- * roce el límite de doce dígitos de {@link Importe} y falle por el generador y no por el
- * código.
+ * Las sumas del desglose son consistentes para cualquier desglose válido. Los importes
+ * generados se acotan a seis dígitos enteros para que la suma de doce líneas no roce el límite
+ * de {@link Importe}.
  */
 class DesgloseProperties {
 

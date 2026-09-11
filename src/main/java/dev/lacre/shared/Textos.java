@@ -1,12 +1,6 @@
 package dev.lacre.shared;
 
-/**
- * Validación de los campos de texto del registro de facturación, cuyos límites de longitud
- * fija el XSD de la AEAT ({@code TextMax30Type}, {@code TextMax120Type}…).
- * <p>
- * Se recortan los espacios de los extremos, igual que exige el documento de la huella para el
- * cálculo del hash.
- */
+/** Validación y recorte de los campos de texto con longitud máxima. */
 public final class Textos {
 
     private Textos() {
@@ -20,7 +14,7 @@ public final class Textos {
         return dentroDelMaximo(valor.strip(), maximo, campo);
     }
 
-    /** Admite nulo. Un texto en blanco se normaliza a nulo: para la AEAT es lo mismo. */
+    /** Admite nulo; un texto en blanco se normaliza a nulo. */
     public static String opcional(String valor, int maximo, String campo) {
         if (valor == null || valor.isBlank()) {
             return null;

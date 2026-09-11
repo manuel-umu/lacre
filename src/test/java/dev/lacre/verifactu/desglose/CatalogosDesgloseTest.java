@@ -9,10 +9,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Blinda los catálogos del desglose contra renombrados y contra códigos inventados. Igual que
- * con {@code TipoFactura}, el nombre de cada constante es formato de intercambio.
- */
+/** Fija los catálogos del desglose: el nombre de cada constante es formato de intercambio. */
 class CatalogosDesgloseTest {
 
     @Test

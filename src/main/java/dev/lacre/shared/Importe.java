@@ -4,28 +4,20 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 /**
- * Cantidad monetaria con escala fija de 2 decimales y redondeo {@code HALF_UP}.
- * <p>
- * La escala se fija en el constructor, de modo que el {@code equals} generado del
- * record —que en {@link BigDecimal} es sensible a la escala— sea consistente:
- * {@code 10} y {@code 10.00} son el mismo importe. Se admiten valores negativos
- * porque las facturas rectificativas los necesitan.
+ * Cantidad monetaria con escala fija de 2 decimales y redondeo {@code HALF_UP}. Admite valores
+ * negativos.
  */
 public record Importe(BigDecimal valor) implements Comparable<Importe> {
 
     public static final int ESCALA = 2;
     public static final RoundingMode REDONDEO = RoundingMode.HALF_UP;
 
-    /**
-     * Doce dígitos enteros, el límite de {@code ImporteSgn12.2Type} del XSD de la AEAT.
-     * Un importe mayor no cabe en el registro de facturación y la AEAT lo rechaza.
-     */
+    /** Límite de dígitos enteros de {@code ImporteSgn12.2Type}. */
     public static final int MAXIMO_DIGITOS_ENTEROS = 12;
 
     private static final BigDecimal LIMITE = BigDecimal.TEN.pow(MAXIMO_DIGITOS_ENTEROS);
 
-    // Declarado después de LIMITE a propósito: el constructor canónico lo lee, y los estáticos
-    // se inicializan en orden de declaración.
+    // Debe declararse después de LIMITE: el constructor canónico lo usa.
     public static final Importe CERO = new Importe(BigDecimal.ZERO);
 
     public Importe {

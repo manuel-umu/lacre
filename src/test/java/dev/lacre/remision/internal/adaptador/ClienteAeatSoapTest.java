@@ -33,15 +33,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * El adaptador de la AEAT contra WireMock, con los cuatro escenarios que exige {@code CLAUDE.md}:
- * aceptado, aceptado con errores, rechazado y timeout.
- * <p>
- * <strong>WireMock sirve por HTTP, no por HTTPS con TLS mutuo</strong>, y es deliberado. Lo que
- * se prueba aquí es lo nuestro: qué se envía, qué cabeceras lleva y cómo se interpreta lo que
- * vuelve. El TLS mutuo es cableado de la JDK —un {@code SSLContext} con unos {@code KeyManager}—
- * y montar una autoridad certificadora de pruebas para volver a comprobar que la JDK sabe hacer
- * TLS no probaría nada nuestro. Que los {@code KeyManager} salgan bien del PKCS#12 lo cubre
- * {@code AlmacenCertificadosEnDiscoTest}.
+ * El cliente de la AEAT contra WireMock: aceptado, aceptado con errores, rechazado, timeout,
+ * error HTTP y respuesta ilegible. WireMock sirve por HTTP; el material de clave del TLS mutuo lo
+ * cubre {@code AlmacenCertificadosEnDiscoTest}.
  */
 class ClienteAeatSoapTest {
 
@@ -89,19 +83,14 @@ class ClienteAeatSoapTest {
                 .satisfies(linea -> assertThat(linea.desenlace()).isEqualTo(EstadoEnvio.ACEPTADO));
     }
 
-    /**
-     * El WSDL declara {@code soapAction=""} para esta operación: la cabecera tiene que ir, y
-     * tiene que ir vacía. Es SOAP 1.1, donde no es opcional.
-     */
+    /** El WSDL declara {@code soapAction=""}: la cabecera va, y va vacía. */
     @Test
     void mandaElSobreSoapConLasCabecerasQueExigeElWsdl() {
         responder(200, respuesta("Correcto", "0", linea("FA/1", "Correcto", "")));
 
         cliente.remitir(OBLIGADO, List.of(REGISTRO));
 
-        // El charset se compara sin distinguir mayúsculas: el token es insensible a la caja por
-        // RFC 2045, y algo de la pila lo normaliza a la forma canónica «UTF-8». Fijar la caja
-        // exacta sería probar un detalle que no significa nada.
+        // El charset es insensible a la caja (RFC 2045).
         aeat.verify(postRequestedFor(urlEqualTo(RUTA))
                 .withHeader("Content-Type", matching("(?i)text/xml;\s*charset=utf-8"))
                 .withHeader("SOAPAction", equalTo(""))
@@ -142,12 +131,7 @@ class ClienteAeatSoapTest {
 
     // --- Escenario 4: timeout ---
 
-    /**
-     * Un timeout <strong>no es un rechazo</strong>: no sabemos si la AEAT llegó a registrar el
-     * lote. Por eso lanza en vez de devolver un desenlace, y el envío se queda pendiente para
-     * reintentarlo. Si el registro sí había entrado, el reintento traerá el código 3000 y se
-     * resolverá como DUPLICADO, que es justo para lo que existe ese estado.
-     */
+    /** Un timeout no es un rechazo: el envío queda pendiente para reintentarlo. */
     @Test
     void unTimeoutNoSeConfundeConUnRechazo() {
         aeat.stubFor(post(urlEqualTo(RUTA)).willReturn(

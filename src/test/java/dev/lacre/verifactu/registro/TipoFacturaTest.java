@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Blinda el catálogo L2 contra renombrados accidentales: el nombre de cada constante es el
- * código que viaja en el XML y en la cadena de la huella, no un identificador interno.
+ * Fija el catálogo L2 contra renombrados: el nombre de cada constante es el código que viaja en
+ * el XML y en la huella.
  */
 class TipoFacturaTest {
 

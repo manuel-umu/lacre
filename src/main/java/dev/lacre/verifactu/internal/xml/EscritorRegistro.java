@@ -23,23 +23,9 @@ import java.io.StringWriter;
 import java.util.List;
 
 /**
- * Serializa un registro al XML de {@code sf:RegistroAlta} o {@code sf:RegistroAnulacion},
- * según el tipo.
- * <p>
- * <strong>El orden de los elementos es el de la secuencia de
- * {@code RegistroFacturacionAltaType} y no admite variación</strong>: un XSD con
- * {@code xsd:sequence} rechaza el documento si un elemento va fuera de sitio. No coincide con
- * el orden de la cadena canónica de la huella, que es otro y vive en el canonicalizador.
- * <p>
- * No emite declaración XML: lo que produce es un fragmento pensado para almacenarse y para
- * embeberse después en el lote que remite el módulo de remisión, y una declaración a mitad de
- * documento lo invalidaría. El espacio de nombres se declara en el propio elemento raíz, de
- * modo que el fragmento sea autónomo.
- * <p>
- * Los indicadores opcionales solo se emiten cuando valen {@code S}. Un elemento ausente y uno
- * con valor {@code N} son ambos válidos según el esquema; se ha elegido el documento mínimo, y
- * el diseño de registro oficial lo confirma campo por campo: «Si no se informa este campo se
- * entenderá que tiene valor "N"».
+ * Serializa un registro al XML de {@code sf:RegistroAlta} o {@code sf:RegistroAnulacion}, en el
+ * orden de la secuencia del XSD. Produce un fragmento sin declaración XML, con el espacio de
+ * nombres en el elemento raíz. Los indicadores opcionales solo se emiten cuando valen {@code S}.
  */
 public final class EscritorRegistro {
 
@@ -135,10 +121,7 @@ public final class EscritorRegistro {
         xml.writeEndElement();
     }
 
-    /**
-     * Mucho más corto que el alta: una anulación no lleva desglose ni importes. Y sus tres
-     * primeros elementos cambian de nombre, con el sufijo {@code Anulada}.
-     */
+    /** Sin desglose ni importes; los elementos de identificación llevan el sufijo {@code Anulada}. */
     private void registroAnulacion(RegistroEncadenado registro, DatosRegistroAnulacion datos)
             throws XMLStreamException {
         xml.writeStartElement(NS, "RegistroAnulacion");

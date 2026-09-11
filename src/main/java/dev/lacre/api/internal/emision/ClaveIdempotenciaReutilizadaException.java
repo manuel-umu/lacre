@@ -1,11 +1,8 @@
 package dev.lacre.api.internal.emision;
 
 /**
- * La misma {@code Idempotency-Key} ha llegado con otra factura distinta.
- * <p>
- * No se responde con el registro que ya existía, aunque técnicamente sería lo más cómodo: el
- * ERP daría por registrada una factura que no lo está, y no habría forma de que se enterase.
- * Un 409 es ruidoso a propósito.
+ * La misma {@code Idempotency-Key} ha llegado con una factura distinta. Se responde 409 en vez
+ * de devolver el registro existente.
  */
 public class ClaveIdempotenciaReutilizadaException extends RuntimeException {
 

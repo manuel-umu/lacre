@@ -7,13 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Cablea la API con Spring: hoy, solo su filtro de autenticación.
- * <p>
- * El filtro se registra con {@link FilterRegistrationBean} y <strong>no</strong> como
- * {@code @Component}. Un {@code Filter} declarado como bean lo registra Spring Boot solo, y para
- * <em>todas</em> las rutas: acabaría aplicándose también a {@code /actuator/health}, que tiene
- * que contestar a la sonda del contenedor sin credencial. Así queda acotado a {@code /v1/*}, que
- * es lo que hay que proteger, y se ve en una línea.
+ * Registra el filtro de autenticación acotado a {@code /v1/*}, de modo que
+ * {@code /actuator/health} siga abierto.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(PropiedadesApi.class)

@@ -11,13 +11,7 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Los caracteres admitidos en {@code NumSerieFactura}, de
- * {@code Validaciones_Errores_Veri-Factu.pdf} §3.1.3.
- * <p>
- * El XSD no expresa esta restricción —solo la longitud—, así que sin esta validación se
- * generarían registros con la forma correcta que la AEAT rechaza.
- */
+/** Caracteres admitidos en {@code NumSerieFactura}, que el XSD no restringe y la AEAT sí. */
 class IdFacturaTest {
 
     private static final Nif EMISOR = new Nif("89890001K");
@@ -34,13 +28,7 @@ class IdFacturaTest {
         assertThat(idFactura(numSerie).numSerieFactura()).isEqualTo(numSerie);
     }
 
-    /**
-     * Los cinco prohibidos por el documento, listados por código ASCII: 34, 39, 60, 61 y 62. Se
-     * usan los códigos y no los glifos del PDF, donde el 39 se imprime como acento grave.
-     * <p>
-     * El {@code =} y los ángulos no son capricho: el primero separa los campos de la cadena
-     * canónica de la huella, y los otros dos romperían el XML.
-     */
+    /** Los cinco prohibidos, por código ASCII: 34, 39, 60, 61 y 62. */
     @ParameterizedTest
     @ValueSource(chars = {34, 39, 60, 61, 62})
     void losCincoCaracteresProhibidosSeRechazan(char prohibido) {
@@ -57,11 +45,7 @@ class IdFacturaTest {
                 .hasMessageContaining("ASCII");
     }
 
-    /**
-     * El recorte de los extremos ocurre antes de mirar los caracteres, así que un espacio de
-     * sobra no es un carácter prohibido: es ruido de formato. Los espacios interiores sí se
-     * conservan, porque el documento de la huella lo exige.
-     */
+    /** Los extremos se recortan antes de mirar los caracteres; los espacios interiores se conservan. */
     @Test
     void losEspaciosDeLosExtremosSeRecortanYLosDeDentroSeConservan() {
         assertThat(idFactura(" 12345678 / G33 ").numSerieFactura()).isEqualTo("12345678 / G33");

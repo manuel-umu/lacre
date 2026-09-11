@@ -4,12 +4,8 @@ import dev.lacre.shared.Huella;
 import dev.lacre.shared.ValorInvalidoException;
 
 /**
- * Enlace con el registro inmediatamente anterior de la cadena,
- * {@code EncadenamientoFacturaAnteriorType} del XSD.
- * <p>
- * Lleva la identificación completa de la factura anterior y no solo su huella porque el XML la
- * exige entera. Al cálculo de la huella, en cambio, solo entra {@link #huella()}: el documento
- * de la AEAT es explícito en que el campo concatenado es únicamente el hash anterior.
+ * Enlace con el registro anterior de la cadena, {@code EncadenamientoFacturaAnteriorType} del
+ * XSD. El XML lleva la identificación completa; en la huella solo entra {@link #huella()}.
  */
 public record RegistroAnterior(IdFactura idFactura, Huella huella) {
 

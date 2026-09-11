@@ -19,11 +19,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La frontera {@code verifactu} → {@code remision}, de extremo a extremo: emitir deja el
- * registro en la cadena y su fila en el outbox.
- * <p>
- * Vive en el paquete raíz y no dentro de un módulo porque cruza dos, y ninguno de los dos es su
- * dueño.
+ * La frontera {@code verifactu} → {@code remision} de extremo a extremo: emitir deja el registro
+ * en la cadena y su fila en el outbox.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -50,11 +47,7 @@ class FlujoDeEmisionTest {
         });
     }
 
-    /**
-     * El desenlace va y vuelve de Postgres, y de paso demuestra que es un {@code UPDATE} y no
-     * una fila nueva: la versión sube, que es lo que hace {@code @Version}. El outbox sí se
-     * modifica, al contrario que la cadena de registros.
-     */
+    /** El desenlace se guarda con un {@code UPDATE}: la versión sube. */
     @Test
     void elDesenlaceDeUnEnvioSeGuardaYSeRecupera() {
         UUID obligado = ObligadosDePrueba.nuevo(obligados);

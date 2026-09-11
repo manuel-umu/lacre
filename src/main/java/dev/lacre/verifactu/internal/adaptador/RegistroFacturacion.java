@@ -14,18 +14,12 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Fila de la cadena de registros de un obligado, tal y como se guarda.
- * <p>
- * No duplica {@link RegistroEncadenado}: aquel es el registro calculado, este es el asiento del
- * libro, con su identidad, su posición en la cadena y el XML ya serializado.
- * <p>
- * {@link #isNew()} devuelve <strong>siempre</strong> {@code true}. Con un {@code @Id} no nulo,
- * Spring Data JDBC asumiría que la fila existe y emitiría un {@code UPDATE}; aquí eso no puede
- * pasar ni por accidente, y si pasara el trigger de la base de datos lo rechazaría.
+ * Fila de la cadena de registros de un obligado: identidad, posición y XML serializado.
+ * {@link #isNew()} devuelve siempre {@code true}: la tabla es de solo inserción y nunca se emite
+ * un {@code UPDATE}.
  *
- * @param husoOffsetSegundos desplazamiento horario de {@link #fechaHoraHusoGenRegistro}, que se
- *                           guarda aparte porque {@code timestamptz} normaliza a UTC y perdería
- *                           el huso con el que se calculó la huella
+ * @param husoOffsetSegundos desplazamiento horario de {@link #fechaHoraHusoGenRegistro}, guardado
+ *                           aparte porque {@code timestamptz} normaliza a UTC
  */
 @Table("registro_facturacion")
 public record RegistroFacturacion(
@@ -72,17 +66,13 @@ public record RegistroFacturacion(
                 xml);
     }
 
-    /**
-     * Recupera la fecha y hora con el huso original, que es el que entró en el cálculo de la
-     * huella. Leer {@link #fechaHoraHusoGenRegistro()} directamente devuelve el mismo instante
-     * pero con el desplazamiento que aplique la sesión de base de datos.
-     */
+    /** Fecha y hora con el huso original con el que se calculó la huella. */
     public OffsetDateTime fechaHoraConSuHusoOriginal() {
         return fechaHoraHusoGenRegistro.toInstant()
                 .atOffset(java.time.ZoneOffset.ofTotalSeconds(husoOffsetSegundos));
     }
 
-    /** {@code Persistable} pide un getter al estilo JavaBean; el record expone {@code id()}. */
+    /** {@code Persistable} exige un getter al estilo JavaBean. */
     @Override
     public UUID getId() {
         return id;

@@ -43,42 +43,25 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Fase 6.5: remisión real contra el Portal de Pruebas Externas de la AEAT.
- * <p>
- * <strong>No se ejecuta salvo que se pida.</strong> Hace falta la variable de entorno
- * {@code LACRE_PORTAL_PRUEBAS=si}, así que {@code mvn test} nunca sale a la red ni manda nada a
- * nadie. Es lo único razonable para un test que <em>registra de verdad</em> en los sistemas de
- * la AEAT.
- * <p>
- * Tampoco necesita base de datos: construye el registro en memoria, lo serializa y lo remite. Lo
- * que se prueba aquí es lo único que WireMock no puede cubrir —el <strong>TLS mutuo con un
- * certificado real</strong> y el criterio de la AEAT sobre nuestro XML—, no la persistencia, que
- * ya está probada contra Postgres.
+ * Remisión real contra el entorno de pruebas de la AEAT. Solo se ejecuta con
+ * {@code LACRE_PORTAL_PRUEBAS=si}, porque registra de verdad en los sistemas de la AEAT. No usa
+ * base de datos: construye el registro en memoria y lo remite.
  *
  * <h2>Cómo se lanza</h2>
  * <pre>{@code
  * LACRE_PORTAL_PRUEBAS=si \
- * LACRE_CERT_P12="docs/certs/AC FNMT Usuarios/Nuevos/Nuevo Perfil no SMIME/ACTIVO_EIDAS_CERTIFICADO_PRUEBAS___99999999R.p12" \
+ * LACRE_CERT_P12=ruta/al/certificado.p12 \
  * LACRE_CERT_PASS=... \
  * LACRE_OBLIGADO_NIF=99999999R \
  * ./mvnw test -Dtest=PortalDePruebasTest
  * }</pre>
  * <p>
- * El NIF <strong>tiene que ser el del titular del certificado</strong>: la AEAT valida que
- * {@code IDEmisorFactura} coincida con el {@code ObligadoEmision} de la cabecera, y que quien
- * presenta esté autorizado. Con un certificado de sello de empresa el endpoint es
- * {@code prewww10} en vez de {@code prewww1}; se cambia con {@code LACRE_AEAT_ENDPOINT}.
- *
- * <h2>Qué contesta y qué no</h2>
- * Estos envíos <strong>quedan registrados</strong> en el entorno de pruebas, así que el número de
- * serie lleva marca de tiempo: repetirlo devolvería el código 3000, «registro duplicado». Y a
- * partir del segundo envío es normal recibir el error <strong>admisible</strong> 2007 —«no debe
- * informarse como primer registro»—, porque ya existe cadena para ese NIF. No es un fallo
- * nuestro.
+ * El NIF tiene que ser el del titular del certificado. Con un certificado de sello el endpoint
+ * es {@code prewww10} en vez de {@code prewww1}; se cambia con {@code LACRE_AEAT_ENDPOINT}.
  * <p>
- * El ámbito del control de flujo <strong>no se puede resolver aquí</strong>: el catálogo no tiene
- * ningún código de error para haber remitido demasiado deprisa, así que no hay violación
- * observable, y con un solo certificado tampoco se pueden comparar dos obligados.
+ * Los envíos quedan registrados: el número de serie lleva marca de tiempo, y a partir del
+ * segundo envío es normal recibir el error admisible 2007, «no debe informarse como primer
+ * registro».
  */
 @EnabledIfEnvironmentVariable(named = "LACRE_PORTAL_PRUEBAS", matches = "si")
 class PortalDePruebasTest {
@@ -87,23 +70,10 @@ class PortalDePruebasTest {
             "https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP";
 
     private static final Nif OBLIGADO_NIF = new Nif(env("LACRE_OBLIGADO_NIF"));
-    /**
-     * <strong>Tiene que coincidir con el censo de la AEAT</strong>, no ser un nombre cualquiera:
-     * el código 4104 —«el NIF del bloque ObligadoEmision no está identificado»— sale tanto si el
-     * NIF no existe como si el par NIF/nombre no cuadra, y el Fault devuelve los dos, lo que
-     * sugiere que mira el par.
-     * <p>
-     * Para una persona física el censo usa «APELLIDOS NOMBRE», que en estos certificados de
-     * prueba es {@code EIDAS CERTIFICADO PRUEBAS}: el {@code SURNAME} seguido del
-     * {@code GIVENNAME} del titular.
-     */
+    /** Debe coincidir con el censo de la AEAT; para una persona física, «APELLIDOS NOMBRE». */
     private static final String NOMBRE_OBLIGADO = env("LACRE_OBLIGADO_NOMBRE");
 
-    /**
-     * Sube el nivel a DEBUG para ver el cuerpo de lo que conteste la AEAT. En una remisión real
-     * ese volcado está apagado —puede traer datos del obligado—, pero aquí es justo lo que se
-     * viene a mirar: si algo no se puede interpretar, hay que poder leerlo.
-     */
+    /** Sube el nivel a DEBUG para ver el cuerpo de las respuestas. */
     @BeforeAll
     static void verLaRespuestaEntera() {
         ((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("dev.lacre"))
@@ -114,10 +84,7 @@ class PortalDePruebasTest {
 
     // --- 1. Que el transporte funciona de extremo a extremo ---
 
-    /**
-     * El primer envío: TLS mutuo con certificado real, sobre SOAP, XML aceptado y respuesta
-     * leída. Si esto pasa, lo único que quedaba sin probar del transporte queda probado.
-     */
+    /** TLS mutuo con certificado real, sobre SOAP y respuesta leída. */
     @Test
     void unAltaLlegaALaAeatYResponde() {
         RespuestaRemision respuesta = remitir(alta(numeroDeSerie("ALTA"), desgloseQueCuadra(),
@@ -127,12 +94,11 @@ class PortalDePruebasTest {
         assertThat(respuesta.lineas()).isNotEmpty();
     }
 
-    // --- 2. El experimento que cierra la duda del cuadre de totales ---
+    // --- 2. Cuadre de totales por clave de régimen ---
 
     /**
-     * Un descuadre de totales con <strong>todas</strong> las líneas en régimen general. Debe
-     * volver el error admisible 2005 o 2006: es el caso de control, el que demuestra que la AEAT
-     * sí contrasta y que el descuadre que enviamos es suficiente para que se note.
+     * Descuadre con todas las líneas en régimen general: caso de control, debe devolver el error
+     * admisible 2005 o 2006.
      */
     @Test
     void unDescuadreSinClaveExentaDebeSerDenunciado() {
@@ -143,17 +109,8 @@ class PortalDePruebasTest {
     }
 
     /**
-     * El mismo descuadre, pero con <strong>una sola</strong> línea en una clave de régimen de las
-     * que excluyen la comprobación —la 03— y otra que no.
-     * <p>
-     * Aquí está la respuesta que buscamos desde la Fase 2:
-     * <ul>
-     * <li><strong>Sin error 2005/2006</strong> → la exclusión es <em>por registro</em>: basta una
-     *     línea exenta para que no se contraste nada. Es lo que hoy interpreta
-     *     {@code seContrastanLosTotales()}.</li>
-     * <li><strong>Con error</strong> → la exclusión es <em>por línea</em>, y nuestra
-     *     interpretación es demasiado laxa: habría que contrastar las líneas no exentas.</li>
-     * </ul>
+     * El mismo descuadre con una sola línea en clave 03. Sin error 2005/2006, la exclusión es por
+     * registro, como interpreta {@code seContrastanLosTotales()}; con error, es por línea.
      */
     @Test
     void unDescuadreConUnaLineaEnClaveExentaResuelveLaInterpretacion() {
@@ -197,12 +154,7 @@ class PortalDePruebasTest {
                 Porcentaje.de("21"), Importe.de("111.10"), null, Importe.de("12.35"), null, null));
     }
 
-    /**
-     * La identidad que declaramos como sistema informático. <strong>Es una de las preguntas
-     * abiertas</strong>: cuando lacre actúa como CF dentro del CPF de otro, no está confirmado si
-     * aquí va la identidad del ERP o la nuestra. Que la AEAT acepte esto demuestra que se admite,
-     * no que sea lo correcto.
-     */
+    /** Identidad declarada como sistema informático. */
     private static SistemaInformatico sistemaInformatico() {
         return new SistemaInformatico(
                 new PersonaFisicaJuridica("lacre", OBLIGADO_NIF),
@@ -227,10 +179,7 @@ class PortalDePruebasTest {
                 almacenDelKit());
     }
 
-    /**
-     * Abre el PKCS#12 que se le indique, sin exigir la convención {@code <NIF>.p12} del almacén
-     * de producción: los ficheros del kit de la FNMT vienen con su propio nombre y no se tocan.
-     */
+    /** Abre el PKCS#12 indicado, sin exigir la convención {@code <NIF>.p12}. */
     private static AlmacenCertificados almacenDelKit() {
         Path fichero = Path.of(env("LACRE_CERT_P12"));
         char[] contrasena = env("LACRE_CERT_PASS").toCharArray();
@@ -246,16 +195,9 @@ class PortalDePruebasTest {
     }
 
     /**
-     * <strong>Este test no puede apuntar a producción, y punto.</strong>
-     * <p>
-     * Con un certificado real, la diferencia entre {@code prewww1} y {@code www1} es la que
-     * hay entre una prueba y presentar registros de facturación de verdad a nombre de su
-     * titular. Eso no se deshace, y un despiste de un carácter no puede tener esa
-     * consecuencia: los cuatro endpoints del WSDL se parecen entre sí, y el equivocado no
-     * avisa, responde.
-     * <p>
-     * Los de pruebas de la AEAT están bajo {@code aeat.es} con prefijo {@code prewww}; los de
-     * producción, bajo {@code agenciatributaria.gob.es}.
+     * Este test no puede apuntar a producción. Los endpoints de pruebas están bajo
+     * {@code aeat.es} con prefijo {@code prewww}; los de producción, bajo
+     * {@code agenciatributaria.gob.es}.
      */
     private static String soloPreproduccion(String endpoint) {
         if (!endpoint.startsWith("https://prewww") || !endpoint.contains(".aeat.es/")) {
@@ -279,10 +221,7 @@ class PortalDePruebasTest {
         return valor;
     }
 
-    /**
-     * El valor de esta fase está en <em>leer</em> la respuesta, no en un aserto verde: qué código
-     * devuelve cada línea es lo que responde las preguntas que quedan abiertas.
-     */
+    /** Imprime la respuesta: el código de cada línea es lo que interesa leer. */
     private static void informar(String caso, RespuestaRemision respuesta) {
         System.out.println("========== " + caso);
         System.out.println("  EstadoEnvio      : " + respuesta.estado());

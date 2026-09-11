@@ -20,15 +20,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 /**
- * El test que prueba de verdad el
- * <a href="../../../docs/adr/0004-eventos-de-dominio-sincronos.md">ADR 0004</a>: si el alta en
- * el outbox falla, <strong>no queda registro de facturación</strong>.
- * <p>
- * Con {@code @ApplicationModuleListener} —{@code @Async} + {@code REQUIRES_NEW} +
- * {@code AFTER_COMMIT}— este test se pondría rojo: el registro habría confirmado antes de que el
- * oyente se ejecutase, y quedaría uno que no llegaría nunca a la AEAT.
- * <p>
- * Es preferible que el ERP no pueda facturar a que facture sin que el registro se remita.
+ * Si el alta en el outbox falla, no queda registro de facturación: el oyente corre en la misma
+ * transacción.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest

@@ -1,10 +1,8 @@
 package dev.lacre.verifactu.desglose;
 
 /**
- * Calificación de la operación, lista L9 del anexo de la Orden HAC/1177/2024.
- * <p>
- * El nombre de cada constante es el código que viaja en el XML; no es un identificador
- * interno y renombrarlo rompe la conformidad.
+ * Calificación de la operación, lista L9 del anexo de la Orden HAC/1177/2024. El nombre de
+ * cada constante es el código que viaja en el XML.
  */
 public enum CalificacionOperacion implements Calificacion {
 

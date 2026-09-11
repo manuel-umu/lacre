@@ -25,10 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Consulta del estado de un registro y verificación de la cadena de un obligado.
- * <p>
- * Cada test usa su propio obligado, porque la verificación mira la cadena entera y con obligados
- * compartidos un test contaminaría al siguiente.
+ * Consulta del estado de un registro y verificación de la cadena de un obligado. Cada test usa
+ * su propio obligado.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -53,10 +51,6 @@ class ConsultaRestTest {
         nifDelObligado = obligados.findById(obligadoId).orElseThrow().nif().valor();
     }
 
-    /**
-     * La otra mitad del 201: allí se responde que está guardado, y aquí en qué acabó. Recién
-     * emitido, la AEAT todavía no ha dicho nada y el envío está {@code PENDIENTE}.
-     */
     @Test
     void elEstadoDeUnRegistroReciénEmitidoDiceQueSiguePendiente() throws Exception {
         UUID registro = emitir("FA/1", "consulta-1");
@@ -87,11 +81,7 @@ class ConsultaRestTest {
                 .andExpect(jsonPath("$.intacta").value(true));
     }
 
-    /**
-     * El {@code alcance} tiene que viajar en la respuesta: hoy vale {@code ENLACES} y no
-     * {@code HUELLAS}, porque no se recalcula ninguna. Sin él, un {@code intacta: true}
-     * prometería una verificación que no se ha hecho.
-     */
+    /** La respuesta declara el {@code alcance} de la verificación. */
     @Test
     void unaCadenaBienFormadaSeVerificaYDiceHastaDondeLlega() throws Exception {
         emitir("FA/1", "cadena-1");
@@ -107,13 +97,8 @@ class ConsultaRestTest {
     }
 
     /**
-     * Sin este caso, la verificación podría devolver siempre «intacta» y el test anterior pasaría
-     * igual.
-     * <p>
-     * La cadena se rompe <strong>insertando</strong>, no modificando: la tabla es de solo
-     * inserción y el trigger rechazaría un {@code UPDATE}. Un eslabón añadido a mano con una
-     * huella anterior que no es la del que le precede es exactamente la manipulación que esta
-     * verificación existe para detectar.
+     * La cadena se rompe insertando un eslabón con huella anterior falsa: la tabla no admite
+     * {@code UPDATE}.
      */
     @Test
     void unEslabonQueNoEnlazaSeDenuncia() throws Exception {

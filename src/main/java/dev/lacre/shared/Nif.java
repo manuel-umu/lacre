@@ -4,11 +4,8 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Número de identificación fiscal español, validado con su carácter de control.
- * <p>
- * Acepta las tres formas que puede tomar el NIF de un obligado tributario o de un
- * destinatario: NIF de persona física (DNI), NIE de extranjero y NIF de persona
- * jurídica (el antiguo CIF). El valor se normaliza a mayúsculas sin espacios.
+ * NIF español (DNI, NIE o CIF) validado con su carácter de control y normalizado a mayúsculas
+ * sin espacios.
  */
 public record Nif(String valor) implements IdentificadorFiscal {
 

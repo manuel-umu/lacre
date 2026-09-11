@@ -5,11 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Vectores conocidos de SHA-256 y los ejemplos del apartado 6 del documento de la huella de
- * la AEAT. Son la única comprobación que valida de verdad el paso de cadena a bytes; las
- * properties comprueban el comportamiento, no la corrección del algoritmo ni la codificación.
- */
+/** Vectores conocidos de SHA-256 y los ejemplos oficiales de la AEAT. */
 class CalculadorHuellaTest {
 
     @Test
@@ -22,17 +18,12 @@ class CalculadorHuellaTest {
 
     @Test
     void codificaEnUtf8ComoExigeElApartado3() {
-        // "ñ" es C3 B1 en UTF-8 y B1 en ISO-8859-1: el vector distingue una codificación de la otra.
+        // "ñ" es C3 B1 en UTF-8 y B1 en ISO-8859-1.
         assertThat(CalculadorHuella.calcular("ñ").valor())
                 .isEqualTo("024BB90888CA89A15A19E9BDD8C712BFB070465FCE1EF25E43C170EA44FC5E5F");
     }
 
-    /**
-     * Caso 3 del documento: registro de anulación con registro anterior. Todavía no existe el
-     * agregado del registro de anulación, así que la cadena canónica va literal; lo que este
-     * test demuestra es que el algoritmo de salida es correcto también para ese subconjunto
-     * de campos.
-     */
+    /** Ejemplo oficial de anulación, con la cadena canónica literal. */
     @Test
     void reproduceElEjemploDeRegistroDeAnulacionDeLaAeat() {
         String cadena = "IDEmisorFacturaAnulada=89890001K"

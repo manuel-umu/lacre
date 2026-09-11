@@ -19,10 +19,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Cadenas canónicas de los ejemplos del apartado 6 de «Detalle de las especificaciones
- * técnicas para generación de la huella o hash de los registros de facturación» (AEAT,
- * v0.1.2, 27/08/2024). Son literales del documento oficial: si un cambio los rompe, es el
- * cambio el que está mal.
+ * Cadenas canónicas de los ejemplos oficiales de la AEAT, literales: si un cambio los rompe, el
+ * cambio está mal.
  */
 class CanonicalizadorAeatTest {
 
@@ -86,8 +84,8 @@ class CanonicalizadorAeatTest {
     }
 
     /**
-     * {@code ISO_OFFSET_DATE_TIME} omitiría los segundos aquí y produciría
-     * {@code 2024-01-01T19:20+01:00}, con una huella distinta a la que calcula la AEAT.
+     * {@code ISO_OFFSET_DATE_TIME} omitiría los segundos y produciría
+     * {@code 2024-01-01T19:20+01:00}.
      */
     @Test
     void laFechaHoraConservaLosSegundosAunqueSeanCero() {

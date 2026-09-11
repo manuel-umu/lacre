@@ -2,12 +2,7 @@ package dev.lacre.remision;
 
 import dev.lacre.shared.ValorInvalidoException;
 
-/**
- * Desenlace de un registro concreto, {@code EstadoRegistroType} del XSD de respuesta.
- * <p>
- * {@link #ACEPTADO_CON_ERRORES} <strong>no es un fallo</strong>: el registro queda presentado y
- * lo que procede es subsanarlo con un registro nuevo. Reenviarlo duplicaría la presentación.
- */
+/** Desenlace de un registro concreto, {@code EstadoRegistroType} del XSD de respuesta. */
 public enum EstadoRegistroAeat {
 
     CORRECTO("Correcto"),

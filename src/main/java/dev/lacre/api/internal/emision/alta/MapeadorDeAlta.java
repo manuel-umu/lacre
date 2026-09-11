@@ -27,19 +27,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Traduce el alta del contrato al modelo fiscal. A mano y sin generador: MapStruct está
- * prohibido en el proyecto, y de todas formas la mitad de esto no es copiar campos sino
- * resolver catálogos y tipos sellados.
- * <p>
- * <strong>No revalida lo que ya valida el dominio.</strong> Los constructores de {@code shared}
- * y de {@link DatosRegistroAlta} comprueban longitudes, rangos y reglas de la AEAT; repetirlo
- * aquí garantizaría que un día las dos versiones discrepen. Lo único que se comprueba en este
- * fichero es lo que el dominio no puede ver porque nace de la forma del JSON: que un código de
- * catálogo exista.
- * <p>
- * Estático y sin Spring, al contrario que el componente que era antes: el único dato que
- * necesitaba inyectado —el sistema informático— lo aporta ahora quien llama, porque es
- * {@code Emisiones} quien lo tiene.
+ * Traduce la petición de alta al modelo fiscal. No revalida lo que ya validan los constructores
+ * de {@link DatosRegistroAlta}; solo resuelve los códigos de catálogo.
  */
 final class MapeadorDeAlta {
 
@@ -111,11 +100,7 @@ final class MapeadorDeAlta {
         return impuesto;
     }
 
-    /**
-     * El XSD declara la calificación y la exención como un {@code choice}, y sus códigos no se
-     * solapan: los de exención empiezan por E y los de calificación por S o N. Se reparte por
-     * ahí en vez de pedir al integrador dos campos de los que solo puede rellenar uno.
-     */
+    /** Calificación y exención comparten campo: los códigos de exención empiezan por E. */
     private static Calificacion calificacion(String codigo) {
         String limpio = codigo.strip().toUpperCase(Locale.ROOT);
         try {

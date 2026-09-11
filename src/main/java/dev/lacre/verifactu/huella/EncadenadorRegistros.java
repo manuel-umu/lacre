@@ -13,17 +13,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Enlaza un registro de alta con el anterior de la cadena del obligado.
- * <p>
- * Servicio de dominio puro: sin Spring, sin base de datos y sin acceso al reloj del sistema.
- * El instante de generación entra en el cálculo de la huella, así que con el mismo
- * {@link Clock} y los mismos datos la cadena es reproducible.
- * <p>
- * La zona importa: la huella se calcula sobre la fecha y hora <em>con huso</em>, de modo que el
- * mismo instante en dos zonas distintas produce huellas distintas. Por eso la zona es argumento
- * de {@link #encadenar} y no del reloj: es dato del obligado por cuya cuenta se factura, y una
- * misma instalación factura para obligados peninsulares y canarios. La zona del {@code Clock}
- * inyectado no se usa.
+ * Enlaza un registro con el anterior de la cadena del obligado y calcula su huella. Servicio de
+ * dominio puro, sin Spring ni base de datos. La zona horaria del obligado entra en el cálculo,
+ * por eso es argumento de {@link #encadenar} y no del {@link Clock}.
  */
 public final class EncadenadorRegistros {
 
@@ -45,8 +37,7 @@ public final class EncadenadorRegistros {
         Objects.requireNonNull(registroAnterior, "registroAnterior");
         Objects.requireNonNull(zonaDelObligado, "zonaDelObligado");
 
-        // El registro se fecha al segundo (art. 10.1.p del RD 1007/2023). Truncar aquí, y no al
-        // formatear, evita que lo que se firma y lo que se guarda difieran en los nanosegundos.
+        // Fechado al segundo (art. 10.1.p del RD 1007/2023) antes de calcular la huella.
         OffsetDateTime fechaHoraHusoGenRegistro =
                 OffsetDateTime.now(reloj.withZone(zonaDelObligado)).truncatedTo(ChronoUnit.SECONDS);
 

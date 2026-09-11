@@ -4,16 +4,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /**
- * La credencial con la que los tests llaman a la API.
- * <p>
- * El literal está repetido en {@code src/test/resources/application.properties}, que es de donde
- * la lee la aplicación. Podría leerse de ahí con {@code @Value}, pero entonces el test dependería
- * de la misma configuración que está probando: si la propiedad desapareciera, los dos lados
- * cambiarían a la vez y ningún test se pondría rojo.
- * <p>
- * Vive en la raíz de {@code api.internal} y no dentro de {@code emision} ni de
- * {@code autenticacion}: la usan los tests de los tres subpaquetes, y ponerla en uno haría que
- * los otros dos dependieran de él por un detalle de utilería.
+ * Clave con la que los tests llaman a la API. Coincide con la de
+ * {@code src/test/resources/application.properties}.
  */
 public final class ApiDePrueba {
 

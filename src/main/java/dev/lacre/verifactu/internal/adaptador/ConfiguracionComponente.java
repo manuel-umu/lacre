@@ -11,10 +11,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 
-/**
- * Cablea el núcleo puro de {@code verifactu} con Spring. El núcleo no conoce anotaciones; es aquí
- * donde se le da su identidad y el reloj que declara {@code ConfiguracionComun}.
- */
+/** Cableado con Spring del núcleo de {@code verifactu}. */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(PropiedadesComponente.class)
 class ConfiguracionComponente {
@@ -25,8 +22,8 @@ class ConfiguracionComponente {
     }
 
     /**
-     * Identidad que viaja en el bloque {@code SistemaInformatico} de cada registro. Debe
-     * coincidir con la declaración responsable de quien comercializa el sistema.
+     * Identidad del bloque {@code SistemaInformatico}; debe coincidir con la declaración
+     * responsable.
      */
     @Bean
     SistemaInformatico sistemaInformatico(PropiedadesComponente propiedades) {

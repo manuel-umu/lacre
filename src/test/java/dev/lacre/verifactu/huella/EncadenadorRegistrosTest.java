@@ -94,11 +94,7 @@ class EncadenadorRegistrosTest {
         assertThat(registro.huella()).isEqualTo(base().huella());
     }
 
-    /**
-     * El mismo instante en dos zonas da dos huellas. Por eso la zona es dato del obligado: un
-     * ERP que factura para un obligado peninsular y otro canario desde la misma instalación
-     * necesita las dos, y con una sola la AEAT no reconocería la mitad de las huellas.
-     */
+    /** El mismo instante en dos zonas da dos huellas. */
     @Test
     void laZonaDelObligadoCambiaLaHuellaAunqueElInstanteSeaElMismo() {
         EncadenadorRegistros encadenador = encadenador(CASO_1);

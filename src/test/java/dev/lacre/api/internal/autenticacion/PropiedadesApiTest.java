@@ -8,12 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Lo que impide desplegar lacre con la puerta abierta o con una cerradura de juguete.
- * <p>
- * Sin Spring: la validación vive en el constructor del record, así que no hace falta arrancar
- * nada para comprobarla.
- */
+/** Validación de la clave de la API, sin Spring. */
 class PropiedadesApiTest {
 
     @Test
@@ -30,7 +25,6 @@ class PropiedadesApiTest {
                 .hasMessageContaining("LACRE_API_CLAVE");
     }
 
-    /** Una clave corta es adivinable, y lo que protege es el registro fiscal de un obligado. */
     @Test
     void unaClaveCortaSeRechazaYDiceCuantoFalta() {
         assertThatThrownBy(() -> new PropiedadesApi("demasiado-corta"))
@@ -38,21 +32,13 @@ class PropiedadesApiTest {
                 .hasMessageContaining("al menos " + PropiedadesApi.MINIMO_LONGITUD_CLAVE);
     }
 
-    /**
-     * El constructor puede lanzar todo lo que quiera, pero lo que hay que demostrar es que
-     * <strong>el arranque se para</strong>. Este es el único test que recorre el camino de
-     * verdad: propiedad ausente → enlace de {@code @ConfigurationProperties} → contexto que no
-     * levanta. Sin él, un cambio en cómo se enlazan las propiedades podría dejar la clave a nulo
-     * y la API abierta sin que nada se pusiera rojo.
-     */
+    /** Recorre el arranque real: sin la propiedad, el contexto de Spring no levanta. */
     @Test
     void sinClaveLaAplicacionNoLevanta() {
         new ApplicationContextRunner()
                 .withUserConfiguration(HabilitaLasPropiedades.class)
                 .withPropertyValues("lacre.api.clave=")
-                // Contra la traza y no contra el mensaje de arriba: Spring envuelve el fallo de
-                // enlace, y lo que ve quien despliega —y lo que aquí importa— es que el nombre de
-                // la variable de entorno acaba impreso en la consola.
+                // Se comprueba la traza entera: Spring envuelve el fallo de enlace.
                 .run(contexto -> assertThat(contexto).hasFailed()
                         .getFailure().hasStackTraceContaining("LACRE_API_CLAVE"));
     }
@@ -77,10 +63,6 @@ class PropiedadesApiTest {
         assertThat(new PropiedadesApi("  " + treintaYDos + "\n").clave()).isEqualTo(treintaYDos);
     }
 
-    /**
-     * El recorte ocurre <strong>antes</strong> de medir: una clave de espacios con dos caracteres
-     * dentro no puede colarse por tener la longitud justa.
-     */
     @Test
     void elRecorteOcurreAntesDeMedirLaLongitud() {
         assertThatThrownBy(() -> new PropiedadesApi(" ".repeat(40) + "ab" + " ".repeat(40)))

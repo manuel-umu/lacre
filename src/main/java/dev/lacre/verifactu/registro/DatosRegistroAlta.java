@@ -14,17 +14,9 @@ import java.util.List;
 
 /**
  * Contenido de un registro de facturación de alta, {@code RegistroFacturacionAltaType} del XSD.
- * <p>
- * No incluye lo que no es dato de entrada: el encadenamiento, la fecha y hora de generación y
- * la huella los produce {@link EncadenadorRegistros} y viven en {@link RegistroEncadenado}.
- * {@code IDVersion} y {@code TipoHuella} son constantes y tampoco ocupan un componente.
- * <p>
- * El orden en que se declaran los componentes sigue al del XSD por comodidad al serializar,
- * pero <strong>no tiene significado normativo</strong>: el orden que importa es el de la
- * concatenación para la huella, y ese vive en {@link Canonicalizador}.
- * <p>
- * Con veinticinco componentes, construirlo posicionalmente es un riesgo real —dos {@link Importe}
- * intercambiados compilan y fallan en silencio—, así que lo normal es usar {@link #builder()}.
+ * No incluye el encadenamiento, la fecha de generación ni la huella, que produce
+ * {@link EncadenadorRegistros}. El orden de los componentes no tiene significado normativo: el
+ * de la huella lo fija {@link Canonicalizador}. Se construye con {@link #builder()}.
  */
 public record DatosRegistroAlta(
         IdFactura idFactura,
@@ -110,8 +102,7 @@ public record DatosRegistroAlta(
                 facturasSustituidas, MAXIMO_FACTURAS_REFERENCIADAS, "Las facturas sustituidas");
         destinatarios = listaSegura(destinatarios, MAXIMO_DESTINATARIOS, "Los destinatarios");
 
-        // El XSD lo dice en sus propias anotaciones: estos bloques «únicamente se rellenan» en
-        // el caso al que corresponden.
+        // Estos bloques solo se rellenan en el tipo de factura que les corresponde.
         if (!facturasRectificadas.isEmpty() && !tipoFactura.esRectificativa()) {
             throw new ValorInvalidoException(
                     "Solo una factura rectificativa puede referenciar facturas rectificadas, y esta es "
@@ -123,10 +114,7 @@ public record DatosRegistroAlta(
                             + tipoFactura.codigo());
         }
 
-        // Validaciones_Errores_Veri-Factu.pdf §3.1.3. Las tres de aquí abajo provocan el rechazo
-        // del registro por la AEAT —no están en la lista cerrada de errores admisibles del §4.3—,
-        // así que se rechazan al construir: un registro que la AEAT no va a admitir no debe
-        // entrar en una cadena de solo inserción, donde ya solo cabría subsanarlo.
+        // Estas tres reglas provocan el rechazo del registro por la AEAT, así que se validan al construir.
         if (tipoRectificativa == null && tipoFactura.esRectificativa()) {
             throw new ValorInvalidoException(
                     "Una factura rectificativa debe declarar si rectifica por sustitución o por "
@@ -155,12 +143,8 @@ public record DatosRegistroAlta(
     }
 
     /**
-     * Si {@link #cuotaTotal()} cuadra con el desglose dentro del margen de la AEAT.
-     * <p>
-     * Devuelve un booleano y no lanza a propósito: un descuadre <strong>no impide emitir</strong>.
-     * La AEAT lo trata como error admisible —el registro queda «Aceptado con errores»— y la
-     * norma es explícita en que la facturación nunca debe interrumpirse. Quien llame decide si
-     * avisa, registra o corrige.
+     * Si {@link #cuotaTotal()} cuadra con el desglose dentro del margen de la AEAT. No lanza: un
+     * descuadre es error admisible y no impide emitir.
      */
     public boolean cuadraLaCuotaTotal() {
         return !seContrastanLosTotales() || dentroDelMargen(cuotaTotal, desglose.totalCuotas());
@@ -191,14 +175,7 @@ public record DatosRegistroAlta(
         return new Builder();
     }
 
-    /**
-     * Construcción por nombre en lugar de por posición.
-     * <p>
-     * No es azúcar: con veintitrés componentes, y varios del mismo tipo, un intercambio de
-     * argumentos compila sin ruido y produce un registro fiscalmente incorrecto. Los campos
-     * obligatorios los sigue validando el constructor canónico del record, así que un
-     * {@code build()} incompleto falla igualmente.
-     */
+    /** Construcción por nombre en lugar de por posición. El constructor canónico sigue validando. */
     public static final class Builder {
 
         private IdFactura idFactura;

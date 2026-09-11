@@ -41,12 +41,8 @@ import java.util.concurrent.Future;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * El despachador contra Postgres real y un cliente de la AEAT de mentira.
- * <p>
- * Lo que se prueba aquí no es el XML —eso ya está cubierto— sino las tres cosas que solo se ven
- * con base de datos: que el control de flujo del art. 16.2 impide remitir antes de tiempo, que
- * dos instancias no despachan el mismo lote, y que cada desenlace aterriza en la fila que le
- * toca.
+ * El despachador contra Postgres real y un cliente de la AEAT falso: control de flujo,
+ * concurrencia y desenlaces.
  */
 @Import({TestcontainersConfiguration.class, DespachadorLotesTest.AeatDeMentira.class})
 @SpringBootTest
@@ -73,12 +69,8 @@ class DespachadorLotesTest {
     private UUID obligado;
 
     /**
-     * El outbox se vacía entre tests porque {@code despachar()} recorre <strong>todos</strong> los
-     * obligados con pendientes —que es lo que tiene que hacer en producción— y el contenedor se
-     * reutiliza: sin esto, cada test contaría también los lotes que dejaron los anteriores.
-     * <p>
-     * {@code registro_facturacion} no se toca: es de solo inserción y el trigger lo impediría.
-     * No hace falta, porque cada test estrena obligado y por tanto estrena cadena.
+     * El outbox se vacía entre tests porque el contenedor se reutiliza.
+     * {@code registro_facturacion} es de solo inserción y no se toca.
      */
     @BeforeEach
     void preparar() {
@@ -104,10 +96,7 @@ class DespachadorLotesTest {
         assertThat(aeat.lotesRemitidos()).isEqualTo(1);
     }
 
-    /**
-     * La letra c) del artículo: hay que esperar {@code t} segundos <em>desde el anterior envío</em>.
-     * El turno recién consumido vale 60 segundos, así que la segunda pasada no debe remitir nada.
-     */
+    /** El turno recién consumido vale 60 segundos: la segunda pasada no remite. */
     @Test
     void unSegundoLoteNoSaleHastaQuePasaElTiempoDeEspera() {
         emitir("FA/1");
@@ -134,7 +123,7 @@ class DespachadorLotesTest {
         assertThat(aeat.lotesRemitidos()).isEqualTo(2);
     }
 
-    /** El valor que devuelve la AEAT manda: si dice 0, el siguiente envío sale ya. */
+    /** El tiempo de espera que devuelve la AEAT sustituye al anterior. */
     @Test
     void laEsperaQueDevuelveLaAeatSustituyeALaAnterior() {
         emitir("FA/1");
@@ -188,14 +177,12 @@ class DespachadorLotesTest {
     }
 
     /**
-     * El caso que obliga a emparejar por tipo de operación: el alta y la anulación de la misma
-     * factura comparten {@code IDFactura}, y emparejar solo por ella pegaría el desenlace al
-     * registro equivocado.
+     * El alta y la anulación de la misma factura comparten {@code IDFactura}; se emparejan por
+     * tipo de operación.
      */
     @Test
     void distingueElAltaDeLaAnulacionDeLaMismaFactura() {
-        // Registros.anulacion() anula justo esta factura, así que las dos filas comparten
-        // IDFactura y solo el tipo de operación las separa.
+        // Registros.anulacion() anula esta misma factura.
         RegistroFacturacion alta = emitir("12345679/G34");
         RegistroFacturacion anulacion = cadena.anadir(obligado, Registros.anulacion());
         assertThat(idFacturaDe(alta)).isEqualTo(idFacturaDe(anulacion));
@@ -226,10 +213,7 @@ class DespachadorLotesTest {
         assertThat(intentosDe(sinRespuesta)).isEqualTo(1);
     }
 
-    /**
-     * Un fallo de transporte no es un rechazo: no sabemos si la AEAT lo registró, así que el
-     * lote se queda pendiente y suma un intento.
-     */
+    /** Un fallo de transporte deja el lote pendiente y suma un intento. */
     @Test
     void siLaRemisionFallaElLoteSiguePendienteYSumaIntento() {
         RegistroFacturacion registro = emitir("FA/1");
@@ -241,7 +225,7 @@ class DespachadorLotesTest {
         assertThat(intentosDe(registro)).isEqualTo(1);
     }
 
-    /** Y el turno se consume igual: la norma cuenta envíos, no envíos con éxito. */
+    /** El turno se consume igual: la norma cuenta envíos, no éxitos. */
     @Test
     void unFalloDeRemisionConsumeElTurno() {
         emitir("FA/1");
@@ -254,10 +238,7 @@ class DespachadorLotesTest {
 
     // --- Concurrencia ---
 
-    /**
-     * Dos despachadores a la vez, como habrá dos instancias. El {@code for update skip locked} y
-     * la reserva del turno en una sola sentencia tienen que dejar salir <strong>un</strong> lote.
-     */
+    /** Dos despachadores concurrentes deben dejar salir un solo lote. */
     @Test
     void dosDespachadoresConcurrentesNoRemitenElMismoLote() throws Exception {
         emitir("FA/1");
@@ -306,7 +287,7 @@ class DespachadorLotesTest {
                 .param("o", obligado).query(Integer.class).single();
     }
 
-    /** Sustituye al cliente real: aquí no se prueba el transporte, ya lo hace WireMock. */
+    /** Sustituye al cliente real; el transporte lo prueba WireMock. */
     interface AeatFalsa extends ClienteAeat {
         void reiniciar();
 

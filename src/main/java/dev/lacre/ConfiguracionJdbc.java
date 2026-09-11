@@ -12,14 +12,8 @@ import java.time.ZoneId;
 import java.util.List;
 
 /**
- * Conversores de los value objects para Spring Data JDBC.
- * <p>
- * Viven aquí, en el paquete raíz de la aplicación, y <strong>no en {@code shared}</strong>:
- * {@code shared} viaja con la librería que se publica en Maven Central y no puede depender de
- * Spring. Es una consecuencia directa del ADR 0002, y la vigila {@code ArquitecturaTest}.
- * <p>
- * Están los de {@link Nif}, {@link Huella} y {@link ZoneId}, que son los tipos que hoy ocupan
- * una columna. {@code Importe} y {@code Porcentaje} viajan dentro del XML y no la necesitan.
+ * Conversores de Spring Data JDBC para los value objects que ocupan una columna: {@link Nif},
+ * {@link Huella} y {@link ZoneId}.
  */
 @Configuration(proxyBeanMethods = false)
 public class ConfiguracionJdbc extends AbstractJdbcConfiguration {
@@ -72,7 +66,7 @@ public class ConfiguracionJdbc extends AbstractJdbcConfiguration {
         }
     }
 
-    /** {@code ZoneId.of} rechaza una zona que no exista, que es la validación que queremos. */
+    /** {@code ZoneId.of} rechaza las zonas inexistentes. */
     @ReadingConverter
     static class ColumnaAZona implements Converter<String, ZoneId> {
         @Override

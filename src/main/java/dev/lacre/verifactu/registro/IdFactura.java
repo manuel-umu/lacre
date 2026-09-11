@@ -7,29 +7,15 @@ import dev.lacre.shared.ValorInvalidoException;
 import java.time.LocalDate;
 
 /**
- * Identificación de una factura, {@code IDFacturaExpedidaType} del XSD.
- * <p>
- * El mismo trío identifica también las facturas rectificadas y sustituidas
- * ({@code IDFacturaARType}), que tienen idéntica estructura.
- * <p>
- * El número de serie tiene una restricción de caracteres que el XSD <strong>no</strong> expresa
- * y que sí está en {@code Validaciones_Errores_Veri-Factu.pdf}, §3.1.3. Incumplirla provoca el
- * rechazo del registro por la AEAT, así que se valida al construir: un registro que la AEAT va a
- * rechazar no debe llegar a entrar en la cadena, porque la cadena es de solo inserción y lo
- * único que quedaría es subsanarlo.
+ * Identificación de una factura, {@code IDFacturaExpedidaType} del XSD; también identifica las
+ * facturas rectificadas y sustituidas. Los caracteres del número de serie se validan al
+ * construir, porque la AEAT rechaza los no admitidos.
  */
 public record IdFactura(Nif emisor, String numSerieFactura, LocalDate fechaExpedicion) {
 
     public static final int MAXIMO_LONGITUD_NUM_SERIE = 60;
 
-    /**
-     * Caracteres prohibidos en el número de serie, por su código ASCII y no por su glifo: el
-     * documento los lista como 34, 39, 60, 61 y 62, y el 39 es la comilla simple aunque en el
-     * PDF se imprima como un acento grave.
-     * <p>
-     * No es capricho de la AEAT: el {@code =} es el separador de la cadena canónica de la
-     * huella, y {@code <} y {@code >} romperían el XML.
-     */
+    /** Caracteres prohibidos en el número de serie: ASCII 34, 39, 60, 61 y 62. */
     private static final String PROHIBIDOS = "\"'<=>";
 
     public IdFactura {

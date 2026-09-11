@@ -25,9 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * La anulación por HTTP. Comparte con el alta el cerrojo, la cadena y la tabla de idempotencia,
- * así que lo que se prueba aquí es lo que <strong>no</strong> comparte: que anular añade un
- * eslabón en vez de quitar uno, y que el tipo entra en la huella de idempotencia.
+ * La anulación por HTTP: anular añade un eslabón a la cadena, y el tipo de petición entra en la
+ * huella de idempotencia.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -51,10 +50,6 @@ class AnulacionRestTest {
         nifDelObligado = obligados.findById(id).orElseThrow().nif().valor();
     }
 
-    /**
-     * Lo que más se malinterpreta de Veri*Factu: anular <strong>no borra</strong>. El registro de
-     * anulación es la posición 2 de la cadena, con su propia huella y su propio envío.
-     */
     @Test
     void anularAnadeUnEslabonEnVezDeQuitarlo() throws Exception {
         mvc.perform(peticion("/alta", "alta-1", alta("FA/1"))).andExpect(status().isCreated());
@@ -82,11 +77,6 @@ class AnulacionRestTest {
         assertThat(registroId(segunda)).isEqualTo(registroId(primera));
     }
 
-    /**
-     * La misma factura puede tener alta y anulación, así que el tipo entra en la huella de la
-     * petición: reutilizar la clave para las dos es un error del integrador y tiene que verlo.
-     * Sin el discriminante, la anulación devolvería el registro del alta y nadie se enteraría.
-     */
     @Test
     void laClaveDelAltaNoSirveParaLaAnulacionDeLaMismaFactura() throws Exception {
         mvc.perform(peticion("/alta", "compartida", alta("FA/3"))).andExpect(status().isCreated());

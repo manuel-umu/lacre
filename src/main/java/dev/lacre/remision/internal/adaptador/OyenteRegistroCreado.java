@@ -12,17 +12,8 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * Da de alta en el outbox cada registro que se crea.
- * <p>
- * <strong>{@code @EventListener} y no {@code @ApplicationModuleListener}</strong>: esa anotación
- * es {@code @Async} + {@code REQUIRES_NEW} + {@code AFTER_COMMIT}, así que correría después de
- * confirmar la transacción del emisor y en otra distinta. Eso deja una ventana con el registro
- * ya escrito y sin fila en el outbox, y un registro sin outbox no llega nunca a la AEAT. Aquí
- * las dos escrituras son el mismo hecho. Ver el
- * <a href="../../../../../../docs/adr/0004-eventos-de-dominio-sincronos.md">ADR 0004</a>.
- * <p>
- * Corre dentro de la transacción que abrió el caso de uso, así que si esto falla se deshace
- * también el registro. Es lo que se quiere: preferible no poder facturar a facturar sin remitir.
+ * Da de alta en el outbox cada registro creado, dentro de la misma transacción: si falla, se
+ * deshace también el registro.
  */
 @Component
 class OyenteRegistroCreado {

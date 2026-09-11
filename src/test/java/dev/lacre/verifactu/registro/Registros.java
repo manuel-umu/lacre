@@ -14,12 +14,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Datos de partida para los tests, tomados del ejemplo del apartado 6 del documento de la
- * huella de la AEAT.
- * <p>
- * Todo lo que no entra en el cálculo de la huella —desglose, sistema informático, nombre del
- * emisor— se rellena con valores fijos, de modo que los tests de conformidad puedan cambiar
- * solo los ocho campos que sí entran.
+ * Datos de partida para los tests, tomados del ejemplo oficial de la huella. Lo que no entra en
+ * la huella se rellena con valores fijos.
  */
 public final class Registros {
 
@@ -48,7 +44,7 @@ public final class Registros {
         return new RegistroAnterior(idFactura("12345678/G32"), huella);
     }
 
-    /** Anulación del caso 3 del documento oficial de la huella. */
+    /** Anulación del ejemplo oficial de la huella. */
     public static DatosRegistroAnulacion anulacion() {
         return new DatosRegistroAnulacion(
                 idFactura("12345679/G34"), null, false, false, GeneradoPor.E, null,

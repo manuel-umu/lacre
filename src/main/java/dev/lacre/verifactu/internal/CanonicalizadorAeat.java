@@ -11,17 +11,10 @@ import java.util.Optional;
 import java.util.StringJoiner;
 
 /**
- * Canonicalización conforme a «Detalle de las especificaciones técnicas para generación de la
- * huella o hash de los registros de facturación», AEAT, versión 0.1.2 de 27/08/2024, que
- * desarrolla el artículo 13 de la Orden HAC/1177/2024.
- * <p>
- * Los campos se concatenan <strong>en el orden fijado por el apartado 3</strong>, con la forma
- * {@code nombre=valor} separada por {@code &}. Ese orden no es negociable, no coincide con el
- * de declaración de los records ni con el de los elementos del XSD, y <strong>es distinto para
- * el alta (apartado 3.a, ocho campos) y para la anulación (apartado 3.b, cinco)</strong>.
- * <p>
- * Un campo sin valor aporta solo su nombre y el {@code =}, sin nada detrás: es el caso de la
- * huella anterior en el primer registro de la cadena.
+ * Canonicalización de la huella conforme al artículo 13 de la Orden HAC/1177/2024: campos
+ * {@code nombre=valor} separados por {@code &}, en el orden que fija la AEAT, distinto para el
+ * alta (ocho campos) y la anulación (cinco). Un campo sin valor aporta solo su nombre y el
+ * {@code =}.
  */
 public final class CanonicalizadorAeat implements Canonicalizador {
 
@@ -36,7 +29,7 @@ public final class CanonicalizadorAeat implements Canonicalizador {
         };
     }
 
-    /** Apartado 3.a: ocho campos. */
+    /** Alta: ocho campos. */
     private static String alta(DatosRegistroAlta datos, Optional<RegistroAnterior> anterior,
                                OffsetDateTime fechaHoraHusoGenRegistro) {
         StringJoiner cadena = new StringJoiner("&");
@@ -51,10 +44,7 @@ public final class CanonicalizadorAeat implements Canonicalizador {
         return cadena.toString();
     }
 
-    /**
-     * Apartado 3.b: cinco campos, y los tres primeros cambian de nombre respecto del alta
-     * —llevan el sufijo {@code Anulada}—, aunque el valor salga del mismo sitio.
-     */
+    /** Anulación: cinco campos; los tres primeros llevan el sufijo {@code Anulada}. */
     private static String anulacion(DatosRegistroAnulacion datos, Optional<RegistroAnterior> anterior,
                                     OffsetDateTime fechaHoraHusoGenRegistro) {
         StringJoiner cadena = new StringJoiner("&");

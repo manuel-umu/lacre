@@ -21,37 +21,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Lee la respuesta de la AEAT con StAX, en la misma línea que el
- * <a href="../../../../../../docs/adr/0003-serializacion-xml-con-stax.md">ADR 0003</a>: cero
- * dependencias nuevas y el orden del esquema a la vista.
- * <p>
- * Va por <strong>nombre local</strong>, ignorando prefijos: los que use la AEAT en su respuesta
- * son cosa suya y podrían cambiar sin cambiar el esquema.
- * <p>
- * No valida contra el XSD al leer. Si la AEAT devolviera algo que el esquema no admite, el
- * problema sería suyo y aquí solo cabría dejar constancia; validar la entrada nos haría descartar
- * una respuesta que quizá es la única prueba de una presentación.
- */
+/** Lee con StAX la respuesta de la AEAT, por nombre local y sin validar contra el XSD. */
 final class LectorRespuestaAeat {
 
-    /**
-     * El {@code sf:fecha} de la AEAT, {@code dd-MM-yyyy}, que el XSD fija con el patrón
-     * {@code \d{2}-\d{2}-\d{4}}.
-     * <p>
-     * Está repetido a propósito y no reutiliza {@code FormatosAeat}: ese vive en
-     * {@code verifactu.internal} y este módulo tiene prohibido entrar ahí, que es la frontera
-     * que permite extraer el núcleo como librería. La duplicación es asumible porque aquí se
-     * <em>lee</em>: un desajuste de formato lanzaría al parsear, no produciría un valor
-     * incorrecto en silencio, que es el riesgo del que avisa el ADR 0003.
-     */
+    /** {@code sf:fecha}: {@code dd-MM-yyyy}. */
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-    /**
-     * La AEAT antepone el código del catálogo al texto del Fault, con esta forma exacta:
-     * {@code Codigo[4104].Error en la cabecera: ...}. Verificado contra el Portal de Pruebas el
-     * 2026-09-09, sobre una respuesta real.
-     */
+    /** La AEAT antepone el código al texto del Fault: {@code Codigo[4104].Error en la cabecera}. */
     private static final String PREFIJO_DEL_CODIGO = "Codigo[";
 
     private LectorRespuestaAeat() {
@@ -73,9 +49,8 @@ final class LectorRespuestaAeat {
                 }
                 String elemento = lector.getLocalName();
                 if ("RespuestaLinea".equals(elemento)) {
-                    // Una línea se cierra cuando empieza la siguiente: el código y la descripción
-                    // del error son opcionales y van al final, así que no hay campo que marque su
-                    // fin. El resto lo cierra el final del documento, más abajo.
+                    // Una línea se cierra al empezar la siguiente o al acabar el documento: sus
+                    // últimos campos son opcionales.
                     if (enCurso != null) {
                         lineas.add(enCurso.aLinea());
                     }
@@ -113,9 +88,7 @@ final class LectorRespuestaAeat {
             throw new RespuestaIlegibleException("no se pudo parsear la respuesta de la AEAT", e);
         }
 
-        // Un rechazo del envío completo llega como SOAP Fault, sin EstadoEnvio ni líneas. No es
-        // una respuesta ilegible: es una respuesta perfectamente clara que dice que no se
-        // procesó nada.
+        // Un rechazo del envío completo llega como SOAP Fault, sin EstadoEnvio ni líneas.
         if (faultstring != null) {
             throw rechazo(faultstring);
         }
@@ -125,10 +98,7 @@ final class LectorRespuestaAeat {
         return new RespuestaRemision(estado, espera, csv, lineas);
     }
 
-    /**
-     * Se parte el texto a mano y no con una expresión regular: el formato es un prefijo fijo y un
-     * corchete, y una regular para esto solo añade escapes que confundir.
-     */
+    /** Extrae el código del catálogo del texto del Fault. */
     private static EnvioRechazadoException rechazo(String faultstring) {
         String texto = faultstring.trim();
         if (texto.startsWith(PREFIJO_DEL_CODIGO)) {
@@ -143,10 +113,7 @@ final class LectorRespuestaAeat {
         return new EnvioRechazadoException(null, texto);
     }
 
-    /**
-     * Una respuesta viene de fuera, así que se parsea con las entidades externas desactivadas:
-     * es la defensa estándar contra XXE, y no cuesta nada.
-     */
+    /** Entidades externas desactivadas: defensa contra XXE. */
     private static XMLInputFactory entradaSegura() {
         XMLInputFactory factoria = XMLInputFactory.newInstance();
         factoria.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
@@ -154,11 +121,7 @@ final class LectorRespuestaAeat {
         return factoria;
     }
 
-    /**
-     * {@code TipoOperacionType} solo admite {@code Alta} y {@code Anulacion}. No se usa
-     * {@code valueOf} porque la caja no coincide con la de nuestro enum, y porque un valor
-     * inesperado tiene que fallar diciendo qué llegó.
-     */
+    /** {@code TipoOperacionType} solo admite {@code Alta} y {@code Anulacion}. */
     private static TipoRegistro tipoDeOperacion(String valor) {
         return switch (valor.trim()) {
             case "Alta" -> TipoRegistro.ALTA;
@@ -172,7 +135,7 @@ final class LectorRespuestaAeat {
         return limpio.isEmpty() ? Duration.ZERO : Duration.ofSeconds(Long.parseLong(limpio));
     }
 
-    /** Acumulador mutable de una línea a medio leer. El record inmutable se crea al cerrarla. */
+    /** Acumulador de una línea a medio leer. */
     private static final class Linea {
         private Nif emisor;
         private String numSerie;

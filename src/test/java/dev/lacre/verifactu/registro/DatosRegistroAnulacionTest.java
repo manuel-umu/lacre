@@ -17,9 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * El caso 3 del documento oficial de la huella, ahora sí de extremo a extremo: hasta que
- * existió el registro de anulación solo podía comprobarse pasándole la cadena canónica ya
- * escrita a mano al calculador.
+ * El ejemplo oficial de anulación de extremo a extremo, y las reglas del registro de
+ * anulación.
  */
 class DatosRegistroAnulacionTest {
 

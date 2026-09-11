@@ -21,10 +21,7 @@ import java.util.UUID;
 import static dev.lacre.verifactu.consulta.VerificacionDeCadena.Rotura;
 import static dev.lacre.verifactu.consulta.VerificacionDeCadena.Rotura.Motivo;
 
-/**
- * Lado de lectura con SQL explícito, como {@code RegistrosRemitiblesJdbc}: no pasa por el
- * agregado porque no hace falta el agregado.
- */
+/** Lado de lectura de los registros guardados, con SQL explícito. */
 @Component
 class RegistrosGuardadosJdbc implements RegistrosGuardados {
 
@@ -60,15 +57,7 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
                 .optional();
     }
 
-    /**
-     * Se trae la cadena entera en memoria. Son tres columnas por registro y la cadena de un
-     * obligado crece con sus facturas, así que llegará a molestar; hoy no, y paginar una
-     * verificación que por definición es global complicaría el recorrido sin quitar el problema
-     * de fondo, que es que hay que mirarlos todos.
-     *
-     * @implNote TODO Si una cadena real llega a hacer esto pesado, la salida es un cursor de
-     * lectura en flujo, no páginas: el eslabón n solo necesita conocer al n-1.
-     */
+    /** Carga la cadena entera en memoria y comprueba los enlaces. */
     @Override
     public VerificacionDeCadena verificarCadenaDe(UUID obligadoId) {
         List<Eslabon> cadena = jdbc.sql("""
@@ -89,9 +78,8 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
     }
 
     /**
-     * La misma regla que {@code ComprobacionPrevia}, aplicada a la cadena entera en vez de al
-     * último par: el primero está bien precisamente por no llevar huella anterior, y cualquier
-     * otro debe llevar exactamente la del que le precede.
+     * El primero no lleva huella anterior; cualquier otro lleva la del que le precede y ocupa la
+     * posición siguiente.
      */
     private static List<Rotura> roturasDe(List<Eslabon> cadena) {
         List<Rotura> roturas = new ArrayList<>();

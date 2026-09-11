@@ -5,10 +5,7 @@ import dev.lacre.shared.ValorInvalidoException;
 
 /**
  * Persona física o jurídica, española o extranjera, {@code PersonaFisicaJuridicaType} del XSD.
- * <p>
- * Sirve para destinatarios, terceros y el titular del sistema informático. El identificador es
- * un {@link IdentificadorFiscal}, de modo que un cliente extranjero sin NIF español se
- * represente con {@code IdOtro} sin necesidad de campos anulables.
+ * Sirve para destinatarios, terceros y el titular del sistema informático.
  */
 public record PersonaFisicaJuridica(String nombreRazon, IdentificadorFiscal identificador) {
 

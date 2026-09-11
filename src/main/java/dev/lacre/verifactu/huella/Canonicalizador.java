@@ -7,11 +7,8 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 
 /**
- * Produce la cadena de texto sobre la que se calcula la huella de un registro.
- * <p>
- * Concentra todo lo que depende de la especificación de la AEAT: el orden de los campos, el
- * separador, la normalización de cada valor y cómo se representa la ausencia de huella
- * anterior en el primer registro de la cadena.
+ * Produce la cadena canónica sobre la que se calcula la huella: orden de campos, separadores y
+ * normalización de valores.
  */
 public interface Canonicalizador {
 

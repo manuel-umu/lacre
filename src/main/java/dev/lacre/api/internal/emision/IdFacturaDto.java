@@ -7,27 +7,13 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 
-/**
- * Identificación de una factura tal y como viaja por la API.
- * <p>
- * Los nombres son los del diseño de registro de la AEAT —{@code IDEmisorFactura},
- * {@code NumSerieFactura}, {@code FechaExpedicionFactura}— en camelCase. Quien integra tiene el
- * documento oficial abierto al lado, y que los campos se llamen igual ahorra la traducción
- * mental y permite que un error nuestro cite el campo con el nombre que la AEAT usa.
- * <p>
- * Lo usan el alta y la anulación, así que vive en la raíz de {@code emision} y no en ninguno de
- * los dos subpaquetes.
- */
+/** Identificación de una factura en la API, con los nombres de la AEAT en camelCase. */
 public record IdFacturaDto(
         @NotBlank String idEmisorFactura,
         @NotBlank String numSerieFactura,
         @NotNull LocalDate fechaExpedicionFactura) {
 
-    /**
-     * La validación de verdad —longitud, caracteres admitidos, NIF con su carácter de control—
-     * la hacen {@link IdFactura} y {@link Nif}. Aquí no se repite: dos versiones de la misma
-     * regla acaban discrepando.
-     */
+    /** La validación la hacen {@link IdFactura} y {@link Nif}. */
     public IdFactura aDominio() {
         return new IdFactura(new Nif(idEmisorFactura), numSerieFactura, fechaExpedicionFactura);
     }

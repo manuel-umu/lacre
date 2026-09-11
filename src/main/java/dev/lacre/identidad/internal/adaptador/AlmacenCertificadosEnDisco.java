@@ -18,19 +18,13 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 
-/**
- * Lee los certificados de un directorio, un PKCS#12 por obligado nombrado con su NIF.
- * <p>
- * Sin caché: el despachador remite en lotes de hasta 1000 registros, así que esto se abre una vez
- * por lote y no una vez por factura. Si algún día deja de ser cierto, la caché va aquí y no en
- * quien llama.
- */
+/** Lee los certificados de un directorio: un PKCS#12 por obligado, nombrado con su NIF. */
 @Component
 class AlmacenCertificadosEnDisco implements AlmacenCertificados {
 
     private static final Logger log = LoggerFactory.getLogger(AlmacenCertificadosEnDisco.class);
 
-    /** Con menos margen que esto, el aviso deja de ser un aviso y pasa a ser una urgencia. */
+    /** Margen con el que se avisa de la caducidad. */
     private static final Duration AVISO_DE_CADUCIDAD = Duration.ofDays(30);
 
     private final PropiedadesCertificados propiedades;
@@ -51,7 +45,7 @@ class AlmacenCertificadosEnDisco implements AlmacenCertificados {
             almacen = KeyStore.getInstance("PKCS12");
             almacen.load(entrada, contrasena);
         } catch (IOException e) {
-            // Una contraseña incorrecta llega aquí como IOException, no como error de seguridad.
+            // Una contraseña incorrecta llega como IOException.
             throw new CertificadoNoDisponibleException(nif.valor(),
                     "no se pudo abrir su fichero; ¿ruta o contraseña equivocadas?", e);
         } catch (GeneralSecurityException e) {
@@ -85,11 +79,7 @@ class AlmacenCertificadosEnDisco implements AlmacenCertificados {
         return contrasena.toCharArray();
     }
 
-    /**
-     * Un certificado caducado no impide cargarlo, solo remitir. Quien decide qué hacer es el
-     * despachador; aquí se deja constancia, que es lo que pide el art. 7 de la OM en cuanto a
-     * advertir de las anomalías.
-     */
+    /** Un certificado caducado se carga y se denuncia en el log; no impide cargarlo. */
     private void avisarSiCaduca(Nif nif, CertificadoDeObligado certificado) {
         Instant ahora = reloj.instant();
         if (certificado.caducadoA(ahora)) {

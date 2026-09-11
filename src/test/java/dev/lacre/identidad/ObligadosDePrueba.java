@@ -7,11 +7,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Da de alta obligados con NIF válido y distinto en cada llamada.
- * <p>
- * El contenedor de Postgres se reutiliza entre tests y el NIF es único en la tabla, así que el
- * contador es de toda la JVM: dos clases de test que pidan obligados no pueden chocar. El
- * carácter de control se calcula, porque {@link Nif} valida de verdad.
+ * Da de alta obligados con {@link Nif} válido y distinto en cada llamada. El contador es de toda
+ * la JVM porque el contenedor de Postgres se reutiliza entre tests.
  */
 public final class ObligadosDePrueba {
 

@@ -3,15 +3,8 @@ package dev.lacre.remision;
 import dev.lacre.shared.ValorInvalidoException;
 
 /**
- * Desenlace del envío en conjunto, {@code EstadoEnvioType} del XSD de respuesta.
- * <p>
- * Es del lote, no de cada registro: con la cabecera correcta, basta que un registro se rechace
- * para que el envío entero sea {@link #PARCIALMENTE_CORRECTO}. Quien decide el destino de cada
- * fila del outbox es su {@code RespuestaLinea}, no esto.
- * <p>
- * Los nombres no coinciden con los del XML —{@code ParcialmenteCorrecto} no es un identificador
- * Java al uso—, así que aquí sí hace falta un código explícito, al contrario que en
- * {@code TipoFactura}, donde el nombre de la constante ES el formato de intercambio.
+ * Desenlace del envío en conjunto, {@code EstadoEnvioType} del XSD de respuesta. Es del lote,
+ * no de cada registro.
  */
 public enum EstadoEnvioAeat {
 

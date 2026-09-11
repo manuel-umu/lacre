@@ -1,9 +1,6 @@
 /**
- * Modelo del registro de facturación de alta: sus datos, su identificación, quién lo emite y
- * con qué sistema, y las claves cerradas que solo aparecen aquí.
- * <p>
- * Es API pública del módulo {@code verifactu} y parte de la librería publicable, así que ninguna
- * clase de este paquete puede depender de Spring ni de una base de datos.
+ * Modelo del registro de facturación: datos, identificación, emisor, sistema informático y
+ * catálogos. Parte de la librería publicable; no depende de Spring ni de base de datos.
  *
  * @see dev.lacre.verifactu.registro.DatosRegistroAlta
  */

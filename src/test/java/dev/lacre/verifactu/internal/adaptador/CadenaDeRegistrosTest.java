@@ -32,12 +32,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * La cadena bajo concurrencia real, contra Postgres real.
- * <p>
- * Es el segundo test que exige {@code CLAUDE.md}, y el que justifica el cerrojo consultivo: sin
- * él, dos hilos leen el mismo último registro, calculan la misma posición y encadenan los dos
- * contra la misma huella anterior. La cadena se bifurca, que es justo lo que el RD 1007/2023
- * prohíbe.
+ * La cadena contra Postgres real y bajo concurrencia: sin el cerrojo consultivo, dos hilos
+ * encadenarían contra la misma huella anterior y la cadena se bifurcaría.
  */
 @Import(TestcontainersConfiguration.class)
 @ExtendWith(OutputCaptureExtension.class)
@@ -117,12 +113,7 @@ class CadenaDeRegistrosTest {
                 .isEqualTo(guardado.husoOffsetSegundos());
     }
 
-    /**
-     * La zona con la que se fecha el registro <strong>entra en el cálculo de la huella</strong> y
-     * es dato del obligado, no del despliegue: Canarias va una hora por detrás del peninsular.
-     * Con una única zona de configuración, la mitad de las huellas de un ERP que factura para
-     * ambos no cuadrarían con las que recalcula la AEAT.
-     */
+    /** La zona horaria es dato del obligado y entra en la huella: Canarias va una hora por detrás. */
     @Test
     void cadaObligadoFechaSusRegistrosConSuPropiaZona() {
         UUID canario = ObligadosDePrueba.nuevo(obligados, ObligadosDePrueba.CANARIAS);
@@ -130,8 +121,7 @@ class CadenaDeRegistrosTest {
         RegistroFacturacion peninsular = cadena.anadir(obligado, Registros.alta().build());
         RegistroFacturacion enCanarias = cadena.anadir(canario, Registros.alta().build());
 
-        // Canarias va una hora por detrás todo el año, tanto en horario de invierno (+00:00
-        // frente a +01:00) como de verano (+01:00 frente a +02:00).
+        // Canarias va una hora por detrás todo el año.
         assertThat(peninsular.husoOffsetSegundos() - enCanarias.husoOffsetSegundos())
                 .isEqualTo(3600);
     }
@@ -145,12 +135,8 @@ class CadenaDeRegistrosTest {
     // --- Comprobación previa del art. 7.i de la OM HAC/1177/2024 ---
 
     /**
-     * <strong>El requisito de la norma es que avise, no que impida emitir.</strong> La FAQ 15 es
-     * explícita: «será preciso generar el siguiente RF, ya que la facturación por este motivo
-     * NUNCA debe interrumpirse». Un lanzamiento aquí sería incumplir, no ser más estricto.
-     * <p>
-     * La cadena se rompe con un {@code INSERT} directo, que la tabla sí admite; un {@code UPDATE}
-     * lo pararía el trigger.
+     * La comprobación previa avisa y no impide emitir. La cadena se rompe con un {@code INSERT}
+     * directo: un {@code UPDATE} lo pararía el trigger.
      */
     @Test
     void unaCadenaRotaSeDenunciaPeroNoImpideFacturar(CapturedOutput salida) {
@@ -194,7 +180,7 @@ class CadenaDeRegistrosTest {
                 .update();
     }
 
-    // --- El test que justifica el cerrojo ---
+    // --- Concurrencia ---
 
     @Test
     void dieciseisHilosConcurrentesNoBifurcanLaCadena() throws Exception {
@@ -225,10 +211,7 @@ class CadenaDeRegistrosTest {
         cadenaIntacta();
     }
 
-    /**
-     * Recorre la cadena guardada de principio a fin: cada registro debe apuntar a la huella del
-     * que ocupa la posición anterior, y solo el primero puede no tener anterior.
-     */
+    /** Cada registro apunta a la huella del anterior; solo el primero no tiene anterior. */
     private void cadenaIntacta() {
         List<Map<String, Object>> cadenaGuardada = jdbc.sql("""
                 select posicion, huella, huella_anterior

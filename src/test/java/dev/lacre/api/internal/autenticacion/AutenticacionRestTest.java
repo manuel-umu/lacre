@@ -18,11 +18,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * La puerta: qué pasa en {@code /v1/**} sin credencial, y qué sigue abierto a propósito.
- * <p>
- * Se prueba sobre un {@code GET} de un registro que no existe, para que el 401 no pueda
- * confundirse con el éxito de nada: si la clave vale, la respuesta es 404, y ese contraste es
- * justo lo que demuestra que el filtro dejó pasar.
+ * Autenticación de {@code /v1/**}: qué se rechaza sin credencial y qué sigue abierto. Se prueba
+ * sobre un {@code GET} de un registro inexistente: con la clave válida la respuesta es 404.
  */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -40,10 +37,7 @@ class AutenticacionRestTest {
                 .andExpect(jsonPath("$.codigo").value("no-autenticado"));
     }
 
-    /**
-     * Misma respuesta que sin cabecera, y es deliberado: si una clave incorrecta se distinguiera
-     * de una ausente, la API sería un oráculo para quien esté probando claves.
-     */
+    /** Misma respuesta que sin cabecera, para no dar pistas a quien pruebe claves. */
     @Test
     void conUnaClaveQueNoEsLaSuyaTampoco() throws Exception {
         mvc.perform(get("/v1/registros/{id}", UUID.randomUUID())
@@ -52,7 +46,7 @@ class AutenticacionRestTest {
                 .andExpect(jsonPath("$.codigo").value("no-autenticado"));
     }
 
-    /** La clave correcta con el esquema equivocado no vale: el contrato dice {@code Bearer}. */
+    /** La clave correcta con otro esquema no vale. */
     @Test
     void laClaveBuenaConOtroEsquemaNoVale() throws Exception {
         mvc.perform(get("/v1/registros/{id}", UUID.randomUUID())
@@ -60,10 +54,6 @@ class AutenticacionRestTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    /**
-     * Un prefijo de la clave buena tampoco: lo obvio, pero es lo que se rompería si alguien
-     * cambiase la comparación por un {@code startsWith} para «ser tolerante».
-     */
     @Test
     void unPrefijoDeLaClaveNoVale() throws Exception {
         mvc.perform(get("/v1/registros/{id}", UUID.randomUUID())
@@ -78,11 +68,7 @@ class AutenticacionRestTest {
                 .andExpect(jsonPath("$.codigo").value("registro-desconocido"));
     }
 
-    /**
-     * La sonda del contenedor no lleva credencial y tiene que seguir contestando. Por eso el
-     * filtro se registra acotado a {@code /v1/*} y no como {@code @Component}, que Spring Boot
-     * aplicaría a todas las rutas.
-     */
+    /** La sonda del contenedor no lleva credencial. */
     @Test
     void laSaludSigueAbiertaParaLaSondaDelContenedor() throws Exception {
         mvc.perform(get("/actuator/health")).andExpect(status().isOk());

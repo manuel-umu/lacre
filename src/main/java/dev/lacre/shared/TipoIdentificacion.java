@@ -2,9 +2,7 @@ package dev.lacre.shared;
 
 /**
  * Tipo de identificador distinto del NIF, lista L7 del anexo de la Orden HAC/1177/2024.
- * <p>
- * El catálogo empieza en {@code 02}: el {@code 01} (NIF de contraparte) no es válido aquí,
- * porque para ese caso el esquema exige usar el elemento {@code NIF} y no {@code IDOtro}.
+ * Empieza en {@code 02}: el {@code 01} corresponde al elemento {@code NIF}.
  */
 public enum TipoIdentificacion {
 

@@ -15,13 +15,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Las tres capas de defensa de {@code registro_facturacion}, contra Postgres de verdad.
- * <p>
- * Es el test que exige {@code CLAUDE.md} y no es ceremonia: un registro de facturación
- * modificable incumple el RD 1007/2023, y el fallo sería silencioso —los datos quedarían
- * cambiados y nadie se enteraría hasta una inspección—.
- */
+/** Las tres capas de defensa de {@code registro_facturacion}, contra Postgres real. */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 class RegistroFacturacionAppendOnlyTest {
@@ -80,14 +74,9 @@ class RegistroFacturacionAppendOnlyTest {
     }
 
     /**
-     * Desde que existe el outbox, su clave ajena rechaza el {@code truncate} a secas antes de
-     * que el trigger llegue a ejecutarse. Truncar a la vez todas las tablas que apuntan al
-     * registro esquiva la clave ajena y sí llega al trigger, que es la capa que aquí se prueba:
-     * sin ese segundo caso, este test pasaría en verde sin demostrar nada del trigger.
-     * <p>
-     * La lista crece con cada tabla que referencie al registro —hoy el outbox y la idempotencia
-     * de la API—, y crecer es lo correcto: si se olvidara una, el caso volvería a quedarse en la
-     * clave ajena sin llegar al trigger, y el test avisa.
+     * La clave ajena del outbox rechaza el {@code truncate} a secas antes de que actúe el
+     * trigger; truncar a la vez todas las tablas que referencian al registro sí llega al trigger.
+     * La lista crece con cada tabla nueva que lo referencie.
      */
     @Test
     void unTruncateRevienta() {

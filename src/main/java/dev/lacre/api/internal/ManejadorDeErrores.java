@@ -19,48 +19,27 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Errores que un integrador entiende sin leernos el código: qué campo va mal y por qué.
- * <p>
- * Se responde con {@code ProblemDetail} (RFC 9457), que es lo que Spring ya sabe producir y lo
- * que un cliente HTTP moderno espera. Descartado un tipo de error propio: sería el mismo JSON
- * con otro nombre.
- * <p>
- * Además del texto va un {@code codigo} estable. El {@code detail} es para una persona y puede
- * reescribirse; el código es para el {@code switch} del integrador y no cambia.
- * <p>
- * Extiende {@link ResponseEntityExceptionHandler} para heredar el tratamiento de las excepciones
- * de Spring MVC —JSON ilegible, cabecera que falta, método no admitido—, que si no saldrían con
- * un cuerpo distinto al del resto.
+ * Traduce las excepciones a {@code ProblemDetail} (RFC 9457) con un {@code codigo} estable para
+ * el integrador.
  */
 @RestControllerAdvice
 class ManejadorDeErrores extends ResponseEntityExceptionHandler {
 
-    /**
-     * Los datos no forman un registro válido. Casi siempre lo lanza un constructor del dominio
-     * citando la regla que se incumple, así que el mensaje se pasa tal cual: reescribirlo aquí
-     * perdería la única parte útil.
-     */
+    /** Los datos no forman un registro válido; el mensaje del dominio se devuelve tal cual. */
     @ExceptionHandler(ValorInvalidoException.class)
     ProblemDetail valorInvalido(ValorInvalidoException e) {
         return problema(HttpStatus.BAD_REQUEST, "Datos de facturación no válidos",
                 e.getMessage(), "validacion");
     }
 
-    /**
-     * 422 y no 404: el recurso al que se llamó existe y el JSON está bien formado; lo que no
-     * existe es el obligado que la factura dice tener por emisor. Tampoco 400, porque no hay
-     * nada que corregir en el cuerpo: hay que dar de alta al obligado.
-     */
+    /** 422: el cuerpo está bien formado, pero el obligado emisor no está dado de alta. */
     @ExceptionHandler(ObligadoDesconocidoException.class)
     ProblemDetail obligadoDesconocido(ObligadoDesconocidoException e) {
         return problema(HttpStatus.UNPROCESSABLE_ENTITY, "Obligado tributario no dado de alta",
                 e.getMessage(), "obligado-desconocido");
     }
 
-    /**
-     * Aquí 404 sí es lo correcto, al contrario que con el obligado: lo que identifica el recurso
-     * es la ruta, y no hay ningún registro en esa ruta.
-     */
+    /** 404: no hay ningún registro en esa ruta. */
     @ExceptionHandler(RegistroDesconocidoException.class)
     ProblemDetail registroDesconocido(RegistroDesconocidoException e) {
         return problema(HttpStatus.NOT_FOUND, "Registro no encontrado",
@@ -73,11 +52,7 @@ class ManejadorDeErrores extends ResponseEntityExceptionHandler {
                 e.getMessage(), "clave-idempotencia-reutilizada");
     }
 
-    /**
-     * Las violaciones de Bean Validation, campo a campo. La respuesta de serie dice solo
-     * «Invalid request content», que obliga a quien integra a adivinar cuál de los veinticinco
-     * campos falta.
-     */
+    /** Violaciones de Bean Validation, campo a campo. */
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException e, HttpHeaders cabeceras, HttpStatusCode estado,

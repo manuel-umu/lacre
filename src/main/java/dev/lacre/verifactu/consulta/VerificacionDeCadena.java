@@ -4,23 +4,11 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Resultado de recorrer entera la cadena de un obligado buscando roturas.
- * <p>
- * <strong>Comprueba los enlaces, no recalcula las huellas</strong>, y la diferencia importa: esto
- * detecta que a un registro le hayan cambiado la huella o que falte un eslabón, pero no que le
- * hayan cambiado el contenido recalculando la huella en consecuencia. Para eso haría falta
- * reconstruir la cadena canónica de cada registro a partir de su XML guardado, y hoy no existe
- * lector de XML, solo escritor.
- * <p>
- * Por eso {@link #alcance()} viaja en la respuesta en vez de dejar que quien la lea suponga que
- * la verificación es total.
+ * Resultado de recorrer la cadena de un obligado buscando roturas. Comprueba los enlaces entre
+ * eslabones; {@link #alcance()} declara hasta dónde llega la comprobación.
  *
  * @param registros cuántos tiene la cadena
  * @param roturas vacía si todo encaja; en orden de posición
- *
- * @implNote TODO Fase 8.4: recalcular la huella de cada registro exige un lector del XML
- * guardado. Cuando exista, {@code alcance} pasará a {@code HUELLAS} y esta clase dejará de
- * mentir por omisión.
  */
 public record VerificacionDeCadena(
         UUID obligadoId, long registros, List<Rotura> roturas, Alcance alcance) {
@@ -33,13 +21,13 @@ public record VerificacionDeCadena(
         return roturas.isEmpty();
     }
 
-    /** Hasta dónde llega la comprobación. Existe para que la respuesta no prometa de más. */
+    /** Hasta dónde llega la comprobación. */
     public enum Alcance {
 
         /** Solo se ha comprobado que cada eslabón enlaza con el anterior y que no faltan. */
         ENLACES,
 
-        /** Además se ha recalculado la huella de cada registro. Todavía no se produce. */
+        /** Además se ha recalculado la huella de cada registro. */
         HUELLAS
     }
 

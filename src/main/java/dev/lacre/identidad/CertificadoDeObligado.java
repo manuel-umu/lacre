@@ -10,15 +10,8 @@ import java.util.Collections;
 import java.util.Objects;
 
 /**
- * Certificado electrónico con el que un obligado se autentica ante la AEAT.
- * <p>
- * La AEAT exige certificado cualificado reconocido y autenticación mutua: quien remite es el
- * obligado, no nosotros.
- * <p>
- * <strong>La contraseña no sale de aquí.</strong> No hay forma de leerla desde fuera: lo que se
- * expone son los {@link KeyManager} ya construidos, que es lo único que necesita la capa de
- * transporte. Es deliberado —una contraseña que circula acaba en un log— y por eso la clase no
- * es un {@code record}, que expondría sus componentes.
+ * Certificado electrónico con el que un obligado se autentica ante la AEAT. La contraseña no se
+ * expone; solo los {@link KeyManager} ya construidos.
  */
 public final class CertificadoDeObligado {
 
@@ -52,7 +45,7 @@ public final class CertificadoDeObligado {
         throw new CertificadoNoDisponibleException(origen, "no contiene ninguna clave privada");
     }
 
-    /** Lo que necesita la capa de transporte para el TLS mutuo, y nada más. */
+    /** Gestores de clave para el TLS mutuo. */
     public KeyManager[] gestoresDeClave() {
         try {
             KeyManagerFactory factoria =
@@ -72,7 +65,7 @@ public final class CertificadoDeObligado {
         return !caducaEn().isAfter(momento);
     }
 
-    /** Nombre distinguido del titular, útil en trazas y en el aviso de caducidad. */
+    /** Nombre distinguido del titular. */
     public String titular() {
         return certificado.getSubjectX500Principal().getName();
     }

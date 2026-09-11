@@ -25,10 +25,6 @@ class ObligadoTributarioTest {
         assertThat(obligado.zonaHoraria()).isEqualTo(ZoneId.of("Atlantic/Canary"));
     }
 
-    /**
-     * No es una validación de cortesía: sin zona no hay con qué fechar el registro, y la fecha
-     * con huso entra en el cálculo de la huella.
-     */
     @Test
     void sinZonaHorariaNoHayObligado() {
         assertThatThrownBy(() -> ObligadoTributario.nuevo(ID, NIF, "Obligado de prueba SL", null))

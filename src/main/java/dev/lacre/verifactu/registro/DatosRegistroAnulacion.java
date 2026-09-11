@@ -6,16 +6,11 @@ import dev.lacre.shared.ValorInvalidoException;
 /**
  * Contenido de un registro de facturación de anulación,
  * {@code RegistroFacturacionAnulacionType} del XSD.
- * <p>
- * Mucho más pequeño que el de alta: una anulación no lleva desglose ni importes, solo dice qué
- * factura se anula y quién lo hace. Por eso no necesita builder.
  *
- * @param idFactura      identifica la factura que se anula, no una nueva
- * @param rechazoPrevio  aquí es un booleano y no el enum {@link RechazoPrevio} del alta: el
- *                       esquema solo admite {@code S} o {@code N} para las anulaciones, sin la
- *                       {@code X} de «no existe en la AEAT»
- * @param generador      obligatorio en la práctica cuando {@code generadoPor} no es el
- *                       expedidor, aunque el esquema lo deje opcional
+ * @param idFactura     la factura que se anula
+ * @param rechazoPrevio booleano, a diferencia de {@link RechazoPrevio} en el alta: el esquema
+ *                      solo admite {@code S} o {@code N} en anulaciones
+ * @param generador     quien genera la anulación cuando no es el expedidor
  */
 public record DatosRegistroAnulacion(
         IdFactura idFactura,

@@ -12,12 +12,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
- * Reglas que hacen verificable la arquitectura hexagonal por módulo del
- * <a href="../../../docs/adr/0002-arquitectura-hexagonal-por-modulo.md">ADR 0002</a>.
- * <p>
- * La primera es la que sostiene todo lo demás: si el núcleo de {@code verifactu} no depende de
- * Spring, se puede publicar en Maven Central; si un día deja de cumplirse, este test se pone
- * rojo antes de que nadie lo descubra al intentar extraer la librería.
+ * Reglas ArchUnit de la arquitectura hexagonal por módulo: qué puede depender de Spring y de
+ * base de datos, quién conoce a quién y qué está prohibido en el stack.
  */
 class ArquitecturaTest {
 
@@ -35,12 +31,8 @@ class ArquitecturaTest {
     // --- Lo que hace publicable la librería ---
 
     /**
-     * La excepción de {@code package-info} es deliberada y está acotada por la regla siguiente.
-     * Declarar las interfaces con nombre de Modulith exige anotar el paquete, y no hay otra
-     * forma de hacerlo. Es metadato: un {@code package-info} no contiene código, y una anotación
-     * cuya clase no esté en el classpath la ignora la JVM en silencio, así que el artefacto
-     * publicado puede declarar {@code spring-modulith-api} como dependencia opcional sin que
-     * quien lo use tenga que arrastrar Modulith.
+     * Los {@code package-info} del núcleo quedan exentos: declarar las interfaces publicadas
+     * exige la anotación de Modulith.
      */
     @Test
     void elNucleoNoDependeDeSpring() {
@@ -56,9 +48,8 @@ class ArquitecturaTest {
     }
 
     /**
-     * Mantiene estrecha la excepción de arriba: en los {@code package-info} del núcleo solo se
-     * admiten las anotaciones de Modulith que declaran las interfaces publicadas. Cualquier otra
-     * cosa de Spring ahí sería colar una dependencia por la puerta de atrás.
+     * Acota la exención anterior: en esos {@code package-info} solo se admiten anotaciones de
+     * Modulith.
      */
     @Test
     void loUnicoDeSpringEnElNucleoSonLasAnotacionesDeModulith() {
@@ -99,10 +90,7 @@ class ArquitecturaTest {
         regla.check(clases);
     }
 
-    /**
-     * Los conversores {@code @WritingConverter}/{@code @ReadingConverter} de los value objects
-     * son código de adaptador, no de dominio: viven junto a la configuración de la aplicación.
-     */
+    /** Los conversores de Spring Data JDBC de los value objects viven en la configuración. */
     @Test
     void sharedNoConoceANingunModulo() {
         ArchRule regla = noClasses()
@@ -117,14 +105,7 @@ class ArquitecturaTest {
 
     // --- Fronteras entre módulos ---
 
-    /**
-     * El núcleo no conoce a nadie. Es lo que permite extraerlo como librería: quien la use no
-     * arrastra ni la identidad de los obligados ni el envío a la AEAT.
-     * <p>
-     * Sustituye a la regla que vigilaba la frontera con {@code facturacion}, módulo que
-     * desapareció al pasar lacre a ser un componente integrado en el ERP: quien expide la
-     * factura es el ERP, no nosotros.
-     */
+    /** El núcleo no conoce a ningún otro módulo. */
     @Test
     void elNucleoNoConoceAlRestoDeModulos() {
         ArchRule regla = noClasses()
@@ -137,10 +118,7 @@ class ArquitecturaTest {
         regla.check(clases);
     }
 
-    /**
-     * La dirección que de verdad importa: {@code remision} puede escuchar los eventos que
-     * publica {@code verifactu}, pero solo a través de su API publicada.
-     */
+    /** {@code remision} solo ve a {@code verifactu} por su API publicada. */
     @Test
     void remisionNoEntraEnElInteriorDelNucleo() {
         ArchRule regla = noClasses()
@@ -151,10 +129,7 @@ class ArquitecturaTest {
         regla.check(clases);
     }
 
-    /**
-     * {@code identidad} solo dice quién es el obligado y con qué zona se fechan sus registros.
-     * Si un día importase {@code verifactu}, el ciclo dejaría a los dos módulos inseparables.
-     */
+    /** {@code identidad} no depende de ningún otro módulo. */
     @Test
     void identidadNoConoceAlRestoDeModulos() {
         ArchRule regla = noClasses()
@@ -166,11 +141,7 @@ class ArquitecturaTest {
         regla.check(clases);
     }
 
-    /**
-     * Vale para todos los módulos que tengan {@code internal}, no solo para el núcleo: un módulo
-     * cuyo interior se pueda tocar desde fuera deja de poder cambiar sin romper a nadie. Añadir
-     * un módulo es añadir su nombre aquí.
-     */
+    /** Paramétrica sobre cada módulo con {@code internal}; añadir un módulo es añadir su nombre. */
     @ParameterizedTest
     @ValueSource(strings = {"verifactu", "identidad", "remision", "api"})
     void nadieDeFueraDelModuloEntraEnSuPaqueteInterno(String modulo) {
@@ -195,19 +166,10 @@ class ArquitecturaTest {
     }
 
     /**
-     * Ya no es solo el dominio de {@code verifactu}: <strong>toda</strong> la aplicación recibe el
-     * instante y los identificadores inyectados, y la única clase autorizada a producirlos es
-     * {@code ConfiguracionComun}. Se amplió al escribir {@code remision}, cuyo oyente también
-     * fecha filas: una segunda fuente de indeterminismo escondida en otro módulo es igual de
-     * mala aunque no entre en la huella.
-     * <p>
-     * Ojo, no prohíbe {@code OffsetDateTime.now(Clock)}, que es precisamente lo que hay que
-     * usar: la regla persigue las variantes sin argumentos, que leen el reloj del sistema.
-     * <p>
-     * La exención de {@code ConfiguracionComun} <strong>hoy no hace nada</strong>, y se comprobó:
-     * ArchUnit no ve la referencia a método {@code UUID::randomUUID}, solo las llamadas
-     * directas. Se deja porque escribirla como lambda sería legítimo y pondría roja la única
-     * clase que tiene permiso para producir indeterminismo.
+     * Toda la aplicación recibe el instante y los identificadores inyectados; solo
+     * {@code ConfiguracionComun} los produce. No prohíbe {@code OffsetDateTime.now(Clock)}. La
+     * exención de {@code ConfiguracionComun} es decorativa: ArchUnit no ve la referencia a
+     * método {@code UUID::randomUUID}.
      */
     @Test
     void soloUnaClaseProduceIndeterminismo() {

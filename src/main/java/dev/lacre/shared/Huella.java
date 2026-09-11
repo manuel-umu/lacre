@@ -4,12 +4,8 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * Huella o «hash» de un registro de facturación: 64 caracteres hexadecimales en
- * mayúsculas, el resultado de un SHA-256.
- * <p>
- * A diferencia de {@link Nif}, no se recortan espacios: una huella nunca procede de
- * la escritura de un humano, así que un espacio en el valor es un defecto, no una
- * variación de formato tolerable.
+ * Huella SHA-256 de un registro de facturación: 64 caracteres hexadecimales en mayúsculas.
+ * No se recortan espacios.
  */
 public record Huella(String valor) {
 

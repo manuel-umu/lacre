@@ -1,9 +1,5 @@
 /**
- * Desglose de impuestos del registro de alta, con sus catálogos.
- * <p>
- * {@code Calificacion}, {@code CalificacionOperacion} y {@code OperacionExenta} viven juntas
- * por obligación del lenguaje: una jerarquía sellada y sus subtipos permitidos deben estar en
- * el mismo paquete mientras el proyecto no sea un módulo JPMS.
+ * Desglose de impuestos del registro de alta y sus catálogos.
  *
  * @see dev.lacre.verifactu.desglose.Desglose
  */

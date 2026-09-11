@@ -1,11 +1,8 @@
 package dev.lacre.verifactu.registro;
 
 /**
- * Clave del tipo de factura, lista L2 del anexo de la Orden HAC/1177/2024.
- * <p>
- * <strong>El nombre de cada constante es literalmente el código que viaja en el XML y en la
- * cadena de la huella.</strong> Renombrar una constante cambia el formato de intercambio y
- * rompe la conformidad; no es un identificador interno.
+ * Clave del tipo de factura, lista L2 del anexo de la Orden HAC/1177/2024. El nombre de cada
+ * constante es el código que viaja en el XML y en la huella.
  */
 public enum TipoFactura {
 
@@ -33,7 +30,7 @@ public enum TipoFactura {
     /** Factura rectificativa en facturas simplificadas. */
     R5;
 
-    /** Código tal y como debe aparecer en el XML y en la cadena canónica de la huella. */
+    /** Código tal y como aparece en el XML y en la huella. */
     public String codigo() {
         return name();
     }

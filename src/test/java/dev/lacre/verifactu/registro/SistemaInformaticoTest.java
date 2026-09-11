@@ -21,10 +21,7 @@ class SistemaInformaticoTest {
         assertThat(sistema.indicadorMultiplesOT()).isFalse();
     }
 
-    /**
-     * El XSD no puede expresar esta relación, pero es contradictoria: declarar que se está
-     * dando servicio a varios obligados con un sistema que no admite varios obligados.
-     */
+    /** Relación que el XSD no expresa: servir a varios obligados exige admitirlos. */
     @Test
     void noPuedeServirAVariosObligadosSiNoLosAdmite() {
         assertThatThrownBy(() -> new SistemaInformatico(PRODUCTOR, "lacre", "01", "0.0.1", "0001",

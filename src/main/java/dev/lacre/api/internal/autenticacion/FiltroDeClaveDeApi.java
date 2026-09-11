@@ -19,27 +19,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * Deja pasar a {@code /v1/**} solo con la clave del despliegue.
- * <p>
- * Un filtro de servlet y no Spring Security. Para una sola clave estática, el starter de
- * security traería una cadena de filtros, un contexto de autenticación y sus valores por
- * defecto a cambio de sustituir estas treinta líneas, y sería una dependencia nueva en un stack
- * que {@code CLAUDE.md} declara fijo. Si algún día hacen falta roles, reglas por método o
- * cabeceras de seguridad, ese es el momento de cambiarlo, y entonces sí lo vale.
- * <p>
- * Tres detalles que no son adorno:
- * <ul>
- * <li><strong>Se comparan los resúmenes SHA-256, no las claves.</strong> Así la comparación es
- *     de 32 bytes contra 32 bytes pase lo que pase, y ni siquiera la longitud de la clave
- *     presentada se filtra por el tiempo de respuesta.</li>
- * <li><strong>{@link MessageDigest#isEqual} y no {@code equals}.</strong> Recorre los dos
- *     arreglos enteros siempre; un {@code equals} sale en el primer byte distinto y eso se
- *     mide.</li>
- * <li><strong>Falta la cabecera y clave incorrecta dan la misma respuesta.</strong>
- *     Distinguirlas convertiría el endpoint en un oráculo.</li>
- * </ul>
- * La clave presentada <strong>no se registra nunca</strong>. El aviso lleva la ruta y el origen,
- * que es lo que sirve para ver un ataque por fuerza bruta.
+ * Autentica las peticiones a {@code /v1/**} con la clave del despliegue. Compara resúmenes
+ * SHA-256 en tiempo constante, responde igual ante cabecera ausente y clave incorrecta, y nunca
+ * registra la clave presentada.
  */
 class FiltroDeClaveDeApi extends OncePerRequestFilter {
 

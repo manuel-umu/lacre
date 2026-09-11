@@ -6,12 +6,7 @@ import dev.lacre.shared.ValorInvalidoException;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Desglose de impuestos de un registro de alta, {@code DesgloseType} del XSD.
- * <p>
- * El esquema admite entre 1 y 12 líneas de detalle. El límite superior no es un número
- * redondo elegido por nosotros: viene de {@code maxOccurs="12"}.
- */
+/** Desglose de impuestos de un registro de alta, {@code DesgloseType} del XSD: de 1 a 12 líneas. */
 public record Desglose(List<DetalleDesglose> detalles) {
 
     public static final int MAXIMO_DETALLES = 12;
@@ -25,8 +20,7 @@ public record Desglose(List<DetalleDesglose> detalles) {
                     "El desglose admite como máximo " + MAXIMO_DETALLES + " líneas de detalle, y tiene "
                             + detalles.size());
         }
-        // Con stream y no con contains(null): las listas inmutables de List.of lanzan
-        // NullPointerException al preguntarles por null.
+        // List.of lanza NullPointerException en contains(null).
         if (detalles.stream().anyMatch(Objects::isNull)) {
             throw new ValorInvalidoException("El desglose no admite líneas de detalle nulas");
         }

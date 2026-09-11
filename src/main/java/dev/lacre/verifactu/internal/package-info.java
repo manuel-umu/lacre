@@ -1,8 +1,5 @@
 /**
- * Implementación del núcleo: la canonicalización conforme a la AEAT y el cálculo SHA-256.
- * <p>
- * Interno para el resto de módulos de la aplicación, pero <strong>sí forma parte de la
- * librería publicable</strong>. La frontera de extracción es el subpaquete
- * {@code adaptador}, que es el único sitio donde puede aparecer Spring.
+ * Implementación del núcleo: canonicalización y cálculo de la huella. Forma parte de la
+ * librería publicable; solo el subpaquete {@code adaptador} depende de Spring.
  */
 package dev.lacre.verifactu.internal;

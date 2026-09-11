@@ -13,11 +13,8 @@ import static dev.lacre.verifactu.internal.adaptador.ComprobacionPrevia.Anomalia
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * La comprobación previa del art. 7.i, sin base de datos.
- * <p>
- * Ojo con el segundo requisito, que se lee al revés de lo que parece: la FAQ 15 aclara que lo
- * normal es que el registro nuevo sea posterior en más de un minuto al anterior, y que eso no es
- * problema. Lo que la norma no admite es que el anterior venga del futuro.
+ * La comprobación previa del art. 7.i, sin base de datos. Lo que no se admite es que el registro
+ * anterior venga del futuro; que el nuevo sea muy posterior es lo normal.
  */
 class ComprobacionPreviaTest {
 

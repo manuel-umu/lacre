@@ -10,9 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Que estos tests pasen demuestra que la validación contra los esquemas de la AEAT no necesita
- * red: el resolutor lanza ante cualquier recurso que no esté en el classpath, así que si algo
- * intentara salir a internet, esto se pondría rojo en vez de depender de que w3.org responda.
+ * La validación contra los esquemas de la AEAT no sale a la red: el resolutor lanza ante
+ * cualquier recurso que no esté en el classpath.
  */
 class EsquemasAeatTest {
 
