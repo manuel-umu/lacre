@@ -66,6 +66,9 @@ class AltaRestTest {
                 .andExpect(jsonPath("$.posicion").value(1))
                 .andExpect(jsonPath("$.huella").value(org.hamcrest.Matchers.matchesPattern("[0-9A-F]{64}")))
                 .andExpect(jsonPath("$.avisos").isEmpty())
+                .andExpect(jsonPath("$.urlQr").value(
+                        "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=" + nifDelObligado
+                                + "&numserie=FA%2F1&fecha=15-01-2026&importe=123.45"))
                 .andReturn();
 
         assertThat(envios.findByRegistroId(registroId(respuesta)))
@@ -81,6 +84,8 @@ class AltaRestTest {
         MvcResult segunda = mvc.perform(alta("clave-repetida", cuerpo))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.posicion").value(1))
+                .andExpect(jsonPath("$.urlQr").value(
+                        org.hamcrest.Matchers.containsString("numserie=FA%2F1")))
                 .andReturn();
 
         assertThat(registroId(segunda)).isEqualTo(registroId(primera));

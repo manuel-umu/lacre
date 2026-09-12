@@ -57,6 +57,7 @@ class AnulacionRestTest {
         MvcResult respuesta = mvc.perform(peticion("/anulacion", "anul-1", anulacion("FA/1")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.posicion").value(2))
+                .andExpect(jsonPath("$.urlQr").doesNotExist())
                 .andReturn();
 
         assertThat(envios.findByRegistroId(registroId(respuesta)))

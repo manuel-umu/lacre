@@ -8,6 +8,10 @@ import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.emision.AnomaliaPrevia;
 import dev.lacre.verifactu.emision.EmisorDeRegistros;
 import dev.lacre.verifactu.emision.RegistroEmitido;
+import dev.lacre.verifactu.qr.UrlDeCotejo;
+import dev.lacre.verifactu.registro.DatosRegistro;
+import dev.lacre.verifactu.registro.DatosRegistroAlta;
+import dev.lacre.verifactu.registro.DatosRegistroAnulacion;
 import dev.lacre.verifactu.registro.SistemaInformatico;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -38,14 +42,16 @@ class Emisiones {
     private final Obligados obligados;
     private final JdbcClient jdbc;
     private final Clock reloj;
+    private final PropiedadesQr qr;
 
     Emisiones(EmisorDeRegistros emisor, SistemaInformatico sistemaInformatico, Obligados obligados,
-              JdbcClient jdbc, Clock reloj) {
+              JdbcClient jdbc, Clock reloj, PropiedadesQr qr) {
         this.emisor = emisor;
         this.sistemaInformatico = sistemaInformatico;
         this.obligados = obligados;
         this.jdbc = jdbc;
         this.reloj = reloj;
+        this.qr = qr;
     }
 
     @Transactional
@@ -60,10 +66,21 @@ class Emisiones {
             return anotada.get().comoRespuestaSiCoincide(clave, huellaPeticion);
         }
 
-        RegistroEmitido emitido = emisor.emitir(obligado.id(), peticion.aDatos(sistemaInformatico));
-        anotar(obligado.id(), clave, huellaPeticion, emitido);
+        DatosRegistro datos = peticion.aDatos(sistemaInformatico);
+        String urlQr = urlQrDe(datos);
+
+        RegistroEmitido emitido = emisor.emitir(obligado.id(), datos);
+        anotar(obligado.id(), clave, huellaPeticion, emitido, urlQr);
         return new RespuestaRegistro(emitido.id(), emitido.posicion(), emitido.huella().valor(),
-                avisosDe(emitido.avisos()));
+                urlQr, avisosDe(emitido.avisos()));
+    }
+
+    /** El QR identifica una factura, y una anulación no es una factura que se imprima. */
+    private String urlQrDe(DatosRegistro datos) {
+        return switch (datos) {
+            case DatosRegistroAlta alta -> UrlDeCotejo.de(qr.urlBase(), alta);
+            case DatosRegistroAnulacion _ -> null;
+        };
     }
 
     /** El obligado es el emisor de la factura; no se pide aparte. */
@@ -82,7 +99,7 @@ class Emisiones {
 
     private Optional<Anotacion> anotacion(UUID obligadoId, String clave) {
         return jdbc.sql("""
-                select registro_id, posicion, huella, huella_peticion, avisos
+                select registro_id, posicion, huella, url_qr, huella_peticion, avisos
                 from peticion_idempotente
                 where obligado_id = :obligado and clave = :clave
                 """)
@@ -92,17 +109,19 @@ class Emisiones {
                         rs.getObject("registro_id", UUID.class),
                         rs.getLong("posicion"),
                         rs.getString("huella"),
+                        rs.getString("url_qr"),
                         rs.getString("huella_peticion"),
                         rs.getString("avisos")))
                 .optional();
     }
 
-    private void anotar(UUID obligadoId, String clave, String huellaPeticion, RegistroEmitido emitido) {
+    private void anotar(UUID obligadoId, String clave, String huellaPeticion,
+                        RegistroEmitido emitido, String urlQr) {
         jdbc.sql("""
                 insert into peticion_idempotente
-                    (obligado_id, clave, huella_peticion, registro_id, posicion, huella, avisos,
-                     creado_en)
-                values (:obligado, :clave, :huellaPeticion, :registro, :posicion, :huella,
+                    (obligado_id, clave, huella_peticion, registro_id, posicion, huella, url_qr,
+                     avisos, creado_en)
+                values (:obligado, :clave, :huellaPeticion, :registro, :posicion, :huella, :urlQr,
                         :avisos, :creadoEn)
                 """)
                 .param("obligado", obligadoId)
@@ -111,6 +130,7 @@ class Emisiones {
                 .param("registro", emitido.id())
                 .param("posicion", emitido.posicion())
                 .param("huella", emitido.huella().valor())
+                .param("urlQr", urlQr)
                 .param("avisos", codificar(emitido.avisos()))
                 .param("creadoEn", OffsetDateTime.now(reloj))
                 .update();
@@ -157,14 +177,15 @@ class Emisiones {
     }
 
     /** Respuesta guardada para una clave de idempotencia. */
-    private record Anotacion(UUID registroId, long posicion, String huella, String huellaPeticion,
-                             String avisos) {
+    private record Anotacion(UUID registroId, long posicion, String huella, String urlQr,
+                             String huellaPeticion, String avisos) {
 
         RespuestaRegistro comoRespuestaSiCoincide(String clave, String huellaPeticion) {
             if (!this.huellaPeticion.equals(huellaPeticion)) {
                 throw new ClaveIdempotenciaReutilizadaException(clave);
             }
-            return new RespuestaRegistro(registroId, posicion, huella, descodificar(avisos));
+            return new RespuestaRegistro(registroId, posicion, huella, urlQr,
+                    descodificar(avisos));
         }
     }
 }

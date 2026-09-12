@@ -33,6 +33,16 @@ lacre:
     multi-obligado: ${LACRE_MULTI_OBLIGADO:true}
     sirve-a-varios-obligados: ${LACRE_SIRVE_A_VARIOS:true}
 
+  # URL base del servicio de cotejo que va DENTRO del código QR de cada factura. Producción es
+  # https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR? y pruebas
+  # https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?, y tiene que terminar en '?'.
+  #
+  # A diferencia del endpoint de remisión, esta NO tiene valor por defecto y sin ella lacre no
+  # arranca. Un endpoint de remisión equivocado se nota: no se presenta nada. Un QR equivocado
+  # sale impreso en cada factura y solo lo descubre quien lo escanea.
+  qr:
+    url-base: ${LACRE_QR_URL_BASE:}
+
   # Certificados con los que cada obligado se autentica ante la AEAT: un PKCS#12 por obligado,
   # nombrado con su NIF, en un volumen que monta quien despliega. Rotar uno es sustituir su
   # fichero. lacre NO guarda claves privadas ajenas en su base de datos.

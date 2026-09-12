@@ -9,9 +9,12 @@ import java.util.UUID;
  * Respuesta a un alta o anulación aceptadas: identificador, posición y huella del registro. No
  * implica que la AEAT lo haya aceptado; el desenlace se consulta en {@code GET /v1/registros/{id}}.
  *
+ * @param urlQr  la que va dentro del código QR de la factura; nula en la anulación, que no se
+ *               imprime
  * @param avisos anomalías de la cadena detectadas al registrar; vacío si no hubo ninguna
  */
-public record RespuestaRegistro(UUID registroId, long posicion, String huella, List<Aviso> avisos) {
+public record RespuestaRegistro(UUID registroId, long posicion, String huella, String urlQr,
+                                List<Aviso> avisos) {
 
     public RespuestaRegistro {
         avisos = List.copyOf(avisos);

@@ -19,7 +19,7 @@ class ModulosTest {
     @Test
     void verifactuPublicaSusInterfacesDeConcepto() {
         assertThat(interfacesPublicadasDeVerifactu())
-                .contains("registro", "desglose", "huella", "evento", "emision", "consulta");
+                .contains("registro", "desglose", "huella", "evento", "emision", "consulta", "qr");
     }
 
     /**
