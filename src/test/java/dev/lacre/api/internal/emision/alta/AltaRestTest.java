@@ -13,9 +13,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,12 +46,16 @@ class AltaRestTest {
     @Autowired
     private Envios envios;
 
+    @Autowired
+    private JdbcClient jdbc;
+
+    private UUID obligadoId;
     private String nifDelObligado;
 
     @BeforeEach
     void darDeAltaUnObligado() {
-        UUID id = ObligadosDePrueba.nuevo(obligados);
-        nifDelObligado = obligados.findById(id).orElseThrow().nif().valor();
+        obligadoId = ObligadosDePrueba.nuevo(obligados);
+        nifDelObligado = obligados.findById(obligadoId).orElseThrow().nif().valor();
     }
 
     /** Un 201 significa registro en la cadena y envío en el outbox. */
@@ -59,6 +65,7 @@ class AltaRestTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.posicion").value(1))
                 .andExpect(jsonPath("$.huella").value(org.hamcrest.Matchers.matchesPattern("[0-9A-F]{64}")))
+                .andExpect(jsonPath("$.avisos").isEmpty())
                 .andReturn();
 
         assertThat(envios.findByRegistroId(registroId(respuesta)))
@@ -78,6 +85,41 @@ class AltaRestTest {
 
         assertThat(registroId(segunda)).isEqualTo(registroId(primera));
     }
+
+    // --- Comprobación previa del art. 7.i de la OM HAC/1177/2024 ---
+
+    /**
+     * La cadena se rompe insertando un eslabón con huella anterior falsa: la tabla no admite
+     * {@code UPDATE}.
+     */
+    @Test
+    void unaCadenaRotaSeAvisaEnLaRespuestaYNoImpideRegistrar() throws Exception {
+        mvc.perform(alta("clave-rota-1", cuerpo("FA/1", "123.45"))).andExpect(status().isCreated());
+        insertarEslabonSuelto();
+
+        mvc.perform(alta("clave-rota-2", cuerpo("FA/3", "123.45")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.posicion").value(3))
+                .andExpect(jsonPath("$.avisos[0].codigo").value("HUELLA_ANTERIOR_NO_CUADRA"))
+                .andExpect(jsonPath("$.avisos[0].mensaje").value(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.emptyString())));
+    }
+
+    /** Sin anotarlos, el reintento diría que la cadena está sana. */
+    @Test
+    void elReintentoIdempotenteRepiteLosAvisos() throws Exception {
+        mvc.perform(alta("clave-rota-3", cuerpo("FA/1", "123.45"))).andExpect(status().isCreated());
+        insertarEslabonSuelto();
+        String cuerpo = cuerpo("FA/3", "123.45");
+
+        mvc.perform(alta("clave-rota-4", cuerpo)).andExpect(status().isCreated());
+
+        mvc.perform(alta("clave-rota-4", cuerpo))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.avisos[0].codigo").value("HUELLA_ANTERIOR_NO_CUADRA"));
+    }
+
+    // --- Idempotencia y errores ---
 
     @Test
     void laMismaClaveConOtraFacturaEsConflicto() throws Exception {
@@ -130,6 +172,25 @@ class AltaRestTest {
         mvc.perform(alta("clave-5", conImpuestoInventado))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("Admitidos")));
+    }
+
+    /** Segundo eslabón de la cadena, válido salvo por su huella anterior. */
+    private void insertarEslabonSuelto() {
+        jdbc.sql("""
+                insert into registro_facturacion
+                    (id, obligado_id, posicion, tipo, emisor, num_serie_factura,
+                     fecha_expedicion_factura, huella, huella_anterior,
+                     fecha_hora_huso_gen_registro, huso_offset_segundos, xml)
+                values (:id, :obligado, 2, 'ALTA', :emisor, 'MANIPULADA', date '2026-01-15',
+                        :huella, :huellaAnterior, :fechaHora, 0, '<x/>')
+                """)
+                .param("id", UUID.randomUUID())
+                .param("obligado", obligadoId)
+                .param("emisor", nifDelObligado)
+                .param("huella", "F".repeat(64))
+                .param("huellaAnterior", "0".repeat(64))
+                .param("fechaHora", OffsetDateTime.now())
+                .update();
     }
 
     private org.springframework.test.web.servlet.RequestBuilder alta(String clave, String cuerpo) {

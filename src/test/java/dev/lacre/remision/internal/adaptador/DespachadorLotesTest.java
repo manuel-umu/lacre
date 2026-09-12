@@ -5,6 +5,7 @@ import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
 import dev.lacre.remision.ClienteAeat;
+import dev.lacre.remision.EnvioRechazadoException;
 import dev.lacre.remision.EnvioRegistro;
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.EstadoEnvioAeat;
@@ -225,6 +226,21 @@ class DespachadorLotesTest {
         assertThat(intentosDe(registro)).isEqualTo(1);
     }
 
+    /** Un rechazo del envío entero llega con código; sin guardarlo, solo estaría en el log. */
+    @Test
+    void unRechazoDelEnvioCompletoDejaSuCodigoEnLaFila() {
+        RegistroFacturacion registro = emitir("FA/1");
+        aeat.rechazarElEnvio(4104);
+
+        assertThat(despachador.despachar()).isZero();
+
+        EnvioRegistro envio = envios.findByRegistroId(registro.id()).orElseThrow();
+        assertThat(envio.estado()).isEqualTo(EstadoEnvio.PENDIENTE);
+        assertThat(envio.codigoError()).isEqualTo(4104);
+        assertThat(envio.descripcionError()).contains("4104");
+        assertThat(envio.intentos()).isEqualTo(1);
+    }
+
     /** El turno se consume igual: la norma cuenta envíos, no éxitos. */
     @Test
     void unFalloDeRemisionConsumeElTurno() {
@@ -293,6 +309,8 @@ class DespachadorLotesTest {
 
         void fallar();
 
+        void rechazarElEnvio(int codigo);
+
         void responder(EstadoEnvioAeat estado, Duration espera, LineaRespuesta... lineas);
 
         int lotesRemitidos();
@@ -308,26 +326,31 @@ class DespachadorLotesTest {
                 private final List<LineaRespuesta> lineas = new ArrayList<>();
                 private EstadoEnvioAeat estado = EstadoEnvioAeat.CORRECTO;
                 private Duration espera = Duration.ofSeconds(60);
-                private boolean falla;
+                private RemisionFallidaException fallo;
                 private int lotes;
 
                 @Override
                 public synchronized void reiniciar() {
                     lineas.clear();
-                    falla = false;
+                    fallo = null;
                     lotes = 0;
                     espera = Duration.ofSeconds(60);
                 }
 
                 @Override
                 public synchronized void fallar() {
-                    falla = true;
+                    fallo = new RemisionFallidaException("la AEAT no contesta en el test");
+                }
+
+                @Override
+                public synchronized void rechazarElEnvio(int codigo) {
+                    fallo = new EnvioRechazadoException(codigo, "rechazo del envío en el test");
                 }
 
                 @Override
                 public synchronized void responder(EstadoEnvioAeat nuevoEstado, Duration nuevaEspera,
                                                    LineaRespuesta... nuevasLineas) {
-                    falla = false;
+                    fallo = null;
                     estado = nuevoEstado;
                     espera = nuevaEspera;
                     lineas.clear();
@@ -342,8 +365,8 @@ class DespachadorLotesTest {
                 @Override
                 public synchronized RespuestaRemision remitir(ObligadoTributario obligado,
                                                               List<String> registros) {
-                    if (falla) {
-                        throw new RemisionFallidaException("la AEAT no contesta en el test");
+                    if (fallo != null) {
+                        throw fallo;
                     }
                     lotes++;
                     return new RespuestaRemision(estado, espera, "CSV-" + lotes, List.copyOf(lineas));

@@ -1,6 +1,7 @@
 package dev.lacre.verifactu.internal.adaptador;
 
 import dev.lacre.shared.Huella;
+import dev.lacre.verifactu.emision.AnomaliaPrevia;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -17,15 +18,6 @@ final class ComprobacionPrevia {
     /** Exactamente un minuto de adelanto todavía se admite. */
     private static final Duration ADELANTO_MAXIMO = Duration.ofMinutes(1);
 
-    enum Anomalia {
-
-        /** El último registro no enlaza con la huella del que le precede. */
-        HUELLA_ANTERIOR_NO_CUADRA,
-
-        /** El último registro se generó con más de un minuto de adelanto sobre el reloj actual. */
-        FECHA_DEL_ANTERIOR_EN_EL_FUTURO
-    }
-
     private ComprobacionPrevia() {
     }
 
@@ -34,15 +26,15 @@ final class ComprobacionPrevia {
      * @param penultimo el anterior a {@code ultimo}, o {@code null} si este abre la cadena
      * @param ahora     fecha y hora con la que se fechará el registro nuevo
      */
-    static Set<Anomalia> comprobar(CadenaDeRegistros.Enlace ultimo, CadenaDeRegistros.Enlace penultimo,
-                                   OffsetDateTime ahora) {
-        Set<Anomalia> anomalias = EnumSet.noneOf(Anomalia.class);
+    static Set<AnomaliaPrevia> comprobar(CadenaDeRegistros.Enlace ultimo,
+                                         CadenaDeRegistros.Enlace penultimo, OffsetDateTime ahora) {
+        Set<AnomaliaPrevia> anomalias = EnumSet.noneOf(AnomaliaPrevia.class);
 
         if (!enlazaCon(ultimo, penultimo)) {
-            anomalias.add(Anomalia.HUELLA_ANTERIOR_NO_CUADRA);
+            anomalias.add(AnomaliaPrevia.HUELLA_ANTERIOR_NO_CUADRA);
         }
         if (ultimo.fechaHora().isAfter(ahora.plus(ADELANTO_MAXIMO))) {
-            anomalias.add(Anomalia.FECHA_DEL_ANTERIOR_EN_EL_FUTURO);
+            anomalias.add(AnomaliaPrevia.FECHA_DEL_ANTERIOR_EN_EL_FUTURO);
         }
         return anomalias;
     }

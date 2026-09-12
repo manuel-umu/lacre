@@ -57,13 +57,14 @@ class ColaDeEnvios {
     }
 
     /**
-     * Suma un intento a los envíos que siguen pendientes. Va en la transacción de quien llama:
-     * una transacción nueva se bloquearía con las filas ya tomadas con {@code for update}.
+     * Suma un intento a los envíos que siguen pendientes, con el error que lo impidió. Va en la
+     * transacción de quien llama: una transacción nueva se bloquearía con las filas ya tomadas
+     * con {@code for update}.
      */
-    public void sumarIntento(List<EnvioRegistro> lote) {
+    public void sumarIntento(List<EnvioRegistro> lote, Integer codigo, String descripcion) {
         envios.saveAll(lote.stream()
                 .filter(envio -> envio.estado() == EstadoEnvio.PENDIENTE)
-                .map(EnvioRegistro::otroIntentoFallido)
+                .map(envio -> envio.otroIntentoFallido(codigo, descripcion))
                 .toList());
     }
 }

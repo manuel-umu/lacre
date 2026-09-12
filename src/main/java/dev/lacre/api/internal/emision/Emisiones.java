@@ -1,9 +1,11 @@
 package dev.lacre.api.internal.emision;
 
+import dev.lacre.api.internal.emision.RespuestaRegistro.Aviso;
 import dev.lacre.identidad.ObligadoDesconocidoException;
 import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.shared.Nif;
+import dev.lacre.verifactu.emision.AnomaliaPrevia;
 import dev.lacre.verifactu.emision.EmisorDeRegistros;
 import dev.lacre.verifactu.emision.RegistroEmitido;
 import dev.lacre.verifactu.registro.SistemaInformatico;
@@ -16,9 +18,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Caso de uso de emisión: añade un registro a la cadena una sola vez por clave de idempotencia,
@@ -56,7 +62,8 @@ class Emisiones {
 
         RegistroEmitido emitido = emisor.emitir(obligado.id(), peticion.aDatos(sistemaInformatico));
         anotar(obligado.id(), clave, huellaPeticion, emitido);
-        return new RespuestaRegistro(emitido.id(), emitido.posicion(), emitido.huella().valor());
+        return new RespuestaRegistro(emitido.id(), emitido.posicion(), emitido.huella().valor(),
+                avisosDe(emitido.avisos()));
     }
 
     /** El obligado es el emisor de la factura; no se pide aparte. */
@@ -75,7 +82,7 @@ class Emisiones {
 
     private Optional<Anotacion> anotacion(UUID obligadoId, String clave) {
         return jdbc.sql("""
-                select registro_id, posicion, huella, huella_peticion
+                select registro_id, posicion, huella, huella_peticion, avisos
                 from peticion_idempotente
                 where obligado_id = :obligado and clave = :clave
                 """)
@@ -85,15 +92,18 @@ class Emisiones {
                         rs.getObject("registro_id", UUID.class),
                         rs.getLong("posicion"),
                         rs.getString("huella"),
-                        rs.getString("huella_peticion")))
+                        rs.getString("huella_peticion"),
+                        rs.getString("avisos")))
                 .optional();
     }
 
     private void anotar(UUID obligadoId, String clave, String huellaPeticion, RegistroEmitido emitido) {
         jdbc.sql("""
                 insert into peticion_idempotente
-                    (obligado_id, clave, huella_peticion, registro_id, posicion, huella, creado_en)
-                values (:obligado, :clave, :huellaPeticion, :registro, :posicion, :huella, :creadoEn)
+                    (obligado_id, clave, huella_peticion, registro_id, posicion, huella, avisos,
+                     creado_en)
+                values (:obligado, :clave, :huellaPeticion, :registro, :posicion, :huella,
+                        :avisos, :creadoEn)
                 """)
                 .param("obligado", obligadoId)
                 .param("clave", clave)
@@ -101,8 +111,26 @@ class Emisiones {
                 .param("registro", emitido.id())
                 .param("posicion", emitido.posicion())
                 .param("huella", emitido.huella().valor())
+                .param("avisos", codificar(emitido.avisos()))
                 .param("creadoEn", OffsetDateTime.now(reloj))
                 .update();
+    }
+
+    private static List<Aviso> avisosDe(Set<AnomaliaPrevia> anomalias) {
+        return anomalias.stream().map(Aviso::de).toList();
+    }
+
+    /** Los avisos se anotan por su código, separados por comas; nulo si no hubo ninguno. */
+    private static String codificar(Set<AnomaliaPrevia> anomalias) {
+        return anomalias.isEmpty() ? null
+                : anomalias.stream().map(AnomaliaPrevia::name).collect(Collectors.joining(","));
+    }
+
+    private static List<Aviso> descodificar(String codigos) {
+        return codigos == null ? List.of()
+                : Arrays.stream(codigos.split(","))
+                        .map(codigo -> Aviso.de(AnomaliaPrevia.valueOf(codigo)))
+                        .toList();
     }
 
     /**
@@ -129,13 +157,14 @@ class Emisiones {
     }
 
     /** Respuesta guardada para una clave de idempotencia. */
-    private record Anotacion(UUID registroId, long posicion, String huella, String huellaPeticion) {
+    private record Anotacion(UUID registroId, long posicion, String huella, String huellaPeticion,
+                             String avisos) {
 
         RespuestaRegistro comoRespuestaSiCoincide(String clave, String huellaPeticion) {
             if (!this.huellaPeticion.equals(huellaPeticion)) {
                 throw new ClaveIdempotenciaReutilizadaException(clave);
             }
-            return new RespuestaRegistro(registroId, posicion, huella);
+            return new RespuestaRegistro(registroId, posicion, huella, descodificar(avisos));
         }
     }
 }

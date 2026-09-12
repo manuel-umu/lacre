@@ -1,10 +1,13 @@
 package dev.lacre.api.internal.consulta;
 
+import dev.lacre.remision.CatalogoErroresAeat;
+import dev.lacre.remision.CatalogoErroresAeat.ErrorAeat;
 import dev.lacre.remision.EnvioRegistro;
 import dev.lacre.verifactu.consulta.RegistroGuardado;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -27,16 +30,33 @@ public record EstadoDelRegistro(
         Remision remision) {
 
     /**
-     * @param estado      {@code PENDIENTE} mientras no haya salido; los demás son terminales
-     * @param codigoError del catálogo de la AEAT, presente también cuando se aceptó con errores
-     * @param intentos    veces que se intentó sin obtener respuesta interpretable
+     * @param estado             {@code PENDIENTE} mientras no haya salido; los demás son
+     *                           terminales
+     * @param codigoError        último error conocido, del catálogo de la AEAT; lo hay también
+     *                           cuando se aceptó con errores y cuando un intento falló sin
+     *                           resolver el envío
+     * @param clasificacionError qué consecuencia tuvo ese código; nula si no está en el catálogo
+     * @param intentos           veces que se intentó sin obtener respuesta interpretable
      */
     public record Remision(String estado, OffsetDateTime enviadoEn, Integer codigoError,
-                           String descripcionError, int intentos) {
+                           String clasificacionError, String descripcionError, int intentos) {
 
         static Remision de(EnvioRegistro envio) {
-            return new Remision(envio.estado().name(), envio.enviadoEn(), envio.codigoError(),
-                    envio.descripcionError(), envio.intentos());
+            Optional<ErrorAeat> error = CatalogoErroresAeat.de(envio.codigoError());
+            return new Remision(
+                    envio.estado().name(),
+                    envio.enviadoEn(),
+                    envio.codigoError(),
+                    error.map(ErrorAeat::clasificacion).map(Enum::name).orElse(null),
+                    descripcion(envio, error),
+                    envio.intentos());
+        }
+
+        /** La descripción del catálogo solo cubre el hueco: manda la que dio la AEAT. */
+        private static String descripcion(EnvioRegistro envio, Optional<ErrorAeat> error) {
+            return envio.descripcionError() != null
+                    ? envio.descripcionError()
+                    : error.map(ErrorAeat::descripcion).orElse(null);
         }
     }
 

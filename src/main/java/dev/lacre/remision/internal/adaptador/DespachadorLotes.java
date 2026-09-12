@@ -3,6 +3,7 @@ package dev.lacre.remision.internal.adaptador;
 import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.remision.ClienteAeat;
+import dev.lacre.remision.EnvioRechazadoException;
 import dev.lacre.remision.EnvioRegistro;
 import dev.lacre.remision.Envios;
 import dev.lacre.remision.LineaRespuesta;
@@ -107,7 +108,7 @@ public class DespachadorLotes {
         } catch (RemisionFallidaException e) {
             // No se sabe si la AEAT lo registró: el lote sigue PENDIENTE. Si había entrado, el
             // reintento devolverá el código 3000 y se resolverá como DUPLICADO.
-            cola.sumarIntento(lote);
+            cola.sumarIntento(lote, codigoDe(e), e.getMessage());
             log.warn("No se pudo remitir el lote de {} registros del obligado {}: {}",
                     lote.size(), obligadoId, e.getMessage());
             return false;
@@ -139,11 +140,17 @@ public class DespachadorLotes {
 
         envios.saveAll(resueltos);
         if (!sinRespuesta.isEmpty()) {
-            cola.sumarIntento(sinRespuesta);
+            cola.sumarIntento(sinRespuesta, null,
+                    "La AEAT respondió al lote sin decir nada de este registro");
             log.error("La AEAT no devolvió línea para {} de los {} registros remitidos por el "
                             + "obligado {}; siguen pendientes",
                     sinRespuesta.size(), lote.size(), lote.getFirst().obligadoId());
         }
+    }
+
+    /** Un rechazo del envío completo llega con código; una caída de red, no. */
+    private static Integer codigoDe(RemisionFallidaException e) {
+        return e instanceof EnvioRechazadoException rechazo ? rechazo.codigo() : null;
     }
 
     private EnvioRegistro resolver(EnvioRegistro envio, LineaRespuesta linea) {

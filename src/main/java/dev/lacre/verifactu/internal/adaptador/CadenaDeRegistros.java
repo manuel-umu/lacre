@@ -5,6 +5,7 @@ import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Nif;
+import dev.lacre.verifactu.emision.AnomaliaPrevia;
 import dev.lacre.verifactu.emision.EmisorDeRegistros;
 import dev.lacre.verifactu.emision.RegistroEmitido;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
@@ -61,15 +62,22 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         this.reloj = reloj;
     }
 
-    /** Puerto publicado; delega en {@link #anadir}. */
+    /** Puerto publicado; añade el registro y devuelve lo que vio la comprobación previa. */
     @Override
+    @Transactional
     public RegistroEmitido emitir(UUID obligadoId, DatosRegistro datos) {
-        RegistroFacturacion guardado = anadir(obligadoId, datos);
-        return new RegistroEmitido(guardado.id(), guardado.posicion(), guardado.huella());
+        Asiento asiento = escribir(obligadoId, datos);
+        RegistroFacturacion guardado = asiento.registro();
+        return new RegistroEmitido(
+                guardado.id(), guardado.posicion(), guardado.huella(), asiento.avisos());
     }
 
     @Transactional
     public RegistroFacturacion anadir(UUID obligadoId, DatosRegistro datos) {
+        return escribir(obligadoId, datos).registro();
+    }
+
+    private Asiento escribir(UUID obligadoId, DatosRegistro datos) {
         ObligadoTributario obligado = obligados.findById(obligadoId)
                 .orElseThrow(() -> new ObligadoDesconocidoException(obligadoId));
 
@@ -77,7 +85,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
 
         List<Enlace> cola = losDosUltimosDe(obligadoId);
         Optional<Enlace> ultimo = cola.stream().findFirst();
-        comprobacionPreviaDelArticulo7i(obligadoId, cola);
+        Set<AnomaliaPrevia> avisos = comprobacionPreviaDelArticulo7i(obligadoId, cola);
 
         RegistroEncadenado encadenado = encadenador.encadenar(
                 datos, ultimo.map(Enlace::comoAnterior), obligado.zonaHoraria());
@@ -89,21 +97,21 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
 
         // Oyentes síncronos: corren antes de que confirme esta transacción.
         eventos.publishEvent(new RegistroCreado(guardado.id(), obligadoId));
-        return guardado;
+        return new Asiento(guardado, avisos);
     }
 
     /**
-     * Comprobación previa del art. 7.i de la OM HAC/1177/2024. Avisa en el log y no impide
-     * emitir; el primer registro de la cadena está exento.
+     * Comprobación previa del art. 7.i de la OM HAC/1177/2024. Avisa y no impide emitir; el
+     * primer registro de la cadena está exento.
      */
-    private void comprobacionPreviaDelArticulo7i(UUID obligadoId, List<Enlace> cola) {
+    private Set<AnomaliaPrevia> comprobacionPreviaDelArticulo7i(UUID obligadoId, List<Enlace> cola) {
         if (cola.isEmpty()) {
-            return;
+            return Set.of();
         }
         Enlace ultimo = cola.getFirst();
         Enlace penultimo = cola.size() > 1 ? cola.get(1) : null;
 
-        Set<ComprobacionPrevia.Anomalia> anomalias =
+        Set<AnomaliaPrevia> anomalias =
                 ComprobacionPrevia.comprobar(ultimo, penultimo, OffsetDateTime.now(reloj));
 
         if (!anomalias.isEmpty()) {
@@ -112,6 +120,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
                             + "facturación no debe interrumpirse.",
                     obligadoId, anomalias, ultimo.posicion());
         }
+        return anomalias;
     }
 
     /** Cerrojo consultivo por obligado; se libera al terminar la transacción. */
@@ -152,6 +161,10 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
 
     private static Huella huellaOpcional(String valor) {
         return valor == null ? null : new Huella(valor);
+    }
+
+    /** Registro recién escrito y las anomalías que la comprobación previa encontró antes. */
+    private record Asiento(RegistroFacturacion registro, Set<AnomaliaPrevia> avisos) {
     }
 
     /**

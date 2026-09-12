@@ -14,7 +14,8 @@ import java.util.UUID;
  * se asigna, se transita: los desenlaces solo salen de {@link EstadoEnvio#PENDIENTE}.
  *
  * @param enviadoEn   momento en que respondió la AEAT; nulo mientras está pendiente
- * @param codigoError código del catálogo de la AEAT; presente también si se aceptó con errores
+ * @param codigoError último error conocido, del catálogo de la AEAT; lo hay también cuando se
+ *                    aceptó con errores y cuando un intento falló sin resolver el envío
  */
 @Table("envio_registro")
 public record EnvioRegistro(
@@ -76,13 +77,18 @@ public record EnvioRegistro(
                 EstadoEnvio.CODIGO_REGISTRO_DUPLICADO, descripcion);
     }
 
-    /** Un intento sin respuesta interpretable; la fila sigue pendiente. */
-    public EnvioRegistro otroIntentoFallido() {
+    /**
+     * Un intento que no resolvió el envío: la fila sigue pendiente y guarda por qué falló, que
+     * es lo único que un integrador tiene para saber si el reintento llegará a alguna parte.
+     *
+     * @param codigo del catálogo de la AEAT si el rechazo lo traía; nulo si no se sabe
+     */
+    public EnvioRegistro otroIntentoFallido(Integer codigo, String descripcion) {
         if (estado.esTerminal()) {
             throw new EnvioYaResueltoException(id, estado, estado);
         }
-        return new EnvioRegistro(id, registroId, obligadoId, estado, creadoEn, null, null, null,
-                intentos + 1, version);
+        return new EnvioRegistro(id, registroId, obligadoId, estado, creadoEn, null, codigo,
+                descripcion, intentos + 1, version);
     }
 
     private EnvioRegistro resuelto(EstadoEnvio desenlace, OffsetDateTime cuando,

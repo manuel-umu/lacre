@@ -8,8 +8,8 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
-import static dev.lacre.verifactu.internal.adaptador.ComprobacionPrevia.Anomalia.FECHA_DEL_ANTERIOR_EN_EL_FUTURO;
-import static dev.lacre.verifactu.internal.adaptador.ComprobacionPrevia.Anomalia.HUELLA_ANTERIOR_NO_CUADRA;
+import static dev.lacre.verifactu.emision.AnomaliaPrevia.FECHA_DEL_ANTERIOR_EN_EL_FUTURO;
+import static dev.lacre.verifactu.emision.AnomaliaPrevia.HUELLA_ANTERIOR_NO_CUADRA;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
