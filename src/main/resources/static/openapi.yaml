@@ -1,0 +1,984 @@
+openapi: 3.1.0
+
+info:
+  title: lacre
+  version: "1"
+  summary: Componente de facturación Veri*Factu para integrar en un ERP.
+  description: |
+    lacre genera los registros de facturación que exigen el Real Decreto 1007/2023 y la Orden
+    HAC/1177/2024, los encadena con su huella y los remite a la AEAT. El ERP expide la factura;
+    lacre solo registra.
+
+    ## Tu primera factura en 15 minutos
+
+    ### 1. Arranca lacre
+
+    Necesita dos variables. Sin ninguna de las dos arranca:
+
+    ```
+    export LACRE_API_CLAVE=$(openssl rand -base64 32)
+    export LACRE_QR_URL_BASE='https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?'
+    ```
+
+    La segunda decide si los códigos QR que imprimas apuntan al entorno de pruebas o al de
+    producción, que es `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?`.
+
+    ### 2. Da de alta al obligado tributario
+
+    El obligado —quien expide la factura— se da de alta en la base de datos, con su NIF y su
+    zona horaria. La zona no es del despliegue: entra en el cálculo de la huella, y Canarias
+    (`Atlantic/Canary`) va una hora por detrás de la Península.
+
+    ### 3. Registra la factura
+
+    ```
+    curl -X POST http://localhost:8080/v1/registros/alta \
+      -H "Authorization: Bearer $LACRE_API_CLAVE" \
+      -H "Idempotency-Key: $(uuidgen)" \
+      -H 'Content-Type: application/json' \
+      -d '{
+        "idFactura": {
+          "idEmisorFactura": "89890001K",
+          "numSerieFactura": "FA/1",
+          "fechaExpedicionFactura": "2026-01-15"
+        },
+        "nombreRazonEmisor": "Obligado de prueba SL",
+        "tipoFactura": "F1",
+        "descripcionOperacion": "Servicios de consultoría",
+        "destinatarios": [ { "nombreRazon": "Cliente SL", "nif": "A28015865" } ],
+        "desglose": [ {
+          "impuesto": "01",
+          "claveRegimen": "01",
+          "calificacion": "S1",
+          "tipoImpositivo": 21,
+          "baseImponibleOimporteNoSujeto": 111.10,
+          "cuotaRepercutida": 12.35
+        } ],
+        "cuotaTotal": 12.35,
+        "importeTotal": 123.45
+      }'
+    ```
+
+    Un `201` significa que el registro está en la cadena y en la cola de remisión. La respuesta
+    trae la huella, la posición del eslabón y la URL del código QR que hay que imprimir en la
+    factura.
+
+    ### 4. Imprime el código QR
+
+    El `urlQr` de la respuesta es el contenido del código; dibujarlo es cosa del ERP, porque la
+    norma le exige un tamaño de entre 30x30 y 40x40 milímetros, nivel M de corrección de
+    errores (ISO/IEC 18004:2015), el texto «QR tributario:» encima y «Factura verificable en la
+    sede electrónica de la AEAT» debajo, y ser el primer código QR de la primera página.
+
+    ### 5. Consulta qué dijo la AEAT
+
+    La remisión es asíncrona: `GET /v1/registros/{id}` dice en qué quedó.
+
+    ## Lo que hay que saber antes de integrar
+
+    **La `Idempotency-Key` es obligatoria en los dos `POST`.** Un ERP reintenta —por un timeout,
+    por un reinicio, por el reintento automático de su cliente HTTP— y un reintento no puede
+    generar dos registros. Reintentar con la misma clave y la misma factura devuelve la misma
+    respuesta; usarla para **otra** factura devuelve `409`, porque darte el registro de la
+    primera te haría creer registrada una factura que no lo está.
+
+    **El obligado no se pide.** En Veri*Factu el `idEmisorFactura` **es** el obligado por cuya
+    cuenta se expide, así que pedirlo dos veces solo añade una forma de que no coincidan.
+
+    **Anular añade un eslabón, no quita el del alta.** La cadena es de solo inserción.
+
+    **Un `201` no significa que la AEAT lo haya aceptado**, sino que el registro existe y está
+    encadenado. La norma exige el registro, no que la AEAT esté disponible.
+
+    **La facturación no se interrumpe.** Un descuadre de totales o una cadena mal encadenada se
+    avisan en `avisos`, pero no impiden registrar: la AEAT los trata como errores admisibles.
+    Solo se rechaza lo que la AEAT rechazaría al recibirlo.
+
+servers:
+  - url: http://localhost:8080
+    description: Despliegue local
+
+security:
+  - claveDeApi: []
+
+tags:
+  - name: emision
+    description: Alta y anulación de registros de facturación.
+  - name: consulta
+    description: Estado de un registro y verificación de la cadena de un obligado.
+
+paths:
+  /v1/registros/alta:
+    post:
+      tags: [emision]
+      summary: Registra el alta de una factura expedida
+      description: |
+        Añade un eslabón a la cadena del obligado y lo encola para remitirlo a la AEAT, todo en
+        la misma transacción: si algo falla no queda ni registro ni envío, y el ERP recibe un
+        error. Es preferible no poder facturar a facturar sin registro.
+      operationId: altaDeRegistro
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionAlta'
+            examples:
+              minima:
+                summary: Lo mínimo que admite el contrato
+                value:
+                  idFactura:
+                    idEmisorFactura: "89890001K"
+                    numSerieFactura: "FA/1"
+                    fechaExpedicionFactura: "2026-01-15"
+                  nombreRazonEmisor: Obligado de prueba SL
+                  tipoFactura: F1
+                  descripcionOperacion: Servicios de consultoría
+                  destinatarios:
+                    - nombreRazon: Cliente SL
+                      nif: A28015865
+                  desglose:
+                    - impuesto: "01"
+                      claveRegimen: "01"
+                      calificacion: S1
+                      tipoImpositivo: 21
+                      baseImponibleOimporteNoSujeto: 111.10
+                      cuotaRepercutida: 12.35
+                  cuotaTotal: 12.35
+                  importeTotal: 123.45
+              rectificativa:
+                summary: Rectificativa por sustitución de una factura anterior
+                value:
+                  idFactura:
+                    idEmisorFactura: "89890001K"
+                    numSerieFactura: "R/1"
+                    fechaExpedicionFactura: "2026-02-01"
+                  nombreRazonEmisor: Obligado de prueba SL
+                  tipoFactura: R1
+                  tipoRectificativa: S
+                  facturasRectificadas:
+                    - idEmisorFactura: "89890001K"
+                      numSerieFactura: "FA/1"
+                      fechaExpedicionFactura: "2026-01-15"
+                  importeRectificacion:
+                    baseRectificada: 111.10
+                    cuotaRectificada: 12.35
+                  descripcionOperacion: Rectificación de la factura FA/1
+                  destinatarios:
+                    - nombreRazon: Cliente SL
+                      nif: A28015865
+                  desglose:
+                    - impuesto: "01"
+                      claveRegimen: "01"
+                      calificacion: S1
+                      tipoImpositivo: 21
+                      baseImponibleOimporteNoSujeto: 90.00
+                      cuotaRepercutida: 18.90
+                  cuotaTotal: 18.90
+                  importeTotal: 108.90
+              destinatarioExtranjero:
+                summary: Destinatario sin NIF español
+                value:
+                  idFactura:
+                    idEmisorFactura: "89890001K"
+                    numSerieFactura: "FA/2"
+                    fechaExpedicionFactura: "2026-01-16"
+                  nombreRazonEmisor: Obligado de prueba SL
+                  tipoFactura: F1
+                  descripcionOperacion: Servicios de consultoría
+                  destinatarios:
+                    - nombreRazon: Client Ltd
+                      idOtro:
+                        codigoPais: IE
+                        tipo: "02"
+                        id: IE6388047V
+                  desglose:
+                    - impuesto: "01"
+                      claveRegimen: "01"
+                      calificacion: S1
+                      tipoImpositivo: 21
+                      baseImponibleOimporteNoSujeto: 111.10
+                      cuotaRepercutida: 12.35
+                  cuotaTotal: 12.35
+                  importeTotal: 123.45
+      responses:
+        "201":
+          $ref: '#/components/responses/RegistroCreado'
+        "400":
+          $ref: '#/components/responses/PeticionInvalida'
+        "401":
+          $ref: '#/components/responses/SinCredencial'
+        "409":
+          $ref: '#/components/responses/ClaveReutilizada'
+        "422":
+          $ref: '#/components/responses/ObligadoDesconocido'
+
+  /v1/registros/anulacion:
+    post:
+      tags: [emision]
+      summary: Registra la anulación de una factura ya expedida
+      description: |
+        Añade un eslabón nuevo a la cadena; el del alta se queda donde está, porque la tabla de
+        registros es de solo inserción. La respuesta no trae `urlQr`: una anulación no es una
+        factura que se imprima.
+
+        La clave de idempotencia del alta **no** vale para anular la misma factura: el tipo de
+        operación entra en la huella de la petición.
+      operationId: anulacionDeRegistro
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionAnulacion'
+            examples:
+              minima:
+                summary: Anulación de la factura FA/1
+                value:
+                  idFacturaAnulada:
+                    idEmisorFactura: "89890001K"
+                    numSerieFactura: "FA/1"
+                    fechaExpedicionFactura: "2026-01-15"
+      responses:
+        "201":
+          $ref: '#/components/responses/RegistroCreado'
+        "400":
+          $ref: '#/components/responses/PeticionInvalida'
+        "401":
+          $ref: '#/components/responses/SinCredencial'
+        "409":
+          $ref: '#/components/responses/ClaveReutilizada'
+        "422":
+          $ref: '#/components/responses/ObligadoDesconocido'
+
+  /v1/registros/{id}:
+    get:
+      tags: [consulta]
+      summary: Estado de un registro y desenlace de su remisión
+      description: |
+        Junta el eslabón en la cadena con lo que la AEAT contestó. Mientras `remision.estado`
+        sea `PENDIENTE`, el registro existe pero todavía no se ha presentado; los demás estados
+        son terminales y no se reintentan.
+
+        `codigoError` es el último error conocido: lo hay también cuando la AEAT aceptó con
+        errores y cuando un intento falló sin resolver el envío. `clasificacionError` dice de
+        qué lista del catálogo oficial viene, que es lo que el estado no dice: si el próximo
+        intento se encontrará el mismo problema.
+      operationId: estadoDelRegistro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: El `registroId` que devolvió el alta o la anulación.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: El registro y su remisión.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EstadoDelRegistro'
+              examples:
+                aceptado:
+                  summary: Presentado y aceptado por la AEAT
+                  value:
+                    registroId: 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f
+                    obligadoId: 2f1c9b7a-3d4e-4f50-9a1b-2c3d4e5f6071
+                    posicion: 1
+                    tipo: ALTA
+                    idEmisorFactura: "89890001K"
+                    numSerieFactura: "FA/1"
+                    fechaExpedicionFactura: "2026-01-15"
+                    huella: 3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60
+                    huellaAnterior: null
+                    fechaHoraHusoGenRegistro: "2026-01-15T10:30:00+01:00"
+                    remision:
+                      estado: ACEPTADO
+                      enviadoEn: "2026-01-15T10:31:02+01:00"
+                      codigoError: null
+                      clasificacionError: null
+                      descripcionError: null
+                      intentos: 0
+                atascado:
+                  summary: Sigue pendiente, y el último intento dice por qué
+                  value:
+                    registroId: 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f
+                    obligadoId: 2f1c9b7a-3d4e-4f50-9a1b-2c3d4e5f6071
+                    posicion: 1
+                    tipo: ALTA
+                    idEmisorFactura: "89890001K"
+                    numSerieFactura: "FA/1"
+                    fechaExpedicionFactura: "2026-01-15"
+                    huella: 3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60
+                    huellaAnterior: null
+                    fechaHoraHusoGenRegistro: "2026-01-15T10:30:00+01:00"
+                    remision:
+                      estado: PENDIENTE
+                      enviadoEn: null
+                      codigoError: 4104
+                      clasificacionError: RECHAZO_ENVIO
+                      descripcionError: >-
+                        la AEAT rechazó el envío completo con el código 4104: Error en la
+                        cabecera: el valor del campo NIF del bloque ObligadoEmision no está
+                        identificado.
+                      intentos: 3
+        "401":
+          $ref: '#/components/responses/SinCredencial'
+        "404":
+          description: No hay ningún registro con ese identificador.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+              example:
+                type: about:blank
+                title: Registro no encontrado
+                status: 404
+                detail: No hay ningún registro con el identificador 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f
+                codigo: registro-desconocido
+
+  /v1/obligados/{nif}/cadena:
+    get:
+      tags: [consulta]
+      summary: Verifica la cadena de registros de un obligado
+      description: |
+        Recorre la cadena entera y denuncia los eslabones que no encajan. **`alcance` dice hasta
+        dónde llega la comprobación**: hoy vale `ENLACES`, que verifica que cada eslabón declara
+        la huella del que le precede y que no falta ninguna posición, sin recalcular las
+        huellas. Valdrá `HUELLAS` cuando se recalculen. No lo ignores: un `intacta: true` con
+        alcance `ENLACES` no afirma que las huellas sean correctas.
+      operationId: verificacionDeCadena
+      parameters:
+        - name: nif
+          in: path
+          required: true
+          description: NIF del obligado tributario.
+          schema:
+            type: string
+            minLength: 9
+            maxLength: 9
+          example: "89890001K"
+      responses:
+        "200":
+          description: El veredicto sobre la cadena.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaVerificacion'
+              examples:
+                intacta:
+                  summary: La cadena encaja
+                  value:
+                    nifObligado: "89890001K"
+                    registros: 3
+                    intacta: true
+                    alcance: ENLACES
+                    roturas: []
+                rota:
+                  summary: Un eslabón no enlaza con el anterior
+                  value:
+                    nifObligado: "89890001K"
+                    registros: 3
+                    intacta: false
+                    alcance: ENLACES
+                    roturas:
+                      - posicion: 2
+                        motivo: HUELLA_ANTERIOR_NO_CUADRA
+        "401":
+          $ref: '#/components/responses/SinCredencial'
+        "422":
+          $ref: '#/components/responses/ObligadoDesconocido'
+
+components:
+
+  securitySchemes:
+    claveDeApi:
+      type: http
+      scheme: bearer
+      description: |
+        Una clave por despliegue, en `Authorization: Bearer <clave>`. lacre lo despliega el
+        cliente en su propia infraestructura, así que un despliegue es un ERP y el ERP es la
+        frontera de confianza. La clave se configura en `LACRE_API_CLAVE` y sin ella la
+        aplicación no arranca.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: |
+        Identifica el intento, no la factura. Repetirla con la misma factura devuelve la
+        respuesta que se dio; con otra factura devuelve `409`.
+      schema:
+        type: string
+        maxLength: 128
+      example: 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f
+
+  responses:
+    RegistroCreado:
+      description: El registro está en la cadena y encolado para remitirlo.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespuestaRegistro'
+          examples:
+            alta:
+              summary: Alta registrada
+              value:
+                registroId: 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f
+                posicion: 1
+                huella: 3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60
+                urlQr: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=89890001K&numserie=FA%2F1&fecha=15-01-2026&importe=123.45
+                avisos: []
+            conAviso:
+              summary: Registrada, pero la cadena venía rota de antes
+              value:
+                registroId: 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f
+                posicion: 3
+                huella: F7B94CFD8924EDFF273501B01EE5153E4CE8F259766F88CF6ACB8935802A2B97
+                urlQr: https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=89890001K&numserie=FA%2F3&fecha=15-01-2026&importe=123.45
+                avisos:
+                  - codigo: HUELLA_ANTERIOR_NO_CUADRA
+                    mensaje: >-
+                      El registro que precede al emitido declara como huella anterior una que no
+                      es la del registro que le precede a él. La cadena está rota por debajo del
+                      registro nuevo, que sí ha quedado encadenado.
+
+    PeticionInvalida:
+      description: |
+        El cuerpo no cumple el contrato, o los datos no forman un registro que la AEAT vaya a
+        aceptar. Cuando falla el contrato, `errores` nombra los campos.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+          examples:
+            contrato:
+              summary: Falta un campo obligatorio
+              value:
+                type: about:blank
+                title: Petición mal formada
+                status: 400
+                detail: La petición incumple 1 restricción(es) del contrato.
+                codigo: validacion
+                errores:
+                  - campo: descripcionOperacion
+                    mensaje: no debe estar vacío
+            dominio:
+              summary: Los datos no forman un registro válido
+              value:
+                type: about:blank
+                title: Datos de facturación no válidos
+                status: 400
+                detail: >-
+                  El número de serie de la factura no admite el carácter '<' (ASCII 60): solo
+                  ASCII imprimible salvo ", ', <, = y >
+                codigo: validacion
+
+    SinCredencial:
+      description: |
+        Falta la cabecera `Authorization` o la clave no es la del despliegue. Las dos situaciones
+        responden igual a propósito: distinguirlas convertiría el endpoint en un oráculo para
+        quien esté probando claves.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+          example:
+            type: about:blank
+            title: No autorizado
+            status: 401
+            detail: Falta o no es válida la clave de la API.
+            codigo: no-autorizado
+
+    ClaveReutilizada:
+      description: La `Idempotency-Key` ya se usó para otra factura.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+          example:
+            type: about:blank
+            title: Clave de idempotencia reutilizada
+            status: 409
+            detail: >-
+              La clave de idempotencia 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f ya se usó para otra
+              factura distinta.
+            codigo: clave-idempotencia-reutilizada
+
+    ObligadoDesconocido:
+      description: |
+        El emisor de la factura no está dado de alta como obligado tributario. No es un `404`
+        porque el recurso existe y el JSON está bien: lo que falta es dar de alta al obligado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problema'
+          example:
+            type: about:blank
+            title: Obligado tributario no dado de alta
+            status: 422
+            detail: No hay ningún obligado tributario con el NIF 89890001K
+            codigo: obligado-desconocido
+
+  schemas:
+
+    IdFacturaDto:
+      type: object
+      description: Identificación de una factura, con los nombres de la AEAT en camelCase.
+      required: [idEmisorFactura, numSerieFactura, fechaExpedicionFactura]
+      properties:
+        idEmisorFactura:
+          type: string
+          description: NIF del obligado que expide la factura. Es también el obligado de lacre.
+          minLength: 9
+          maxLength: 9
+          example: "89890001K"
+        numSerieFactura:
+          type: string
+          description: |
+            Número de serie y número de factura, ya concatenados. Solo ASCII imprimible (32 a
+            126) y sin los caracteres `"`, `'`, `<`, `=` ni `>`, que la AEAT rechaza.
+          maxLength: 60
+          example: "FA/1"
+        fechaExpedicionFactura:
+          type: string
+          format: date
+          example: "2026-01-15"
+
+    PersonaDto:
+      type: object
+      description: |
+        Persona física o jurídica. Se identifica con `nif` **o** con `idOtro`, exactamente uno
+        de los dos: el XSD los declara excluyentes.
+      required: [nombreRazon]
+      properties:
+        nombreRazon:
+          type: string
+          example: Cliente SL
+        nif:
+          type: string
+          minLength: 9
+          maxLength: 9
+          example: A28015865
+        idOtro:
+          $ref: '#/components/schemas/IdOtroDto'
+
+    IdOtroDto:
+      type: object
+      description: Identificación de quien no tiene NIF español.
+      required: [tipo, id]
+      properties:
+        codigoPais:
+          type: string
+          description: Código ISO 3166-1 alfa-2.
+          minLength: 2
+          maxLength: 2
+          example: IE
+        tipo:
+          type: string
+          description: |
+            Lista L7: `02` NIF-IVA, `03` pasaporte, `04` documento del país de residencia,
+            `05` certificado de residencia, `06` otro documento, `07` no censado.
+          enum: ["02", "03", "04", "05", "06", "07"]
+        id:
+          type: string
+          maxLength: 20
+          example: IE6388047V
+
+    PeticionAlta:
+      type: object
+      description: |
+        Alta de un registro de facturación. Los indicadores son booleanos y omitirlos vale «N»,
+        que es lo que dice el diseño de registro oficial.
+      required:
+        - idFactura
+        - nombreRazonEmisor
+        - tipoFactura
+        - descripcionOperacion
+        - desglose
+        - cuotaTotal
+        - importeTotal
+      properties:
+        idFactura:
+          $ref: '#/components/schemas/IdFacturaDto'
+        refExterna:
+          type: string
+          description: Referencia libre del ERP; no la usa la AEAT para nada.
+          maxLength: 60
+        nombreRazonEmisor:
+          type: string
+          maxLength: 120
+        subsanacion:
+          type: boolean
+          description: El registro subsana otro anterior con la misma identificación.
+        rechazoPrevio:
+          type: string
+          description: |
+            Solo en subsanaciones. `S` si el registro subsanado fue rechazado por la AEAT, `X`
+            si nunca llegó a remitirse.
+          enum: [N, S, X]
+        tipoFactura:
+          type: string
+          description: |
+            Lista L2. `F1` factura completa, `F2` simplificada, `F3` sustitutiva de
+            simplificadas, `R1` a `R5` rectificativas.
+          enum: [F1, F2, F3, R1, R2, R3, R4, R5]
+        tipoRectificativa:
+          type: string
+          description: |
+            Obligatorio si `tipoFactura` es una `R`, y prohibido si no lo es. `S` por
+            sustitución, `I` por diferencias.
+          enum: [S, I]
+        facturasRectificadas:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/IdFacturaDto'
+        facturasSustituidas:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/IdFacturaDto'
+        importeRectificacion:
+          $ref: '#/components/schemas/Rectificacion'
+        fechaOperacion:
+          type: string
+          format: date
+          description: Solo si es distinta de la fecha de expedición.
+        descripcionOperacion:
+          type: string
+          maxLength: 500
+          example: Servicios de consultoría
+        facturaSimplificadaArt7273:
+          type: boolean
+        facturaSinIdentifDestinatarioArt61d:
+          type: boolean
+        macrodato:
+          type: boolean
+          description: Importe total superior a 100.000.000 €.
+        emitidaPorTerceroODestinatario:
+          type: string
+          description: '`D` por el destinatario, `T` por un tercero.'
+          enum: [D, T]
+        tercero:
+          $ref: '#/components/schemas/PersonaDto'
+        destinatarios:
+          type: array
+          description: Obligatorio salvo en las simplificadas del art. 6.1.d.
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/PersonaDto'
+        cupon:
+          type: boolean
+        desglose:
+          type: array
+          description: Entre 1 y 12 líneas, que es lo que admite el XSD.
+          minItems: 1
+          maxItems: 12
+          items:
+            $ref: '#/components/schemas/Detalle'
+        cuotaTotal:
+          type: number
+          description: |
+            Suma de las cuotas repercutidas y de recargo de equivalencia. La AEAT la contrasta
+            con el desglose y admite un margen de ±10 €; fuera de él acepta el registro con un
+            error admisible, y hay que subsanarlo.
+          example: 12.35
+        importeTotal:
+          type: number
+          description: Base imponible más cuotas. Mismo contraste y mismo margen.
+          example: 123.45
+        numRegistroAcuerdoFacturacion:
+          type: string
+          maxLength: 15
+        idAcuerdoSistemaInformatico:
+          type: string
+          maxLength: 16
+
+    Detalle:
+      type: object
+      description: Línea del desglose de impuestos.
+      required: [calificacion, baseImponibleOimporteNoSujeto]
+      properties:
+        impuesto:
+          type: string
+          description: 'Lista L1: `01` IVA, `02` IPSI, `03` IGIC, `05` otros.'
+          enum: ["01", "02", "03", "05"]
+        claveRegimen:
+          type: string
+          description: |
+            Lista L8A. Con `03`, `05`, `06`, `08` o `09` la AEAT no contrasta los totales con el
+            desglose.
+          enum: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "14", "15",
+                 "17", "18", "19", "20", "21"]
+        calificacion:
+          type: string
+          description: |
+            Lista L9 (`S1` sujeta y no exenta, `S2` con inversión del sujeto pasivo, `N1` no
+            sujeta por los arts. 7, 14 y otros, `N2` no sujeta por reglas de localización) o
+            lista L10 de exenciones, de `E1` a `E8`.
+          enum: [S1, S2, N1, N2, E1, E2, E3, E4, E5, E6, E7, E8]
+        tipoImpositivo:
+          type: number
+          example: 21
+        baseImponibleOimporteNoSujeto:
+          type: number
+          example: 111.10
+        baseImponibleACoste:
+          type: number
+          description: Solo en el régimen especial del grupo de entidades.
+        cuotaRepercutida:
+          type: number
+          example: 12.35
+        tipoRecargoEquivalencia:
+          type: number
+        cuotaRecargoEquivalencia:
+          type: number
+
+    Rectificacion:
+      type: object
+      description: Base y cuota sustituidas en una rectificativa por sustitución.
+      required: [baseRectificada, cuotaRectificada]
+      properties:
+        baseRectificada:
+          type: number
+        cuotaRectificada:
+          type: number
+        cuotaRecargoRectificado:
+          type: number
+
+    PeticionAnulacion:
+      type: object
+      description: Anulación de una factura ya expedida.
+      required: [idFacturaAnulada]
+      properties:
+        idFacturaAnulada:
+          $ref: '#/components/schemas/IdFacturaDto'
+        refExterna:
+          type: string
+          maxLength: 60
+        sinRegistroPrevio:
+          type: boolean
+          description: Se anula una factura de la que nunca se generó registro.
+        rechazoPrevio:
+          type: boolean
+          description: La anulación anterior de esta factura fue rechazada por la AEAT.
+        generadoPor:
+          type: string
+          description: '`E` el emisor, `D` el destinatario, `T` un tercero.'
+          enum: [E, D, T]
+        generador:
+          $ref: '#/components/schemas/PersonaDto'
+
+    RespuestaRegistro:
+      type: object
+      description: |
+        Lo que queda del registro recién creado. Que exista no implica que la AEAT lo haya
+        aceptado: la remisión es asíncrona y se consulta en `GET /v1/registros/{id}`.
+      required: [registroId, posicion, huella, avisos]
+      properties:
+        registroId:
+          type: string
+          format: uuid
+        posicion:
+          type: integer
+          format: int64
+          description: Número de eslabón dentro de la cadena del obligado, desde 1.
+        huella:
+          type: string
+          description: SHA-256 en hexadecimal y mayúsculas.
+          pattern: '^[0-9A-F]{64}$'
+        urlQr:
+          type: string
+          description: |
+            Contenido del código QR de la factura. Nulo en las anulaciones, que no se imprimen.
+        avisos:
+          type: array
+          description: |
+            Anomalías que la comprobación previa del art. 7.i encontró en la cadena. No impiden
+            registrar —la facturación no debe interrumpirse—, pero la cadena necesita atención.
+          items:
+            $ref: '#/components/schemas/Aviso'
+
+    Aviso:
+      type: object
+      required: [codigo, mensaje]
+      properties:
+        codigo:
+          type: string
+          enum: [HUELLA_ANTERIOR_NO_CUADRA, FECHA_DEL_ANTERIOR_EN_EL_FUTURO]
+        mensaje:
+          type: string
+
+    EstadoDelRegistro:
+      type: object
+      required:
+        - registroId
+        - obligadoId
+        - posicion
+        - tipo
+        - idEmisorFactura
+        - numSerieFactura
+        - fechaExpedicionFactura
+        - huella
+        - fechaHoraHusoGenRegistro
+      properties:
+        registroId:
+          type: string
+          format: uuid
+        obligadoId:
+          type: string
+          format: uuid
+        posicion:
+          type: integer
+          format: int64
+        tipo:
+          type: string
+          enum: [ALTA, ANULACION]
+        idEmisorFactura:
+          type: string
+        numSerieFactura:
+          type: string
+        fechaExpedicionFactura:
+          type: string
+          format: date
+        huella:
+          type: string
+          pattern: '^[0-9A-F]{64}$'
+        huellaAnterior:
+          type: string
+          description: Nula en el primer registro de la cadena.
+          pattern: '^[0-9A-F]{64}$'
+        fechaHoraHusoGenRegistro:
+          type: string
+          format: date-time
+          description: |
+            Con el huso del obligado, no el del servidor: entra en el cálculo de la huella.
+          example: "2026-01-15T10:30:00+01:00"
+        remision:
+          $ref: '#/components/schemas/Remision'
+
+    Remision:
+      type: object
+      description: Desenlace del envío a la AEAT. Nulo si el registro no tiene fila de salida.
+      required: [estado, intentos]
+      properties:
+        estado:
+          type: string
+          description: |
+            `PENDIENTE` mientras no haya salido. Los otros cuatro son terminales y no se
+            reintentan: subsanar es registrar de nuevo, no reenviar. `DUPLICADO` es la respuesta
+            a reenviar algo ya presentado, el código 3000.
+          enum: [PENDIENTE, ACEPTADO, ACEPTADO_CON_ERRORES, RECHAZADO, DUPLICADO]
+        enviadoEn:
+          type: string
+          format: date-time
+          description: Cuándo respondió la AEAT. Nulo mientras está pendiente.
+        codigoError:
+          type: integer
+          description: Último error conocido, del catálogo oficial de la AEAT.
+          example: 4104
+        clasificacionError:
+          type: string
+          description: |
+            De qué lista del catálogo viene el código. `RECHAZO_ENVIO`: no se procesó ningún
+            registro del envío. `RECHAZO_FACTURA`: este registro no quedó presentado.
+            `ADMISIBLE`: quedó presentado y hay que subsanarlo. Nula si el código no está en el
+            catálogo.
+          enum: [RECHAZO_ENVIO, RECHAZO_FACTURA, ADMISIBLE]
+        descripcionError:
+          type: string
+          description: La que dio la AEAT; si no dio ninguna, la del catálogo.
+        intentos:
+          type: integer
+          description: Veces que se intentó sin obtener respuesta interpretable.
+
+    RespuestaVerificacion:
+      type: object
+      required: [nifObligado, registros, intacta, alcance, roturas]
+      properties:
+        nifObligado:
+          type: string
+        registros:
+          type: integer
+          format: int64
+          description: Cuántos eslabones tiene la cadena.
+        intacta:
+          type: boolean
+          description: Verdadero si no hay roturas **dentro del alcance declarado**.
+        alcance:
+          type: string
+          description: |
+            `ENLACES` comprueba que cada eslabón enlaza con el anterior y que no falta ninguno.
+            `HUELLAS` comprobaría además que cada huella es la que corresponde a su registro.
+          enum: [ENLACES, HUELLAS]
+        roturas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Rotura'
+
+    Rotura:
+      type: object
+      required: [posicion, motivo]
+      properties:
+        posicion:
+          type: integer
+          format: int64
+        motivo:
+          type: string
+          description: |
+            `HUELLA_ANTERIOR_NO_CUADRA`: la huella anterior declarada no es la del registro que
+            le precede. `POSICION_SALTADA`: falta al menos una posición. `SIN_HUELLA_ANTERIOR`:
+            no es el primero y no declara huella anterior. `PRIMERO_CON_HUELLA_ANTERIOR`: abre
+            la cadena y declara una que no debería existir.
+          enum:
+            - HUELLA_ANTERIOR_NO_CUADRA
+            - POSICION_SALTADA
+            - SIN_HUELLA_ANTERIOR
+            - PRIMERO_CON_HUELLA_ANTERIOR
+
+    Problema:
+      type: object
+      description: |
+        Error en formato `ProblemDetail` (RFC 9457). El campo que se programa es `codigo`, que
+        es estable; `title` y `detail` son para leer.
+      required: [status, codigo]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        codigo:
+          type: string
+          enum:
+            - validacion
+            - obligado-desconocido
+            - registro-desconocido
+            - clave-idempotencia-reutilizada
+            - no-autorizado
+        errores:
+          type: array
+          description: Solo en las violaciones de contrato; un elemento por campo.
+          items:
+            type: object
+            required: [campo, mensaje]
+            properties:
+              campo:
+                type: string
+              mensaje:
+                type: string
