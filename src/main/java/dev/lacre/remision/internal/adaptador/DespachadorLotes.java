@@ -1,5 +1,6 @@
 package dev.lacre.remision.internal.adaptador;
 
+import dev.lacre.identidad.CertificadoNoDisponibleException;
 import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.remision.ClienteAeat;
@@ -58,12 +59,23 @@ public class DespachadorLotes {
         this.transaccion = transaccion;
     }
 
-    /** Despacha un lote de cada obligado con envíos pendientes y turno. Devuelve cuántos salieron. */
+    /**
+     * Despacha un lote de cada obligado con envíos pendientes y turno, y devuelve cuántos
+     * salieron. Lo que falle en un obligado no impide despachar a los demás.
+     */
     public int despachar() {
         int lotes = 0;
         for (UUID obligadoId : controlDeFlujo.obligadosConPendientes()) {
-            if (Boolean.TRUE.equals(transaccion.execute(estado -> despacharUnLoteDe(obligadoId)))) {
-                lotes++;
+            try {
+                Boolean salio = transaccion.execute(estado -> despacharUnLoteDe(obligadoId));
+                if (Boolean.TRUE.equals(salio)) {
+                    lotes++;
+                }
+            } catch (CertificadoNoDisponibleException e) {
+                log.error("El obligado {} tiene envíos pendientes que no se pueden remitir: {}",
+                        obligadoId, e.getMessage());
+            } catch (RuntimeException e) {
+                log.error("Falló el despacho del obligado {}; se sigue con los demás", obligadoId, e);
             }
         }
         return lotes;

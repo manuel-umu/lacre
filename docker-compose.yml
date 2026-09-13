@@ -1,4 +1,58 @@
+# Despliegue de ejemplo. Las variables obligatorias van sin valor por defecto y con `:?`: si
+# faltan, compose se para antes de arrancar nada. Un despliegue a medias tiene que fallar aquí y
+# no en la primera factura.
+#
+#     cp .env.example .env      y cambia las cuatro claves
+#     docker compose up -d db lacre
+
 services:
+
+  db:
+    image: postgres:17-alpine
+    container_name: lacre-db
+    environment:
+      POSTGRES_DB: lacre
+      POSTGRES_USER: lacre
+      POSTGRES_PASSWORD: ${LACRE_DB_CLAVE:?falta LACRE_DB_CLAVE}
+    volumes:
+      - datos:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lacre -d lacre"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  lacre:
+    build: .
+    container_name: lacre
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Dos conexiones: Flyway migra como propietario y la aplicación entra como lacre_app, que
+      # solo puede leer e insertar en registro_facturacion. Con una sola, el rol restringido
+      # existiría y no lo usaría nadie.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/lacre
+      SPRING_DATASOURCE_USERNAME: lacre_app
+      SPRING_DATASOURCE_PASSWORD: ${LACRE_DB_CLAVE_APLICACION:?falta LACRE_DB_CLAVE_APLICACION}
+      SPRING_FLYWAY_USER: lacre
+      SPRING_FLYWAY_PASSWORD: ${LACRE_DB_CLAVE:?falta LACRE_DB_CLAVE}
+      LACRE_DB_CLAVE_APLICACION: ${LACRE_DB_CLAVE_APLICACION:?falta LACRE_DB_CLAVE_APLICACION}
+      LACRE_API_CLAVE: ${LACRE_API_CLAVE:?falta LACRE_API_CLAVE}
+      LACRE_QR_URL_BASE: ${LACRE_QR_URL_BASE:?falta LACRE_QR_URL_BASE}
+      # Certificados de los obligados: un PKCS#12 por NIF, en un volumen de solo lectura. Sin
+      # ellos lacre registra facturas pero no puede remitirlas.
+      # LACRE_CERTIFICADOS_DIR: /certificados
+    # volumes:
+    #   - ./certificados:/certificados:ro
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 30s
 
   # Swagger UI sobre el contrato del árbol de trabajo, para leerlo y probar llamadas mientras se
   # desarrolla. No forma parte de lo que se despliega: lacre sirve el openapi.yaml en crudo y
@@ -16,3 +70,6 @@ services:
       SWAGGER_JSON: /spec/openapi.yaml
     volumes:
       - ./src/main/resources/static:/spec:ro
+
+volumes:
+  datos:

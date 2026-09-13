@@ -1,0 +1,9 @@
+docs/
+target/
+.git/
+.github/
+.idea/
+*.iml
+*.md
+docker-compose.yml
+.jqwik-database

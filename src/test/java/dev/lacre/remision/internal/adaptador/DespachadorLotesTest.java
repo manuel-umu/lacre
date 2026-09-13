@@ -1,6 +1,7 @@
 package dev.lacre.remision.internal.adaptador;
 
 import dev.lacre.TestcontainersConfiguration;
+import dev.lacre.identidad.CertificadoNoDisponibleException;
 import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
@@ -241,6 +242,51 @@ class DespachadorLotesTest {
         assertThat(envio.intentos()).isEqualTo(1);
     }
 
+    /**
+     * Falla el primer obligado de la pasada, sea cual sea: los obligados se recorren por
+     * identificador, así que fijar cuál fallaría haría que el test pasara por casualidad.
+     */
+    @Test
+    void unObligadoSinCertificadoNoImpideDespacharALosDemas() {
+        RegistroFacturacion delPrimero = emitir("FA/1");
+        RegistroFacturacion delSegundo =
+                cadena.anadir(ObligadosDePrueba.nuevo(obligados), Registros.alta().build());
+        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
+                linea(delPrimero, EstadoRegistroAeat.CORRECTO, null),
+                linea(delSegundo, EstadoRegistroAeat.CORRECTO, null));
+        aeat.fallarSoloLaPrimeraLlamadaCon(
+                new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
+
+        assertThat(despachador.despachar()).isEqualTo(1);
+
+        assertThat(List.of(estadoDe(delPrimero), estadoDe(delSegundo)))
+                .containsExactlyInAnyOrder(EstadoEnvio.ACEPTADO, EstadoEnvio.PENDIENTE);
+    }
+
+    /**
+     * Sin certificado no llega a haber envío, así que no cuenta como intento. El turno sí se
+     * consume, porque se confirma antes de enviar: se reintenta cuando vence la espera.
+     */
+    @Test
+    void unObligadoSinCertificadoSeReintentaCuandoVenceSuTurno() {
+        RegistroFacturacion registro = emitir("FA/1");
+        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
+                linea(registro, EstadoRegistroAeat.CORRECTO, null));
+        aeat.fallarSoloLaPrimeraLlamadaCon(
+                new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
+
+        assertThat(despachador.despachar()).isZero();
+        assertThat(intentosDe(registro)).isZero();
+        assertThat(despachador.despachar()).isZero();
+
+        // Se envejece el turno en vez de dormir 60 segundos.
+        jdbc.sql("update control_flujo_envio set ultimo_envio = ultimo_envio - interval '61 seconds'")
+                .update();
+
+        assertThat(despachador.despachar()).isEqualTo(1);
+        assertThat(estadoDe(registro)).isEqualTo(EstadoEnvio.ACEPTADO);
+    }
+
     /** El turno se consume igual: la norma cuenta envíos, no éxitos. */
     @Test
     void unFalloDeRemisionConsumeElTurno() {
@@ -311,6 +357,8 @@ class DespachadorLotesTest {
 
         void rechazarElEnvio(int codigo);
 
+        void fallarSoloLaPrimeraLlamadaCon(RuntimeException fallo);
+
         void responder(EstadoEnvioAeat estado, Duration espera, LineaRespuesta... lineas);
 
         int lotesRemitidos();
@@ -327,12 +375,14 @@ class DespachadorLotesTest {
                 private EstadoEnvioAeat estado = EstadoEnvioAeat.CORRECTO;
                 private Duration espera = Duration.ofSeconds(60);
                 private RemisionFallidaException fallo;
+                private RuntimeException falloDeLaPrimeraLlamada;
                 private int lotes;
 
                 @Override
                 public synchronized void reiniciar() {
                     lineas.clear();
                     fallo = null;
+                    falloDeLaPrimeraLlamada = null;
                     lotes = 0;
                     espera = Duration.ofSeconds(60);
                 }
@@ -340,6 +390,11 @@ class DespachadorLotesTest {
                 @Override
                 public synchronized void fallar() {
                     fallo = new RemisionFallidaException("la AEAT no contesta en el test");
+                }
+
+                @Override
+                public synchronized void fallarSoloLaPrimeraLlamadaCon(RuntimeException fallo) {
+                    falloDeLaPrimeraLlamada = fallo;
                 }
 
                 @Override
@@ -365,6 +420,11 @@ class DespachadorLotesTest {
                 @Override
                 public synchronized RespuestaRemision remitir(ObligadoTributario obligado,
                                                               List<String> registros) {
+                    if (falloDeLaPrimeraLlamada != null) {
+                        RuntimeException unaVez = falloDeLaPrimeraLlamada;
+                        falloDeLaPrimeraLlamada = null;
+                        throw unaVez;
+                    }
                     if (fallo != null) {
                         throw fallo;
                     }

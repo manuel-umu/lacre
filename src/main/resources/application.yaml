@@ -2,6 +2,18 @@ spring:
   application:
     name: lacre
 
+  # La consola de operación es de la Fase 9 y todavía no hay plantillas. Sin esto, cada arranque
+  # avisa de que falta classpath:/templates/, que en un despliegue ajeno parece un fallo.
+  thymeleaf:
+    check-template-location: false
+
+  # Flyway migra como propietario y la aplicación se conecta como lacre_app, que solo puede leer e
+  # insertar en registro_facturacion. Las dos credenciales las pone el despliegue; aquí solo va la
+  # clave del rol restringido, que un callback de Flyway le asigna en cada arranque.
+  flyway:
+    placeholders:
+      clave_rol_aplicacion: ${LACRE_DB_CLAVE_APLICACION:}
+
 lacre:
   # Credencial con la que el ERP llama a la API. UNA por despliegue: lacre lo despliega el
   # cliente, así que un despliegue es un ERP y el ERP es la frontera de confianza.
@@ -57,6 +69,14 @@ lacre:
   # despliegue: www1 (producción), www10 (producción con certificado de sello), prewww1 (pruebas)
   # y prewww10 (pruebas con sello). Los de sello son OTRO HOST, no otra ruta: enviar un
   # certificado de sello al host que no toca falla en el TLS, antes de leer el mensaje.
+  # El despachador saca los envíos pendientes y los remite a la AEAT. Activo por omisión: sin él,
+  # lacre registra facturas y nunca las presenta. El periodo solo marca cada cuánto se mira; el
+  # ritmo real lo impone el control de flujo del art. 16.2, de 60 segundos entre envíos.
+  remision:
+    despacho:
+      activo: ${LACRE_DESPACHO_ACTIVO:true}
+      periodo: ${LACRE_DESPACHO_PERIODO:10s}
+
   aeat:
     endpoint: ${LACRE_AEAT_ENDPOINT:https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP}
     timeout: ${LACRE_AEAT_TIMEOUT:60s}
