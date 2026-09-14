@@ -67,6 +67,32 @@ class EnvioRegistroTest {
         assertThat(envio.codigoError()).isEqualTo(1130);
     }
 
+    /**
+     * {@code TextMax1500Type} en {@code RespuestaSuministro.xsd}. El número va escrito, y no la
+     * constante, para que el test no se mida a sí mismo.
+     */
+    @Test
+    void unaDescripcionDeLaAeatCabeEnteraHastaSuMaximo() {
+        String larga = "x".repeat(1500);
+
+        assertThat(pendiente().rechazado(RESPUESTA, 1100, larga).descripcionError())
+                .isEqualTo(larga);
+        assertThatThrownBy(() -> pendiente().rechazado(RESPUESTA, 1100, larga + "x"))
+                .isInstanceOf(ValorInvalidoException.class);
+    }
+
+    /** El motivo de un intento fallido sale de una excepción, sin límite: se recorta, no lanza. */
+    @Test
+    void elMotivoDeUnIntentoFallidoSeRecortaAlMaximo() {
+        String enorme = "x".repeat(EnvioRegistro.MAXIMO_LONGITUD_DESCRIPCION_ERROR + 500);
+
+        EnvioRegistro envio = pendiente().otroIntentoFallido(null, enorme);
+
+        assertThat(envio.intentos()).isEqualTo(1);
+        assertThat(envio.descripcionError())
+                .hasSize(EnvioRegistro.MAXIMO_LONGITUD_DESCRIPCION_ERROR);
+    }
+
     /** El 3000 no es un fallo: significa que el registro ya estaba presentado. */
     @Test
     void duplicadoLlevaSiempreElCodigoDeLaAeat() {

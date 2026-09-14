@@ -71,9 +71,6 @@ public class DespachadorLotes {
                 if (Boolean.TRUE.equals(salio)) {
                     lotes++;
                 }
-            } catch (CertificadoNoDisponibleException e) {
-                log.error("El obligado {} tiene envíos pendientes que no se pueden remitir: {}",
-                        obligadoId, e.getMessage());
             } catch (RuntimeException e) {
                 log.error("Falló el despacho del obligado {}; se sigue con los demás", obligadoId, e);
             }
@@ -123,6 +120,11 @@ public class DespachadorLotes {
             cola.sumarIntento(lote, codigoDe(e), e.getMessage());
             log.warn("No se pudo remitir el lote de {} registros del obligado {}: {}",
                     lote.size(), obligadoId, e.getMessage());
+            return false;
+        } catch (CertificadoNoDisponibleException e) {
+            cola.sumarIntento(lote, null, e.getMessage());
+            log.error("El obligado {} tiene {} envíos pendientes que no se pueden remitir: {}",
+                    obligadoId, lote.size(), e.getMessage());
             return false;
         }
     }

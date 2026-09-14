@@ -40,4 +40,12 @@ public record ObligadoTributario(
     public static ObligadoTributario nuevo(UUID id, Nif nif, String nombreRazon, ZoneId zonaHoraria) {
         return new ObligadoTributario(id, nif, nombreRazon, zonaHoraria, 0);
     }
+
+    /**
+     * El mismo obligado con otros datos. La zona nueva solo afecta a los registros que se generen
+     * después: cada registro guarda el huso con el que se calculó su huella.
+     */
+    public ObligadoTributario conDatos(String nombreRazon, ZoneId zonaHoraria) {
+        return new ObligadoTributario(id, nif, nombreRazon, zonaHoraria, version);
+    }
 }

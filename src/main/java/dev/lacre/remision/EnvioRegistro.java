@@ -30,7 +30,8 @@ public record EnvioRegistro(
         int intentos,
         @Version long version) {
 
-    public static final int MAXIMO_LONGITUD_DESCRIPCION_ERROR = 500;
+    /** {@code TextMax1500Type} de {@code DescripcionErrorRegistro} en la respuesta de la AEAT. */
+    public static final int MAXIMO_LONGITUD_DESCRIPCION_ERROR = 1500;
 
     public EnvioRegistro {
         if (id == null || registroId == null || obligadoId == null) {
@@ -81,14 +82,22 @@ public record EnvioRegistro(
      * Un intento que no resolvió el envío: la fila sigue pendiente y guarda por qué falló, que
      * es lo único que un integrador tiene para saber si el reintento llegará a alguna parte.
      *
-     * @param codigo del catálogo de la AEAT si el rechazo lo traía; nulo si no se sabe
+     * @param codigo      del catálogo de la AEAT si el rechazo lo traía; nulo si no se sabe
+     * @param descripcion se recorta al máximo que admite la fila: sale de mensajes de excepción,
+     *                    que no tienen límite
      */
     public EnvioRegistro otroIntentoFallido(Integer codigo, String descripcion) {
         if (estado.esTerminal()) {
             throw new EnvioYaResueltoException(id, estado, estado);
         }
         return new EnvioRegistro(id, registroId, obligadoId, estado, creadoEn, null, codigo,
-                descripcion, intentos + 1, version);
+                recortada(descripcion), intentos + 1, version);
+    }
+
+    private static String recortada(String texto) {
+        return texto == null || texto.length() <= MAXIMO_LONGITUD_DESCRIPCION_ERROR
+                ? texto
+                : texto.substring(0, MAXIMO_LONGITUD_DESCRIPCION_ERROR);
     }
 
     private EnvioRegistro resuelto(EstadoEnvio desenlace, OffsetDateTime cuando,

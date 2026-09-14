@@ -25,9 +25,22 @@ info:
 
     ### 2. Da de alta al obligado tributario
 
-    El obligado —quien expide la factura— se da de alta en la base de datos, con su NIF y su
-    zona horaria. La zona no es del despliegue: entra en el cálculo de la huella, y Canarias
-    (`Atlantic/Canary`) va una hora por detrás de la Península.
+    El obligado es quien expide la factura. Se da de alta por su NIF, y repetir la llamada no lo
+    duplica:
+
+    ```
+    curl -X PUT http://localhost:8080/v1/obligados/89890001K \
+      -H "Authorization: Bearer $LACRE_API_CLAVE" \
+      -H 'Content-Type: application/json' \
+      -d '{ "nombreRazon": "Obligado de prueba SL", "zonaHoraria": "Europe/Madrid" }'
+    ```
+
+    La zona horaria no es del despliegue sino de cada obligado: el huso de cada registro sale de
+    ella, y Canarias (`Atlantic/Canary`) va una hora por detrás de la Península.
+
+    Su certificado no pasa por la API: es un fichero PKCS#12 con su NIF como nombre, en el
+    volumen que monta el despliegue. Sin él, lacre registra sus facturas pero no puede
+    remitirlas.
 
     ### 3. Registra la factura
 
@@ -83,7 +96,8 @@ info:
     primera te haría creer registrada una factura que no lo está.
 
     **El obligado no se pide.** En Veri*Factu el `idEmisorFactura` **es** el obligado por cuya
-    cuenta se expide, así que pedirlo dos veces solo añade una forma de que no coincidan.
+    cuenta se expide, así que pedirlo dos veces solo añade una forma de que no coincidan. Tiene
+    que estar dado de alta antes con `PUT /v1/obligados/{nif}`; si no, el registro da `422`.
 
     **Anular añade un eslabón, no quita el del alta.** La cadena es de solo inserción.
 
@@ -102,6 +116,8 @@ security:
   - claveDeApi: []
 
 tags:
+  - name: obligados
+    description: Alta de los obligados tributarios por cuya cuenta se registran facturas.
   - name: emision
     description: Alta y anulación de registros de facturación.
   - name: consulta
@@ -342,6 +358,84 @@ paths:
                 status: 404
                 detail: No hay ningún registro con el identificador 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f
                 codigo: registro-desconocido
+
+  /v1/obligados/{nif}:
+    put:
+      tags: [obligados]
+      summary: Da de alta un obligado tributario o actualiza sus datos
+      description: |
+        Idempotente por NIF: crea el obligado si no existe (`201`) y, si ya existe, actualiza su
+        nombre y su zona horaria (`200`). Por eso no pide `Idempotency-Key`.
+
+        **Cambiar la zona horaria es seguro.** Cada registro guarda el huso con el que se
+        calculó su huella, así que los anteriores no cambian: la zona nueva solo afecta a los
+        que se generen después.
+
+        No hay baja: un obligado con registros no se puede borrar, porque la norma obliga a
+        conservarlos.
+      operationId: altaDeObligado
+      parameters:
+        - name: nif
+          in: path
+          required: true
+          description: NIF del obligado. Se valida su dígito de control.
+          schema:
+            type: string
+            minLength: 9
+            maxLength: 9
+          example: "89890001K"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PeticionObligado'
+            examples:
+              peninsula:
+                summary: Obligado en la Península
+                value:
+                  nombreRazon: Obligado de prueba SL
+                  zonaHoraria: Europe/Madrid
+              canarias:
+                summary: Obligado en Canarias
+                value:
+                  nombreRazon: Obligado canario SL
+                  zonaHoraria: Atlantic/Canary
+      responses:
+        "200":
+          description: El obligado ya existía; sus datos quedan actualizados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaObligado'
+        "201":
+          description: El obligado se ha dado de alta.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespuestaObligado'
+              example:
+                nif: "89890001K"
+                nombreRazon: Obligado de prueba SL
+                zonaHoraria: Europe/Madrid
+        "400":
+          description: |
+            El NIF no es válido, la zona horaria no existe o es un desfase fijo, o falta un campo.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problema'
+              example:
+                type: about:blank
+                title: Datos de facturación no válidos
+                status: 400
+                detail: >-
+                  La zona horaria +01:00 es un desfase fijo, sin horario de verano, y el huso de
+                  los registros sería falso media parte del año. Use Europe/Madrid,
+                  Atlantic/Canary o Africa/Ceuta
+                codigo: validacion
+        "401":
+          $ref: '#/components/responses/SinCredencial'
 
   /v1/obligados/{nif}/cadena:
     get:
@@ -754,6 +848,36 @@ components:
         cuotaRecargoRectificado:
           type: number
 
+    PeticionObligado:
+      type: object
+      description: Datos de un obligado. El NIF identifica el recurso y va en la ruta.
+      required: [nombreRazon, zonaHoraria]
+      properties:
+        nombreRazon:
+          type: string
+          maxLength: 120
+          example: Obligado de prueba SL
+        zonaHoraria:
+          type: string
+          description: |
+            Identificador IANA de la zona desde la que se factura: `Europe/Madrid`,
+            `Atlantic/Canary` o `Africa/Ceuta`. No se admiten desfases fijos como `+01:00` o
+            `UTC`, que no tienen horario de verano y declararían un huso falso medio año.
+          example: Europe/Madrid
+
+    RespuestaObligado:
+      type: object
+      required: [nif, nombreRazon, zonaHoraria]
+      properties:
+        nif:
+          type: string
+          example: "89890001K"
+        nombreRazon:
+          type: string
+        zonaHoraria:
+          type: string
+          example: Europe/Madrid
+
     PeticionAnulacion:
       type: object
       description: Anulación de una factura ya expedida.
@@ -895,7 +1019,11 @@ components:
           enum: [RECHAZO_ENVIO, RECHAZO_FACTURA, ADMISIBLE]
         descripcionError:
           type: string
-          description: La que dio la AEAT; si no dio ninguna, la del catálogo.
+          maxLength: 1500
+          description: |
+            Último motivo conocido. Si la AEAT respondió, el suyo, o el del catálogo cuando solo
+            dio un código. Si el envío no llegó a salir, por qué: un fallo de conexión, un rechazo
+            del envío entero o un obligado sin certificado.
         intentos:
           type: integer
           description: Veces que se intentó sin obtener respuesta interpretable.

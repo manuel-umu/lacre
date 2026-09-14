@@ -8,6 +8,8 @@ import dev.lacre.api.internal.emision.PersonaDto;
 import dev.lacre.api.internal.emision.RespuestaRegistro;
 import dev.lacre.api.internal.emision.alta.PeticionAlta;
 import dev.lacre.api.internal.emision.anulacion.PeticionAnulacion;
+import dev.lacre.api.internal.obligados.PeticionObligado;
+import dev.lacre.api.internal.obligados.RespuestaObligado;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -111,7 +113,9 @@ class ContratoOpenApiTest {
                 Arguments.of("EstadoDelRegistro", EstadoDelRegistro.class),
                 Arguments.of("Remision", EstadoDelRegistro.Remision.class),
                 Arguments.of("RespuestaVerificacion", RespuestaVerificacion.class),
-                Arguments.of("Rotura", RespuestaVerificacion.Rotura.class));
+                Arguments.of("Rotura", RespuestaVerificacion.Rotura.class),
+                Arguments.of("PeticionObligado", PeticionObligado.class),
+                Arguments.of("RespuestaObligado", RespuestaObligado.class));
     }
 
     @SuppressWarnings("unchecked")

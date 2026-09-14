@@ -247,15 +247,14 @@ class DespachadorLotesTest {
      * identificador, así que fijar cuál fallaría haría que el test pasara por casualidad.
      */
     @Test
-    void unObligadoSinCertificadoNoImpideDespacharALosDemas() {
+    void unFalloInesperadoEnUnObligadoNoImpideDespacharALosDemas() {
         RegistroFacturacion delPrimero = emitir("FA/1");
         RegistroFacturacion delSegundo =
                 cadena.anadir(ObligadosDePrueba.nuevo(obligados), Registros.alta().build());
         aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
                 linea(delPrimero, EstadoRegistroAeat.CORRECTO, null),
                 linea(delSegundo, EstadoRegistroAeat.CORRECTO, null));
-        aeat.fallarSoloLaPrimeraLlamadaCon(
-                new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
+        aeat.fallarSoloLaPrimeraLlamadaCon(new IllegalStateException("fallo inesperado"));
 
         assertThat(despachador.despachar()).isEqualTo(1);
 
@@ -263,10 +262,24 @@ class DespachadorLotesTest {
                 .containsExactlyInAnyOrder(EstadoEnvio.ACEPTADO, EstadoEnvio.PENDIENTE);
     }
 
-    /**
-     * Sin certificado no llega a haber envío, así que no cuenta como intento. El turno sí se
-     * consume, porque se confirma antes de enviar: se reintenta cuando vence la espera.
-     */
+    /** Sin certificado no hay envío, pero el motivo queda en la fila, que es donde se consulta. */
+    @Test
+    void unObligadoSinCertificadoDejaElMotivoEnLaFila() {
+        RegistroFacturacion registro = emitir("FA/1");
+        aeat.fallarSoloLaPrimeraLlamadaCon(
+                new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
+
+        assertThat(despachador.despachar()).isZero();
+
+        EnvioRegistro envio = envios.findByRegistroId(registro.id()).orElseThrow();
+        assertThat(envio.estado()).isEqualTo(EstadoEnvio.PENDIENTE);
+        assertThat(envio.intentos()).isEqualTo(1);
+        assertThat(envio.codigoError()).isNull();
+        assertThat(envio.descripcionError())
+                .isEqualTo("Certificado no disponible (89890001K): no hay fichero");
+    }
+
+    /** El turno se confirma antes de enviar, así que se consume igual: se reintenta al vencer. */
     @Test
     void unObligadoSinCertificadoSeReintentaCuandoVenceSuTurno() {
         RegistroFacturacion registro = emitir("FA/1");
@@ -276,7 +289,6 @@ class DespachadorLotesTest {
                 new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
 
         assertThat(despachador.despachar()).isZero();
-        assertThat(intentosDe(registro)).isZero();
         assertThat(despachador.despachar()).isZero();
 
         // Se envejece el turno en vez de dormir 60 segundos.
@@ -285,6 +297,22 @@ class DespachadorLotesTest {
 
         assertThat(despachador.despachar()).isEqualTo(1);
         assertThat(estadoDe(registro)).isEqualTo(EstadoEnvio.ACEPTADO);
+    }
+
+    /** El esquema de la respuesta admite descripciones de hasta 1500 caracteres. */
+    @Test
+    void unRechazoConUnaDescripcionLargaDeLaAeatAterrizaEnSuFila() {
+        RegistroFacturacion registro = emitir("FA/1");
+        String larga = "x".repeat(1500);
+        aeat.responder(EstadoEnvioAeat.PARCIALMENTE_CORRECTO, Duration.ofSeconds(60),
+                new LineaRespuesta(idFacturaDe(registro), registro.tipo(),
+                        EstadoRegistroAeat.INCORRECTO, 1100, larga));
+
+        despachador.despachar();
+
+        EnvioRegistro envio = envios.findByRegistroId(registro.id()).orElseThrow();
+        assertThat(envio.estado()).isEqualTo(EstadoEnvio.RECHAZADO);
+        assertThat(envio.descripcionError()).isEqualTo(larga);
     }
 
     /** El turno se consume igual: la norma cuenta envíos, no éxitos. */

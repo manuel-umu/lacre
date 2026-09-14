@@ -4,6 +4,7 @@ import dev.lacre.TestcontainersConfiguration;
 import dev.lacre.api.internal.ApiDePrueba;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
+import dev.lacre.remision.internal.adaptador.DespachadorLotes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +43,9 @@ class ConsultaRestTest {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private DespachadorLotes despachador;
+
     private UUID obligadoId;
     private String nifDelObligado;
 
@@ -49,6 +53,24 @@ class ConsultaRestTest {
     void darDeAltaUnObligado() {
         obligadoId = ObligadosDePrueba.nuevo(obligados);
         nifDelObligado = obligados.findById(obligadoId).orElseThrow().nif().valor();
+    }
+
+    /**
+     * Sin directorio de certificados, el despachador real no llega a salir a la red. El motivo se
+     * lee en la consulta, que es donde lo busca quien integra, y no en el log del despliegue.
+     */
+    @Test
+    void unEnvioQueNoSalePorFaltaDeCertificadoDiceElMotivo() throws Exception {
+        UUID registro = emitir("FA/1", "sin-certificado-1");
+
+        despachador.despachar();
+
+        mvc.perform(get("/v1/registros/{id}", registro).with(ApiDePrueba.autenticada()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.remision.estado").value("PENDIENTE"))
+                .andExpect(jsonPath("$.remision.intentos").value(1))
+                .andExpect(jsonPath("$.remision.descripcionError").value(org.hamcrest.Matchers
+                        .startsWith("Certificado no disponible (" + nifDelObligado + ")")));
     }
 
     @Test

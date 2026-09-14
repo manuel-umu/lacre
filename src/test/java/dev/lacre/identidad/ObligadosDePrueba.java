@@ -30,7 +30,8 @@ public final class ObligadosDePrueba {
         return id;
     }
 
-    private static Nif siguienteNif() {
+    /** Un NIF válido que ningún otro test ha usado. */
+    public static Nif siguienteNif() {
         String digitos = "%08d".formatted(SECUENCIA.incrementAndGet());
         return new Nif(digitos + "TRWAGMYFPDXBNJZSQVHLCKE".charAt(Integer.parseInt(digitos) % 23));
     }
