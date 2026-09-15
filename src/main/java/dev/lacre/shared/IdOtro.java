@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  * Identificador fiscal distinto del NIF español, {@code IDOtroType} del XSD.
  *
- * @param codigoPais código ISO 3166-1 alfa-2, opcional: puede ser nulo
+ * @param codigoPais código ISO 3166-1 alfa-2; nulo solo con NIF-IVA
  * @param tipo       tipo de documento aportado
  * @param id         el identificador, hasta 20 caracteres
  */
@@ -51,6 +51,25 @@ public record IdOtro(String codigoPais, TipoIdentificacion tipo, String id) impl
             if (!CODIGOS_PAIS.contains(codigoPais)) {
                 throw new ValorInvalidoException("Código de país desconocido: " + codigoPais);
             }
+        }
+        ReglaAeatIncumplidaException.exigir(
+                codigoPais != null || tipo == TipoIdentificacion.NIF_IVA, "1111", "El código de país es obligatorio salvo con NIF-IVA, y el tipo es "
+                        + tipo.codigo());
+        if (tipo == TipoIdentificacion.NO_CENSADO) {
+            ReglaAeatIncumplidaException.exigir("ES".equals(codigoPais), "1126",
+                    "Un no censado (07) se identifica con el código de país ES, y es "
+                            + codigoPais);
+            ReglaAeatIncumplidaException.exigir(esNifDePersonaFisica(id), "1131",
+                    "Un no censado (07) se identifica con el NIF de una persona física, y es "
+                            + id);
+        }
+    }
+
+    private static boolean esNifDePersonaFisica(String id) {
+        try {
+            return new Nif(id).esDePersonaFisica();
+        } catch (NifInvalidoException e) {
+            return false;
         }
     }
 }

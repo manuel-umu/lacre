@@ -28,6 +28,11 @@ public record Nif(String valor) implements IdentificadorFiscal {
         }
     }
 
+    /** DNI, NIE o NIF de las letras K, L y M: los de persona física. */
+    public boolean esDePersonaFisica() {
+        return "0123456789KLMXYZ".indexOf(valor.charAt(0)) >= 0;
+    }
+
     private static boolean esValido(String candidato) {
         if (DNI.matcher(candidato).matches()) {
             return controlModulo23(candidato.substring(0, 8), candidato.charAt(8));

@@ -1,5 +1,6 @@
 package dev.lacre.verifactu.registro;
 
+import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
 
@@ -35,6 +36,12 @@ public record DatosRegistroAnulacion(
         refExterna = Textos.opcional(refExterna, MAXIMO_LONGITUD_REF_EXTERNA, "La referencia externa");
         if (sistemaInformatico == null) {
             throw new ValorInvalidoException("El sistema informático es obligatorio");
+        }
+        ReglaAeatIncumplidaException.exigir((generadoPor == null) == (generador == null), "1224",
+                "Quién genera la anulación y el generador se informan juntos o no se informa "
+                        + "ninguno");
+        if (generador != null) {
+            generador.exigirComoGenerador(generadoPor);
         }
     }
 

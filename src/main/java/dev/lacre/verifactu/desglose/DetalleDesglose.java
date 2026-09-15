@@ -2,7 +2,6 @@ package dev.lacre.verifactu.desglose;
 
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Porcentaje;
-import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.ValorInvalidoException;
 
 import java.math.BigDecimal;
@@ -11,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static dev.lacre.shared.ReglaAeatIncumplidaException.exigir;
 import static dev.lacre.verifactu.desglose.CalificacionOperacion.N1;
 import static dev.lacre.verifactu.desglose.CalificacionOperacion.N2;
 import static dev.lacre.verifactu.desglose.CalificacionOperacion.S1;
@@ -204,12 +204,6 @@ public record DetalleDesglose(
                             + recargo.valor().stripTrailingZeros().toPlainString()
                             + " % no corresponde al tipo impositivo del "
                             + tipo.valor().stripTrailingZeros().toPlainString() + " %");
-        }
-    }
-
-    private static void exigir(boolean cumple, String codigoAeat, String mensaje) {
-        if (!cumple) {
-            throw new ReglaAeatIncumplidaException(codigoAeat, mensaje);
         }
     }
 

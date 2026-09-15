@@ -5,7 +5,6 @@
     <sf:NumSerieFacturaAnulada>12345679/G34</sf:NumSerieFacturaAnulada>
     <sf:FechaExpedicionFacturaAnulada>01-01-2024</sf:FechaExpedicionFacturaAnulada>
   </sf:IDFactura>
-  <sf:GeneradoPor>E</sf:GeneradoPor>
   <sf:Encadenamiento>
     <sf:RegistroAnterior>
       <sf:IDEmisorFactura>89890001K</sf:IDEmisorFactura>

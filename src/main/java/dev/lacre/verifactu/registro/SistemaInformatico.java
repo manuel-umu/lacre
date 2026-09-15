@@ -1,7 +1,10 @@
 package dev.lacre.verifactu.registro;
 
+import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
+
+import java.util.regex.Pattern;
 
 /**
  * Datos del sistema informático de facturación que genera el registro,
@@ -31,6 +34,8 @@ public record SistemaInformatico(
     public static final int MAXIMO_LONGITUD_VERSION = 50;
     public static final int MAXIMO_LONGITUD_NUMERO_INSTALACION = 100;
 
+    private static final Pattern ID_SISTEMA = Pattern.compile("[A-Z0-9]{2}");
+
     public SistemaInformatico {
         if (productor == null) {
             throw new ValorInvalidoException("El productor del sistema informático es obligatorio");
@@ -43,6 +48,10 @@ public record SistemaInformatico(
         numeroInstalacion = Textos.obligatorio(
                 numeroInstalacion, MAXIMO_LONGITUD_NUMERO_INSTALACION, "El número de instalación");
 
+        ReglaAeatIncumplidaException.exigir(ID_SISTEMA.matcher(idSistemaInformatico).matches(),
+                "1177", "El identificador del sistema informático son dos caracteres, cada uno "
+                        + "letra mayúscula sin Ñ o dígito, y es " + idSistemaInformatico);
+        productor.exigirComoProductor();
         if (indicadorMultiplesOT && !tipoUsoPosibleMultiOT) {
             throw new ValorInvalidoException(
                     "Un sistema que no admite varios obligados no puede declarar que está dando servicio a varios");

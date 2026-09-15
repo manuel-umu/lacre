@@ -82,6 +82,7 @@ class DatosRegistroAltaTest {
     void soloUnaRectificativaPuedeReferenciarFacturasRectificadas(String tipo) {
         DatosRegistroAlta datos = Registros.alta()
                 .tipoFactura(TipoFactura.valueOf(tipo))
+                .destinatarios(tipo.equals("R5") ? List.of() : Registros.alta().build().destinatarios())
                 .tipoRectificativa(ClaveTipoRectificativa.I)
                 .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
                 .build();
@@ -275,23 +276,26 @@ class DatosRegistroAltaTest {
     @ParameterizedTest
     @CsvSource({"R1, I", "R4, I", "R2, S", "R3, S"})
     void lasRectificativasExentasDelContrasteAdmitenCualquierCuota(String tipo, String clave) {
-        assertThatCode(() -> Registros.alta()
-                .tipoFactura(TipoFactura.valueOf(tipo))
-                .tipoRectificativa(ClaveTipoRectificativa.valueOf(clave))
-                .desglose(cuotaDelVeintiunoMal())
-                .build())
+        assertThatCode(() -> rectificativa(tipo, clave).desglose(cuotaDelVeintiunoMal()).build())
                 .doesNotThrowAnyException();
     }
 
     @ParameterizedTest
     @CsvSource({"R1, S", "R4, S"})
     void lasDemasRectificativasSiContrastanLaCuota(String tipo, String clave) {
-        assertThatThrownBy(() -> Registros.alta()
-                .tipoFactura(TipoFactura.valueOf(tipo))
-                .tipoRectificativa(ClaveTipoRectificativa.valueOf(clave))
-                .desglose(cuotaDelVeintiunoMal())
-                .build())
+        assertThatThrownBy(() -> rectificativa(tipo, clave).desglose(cuotaDelVeintiunoMal()).build())
                 .isInstanceOf(ReglaAeatIncumplidaException.class);
+    }
+
+    /** Rectificativa del tipo y la clave dados, con el importe de rectificación si es por sustitución. */
+    private static DatosRegistroAlta.Builder rectificativa(String tipo, String clave) {
+        ClaveTipoRectificativa porSustitucion = ClaveTipoRectificativa.valueOf(clave);
+        return Registros.alta()
+                .tipoFactura(TipoFactura.valueOf(tipo))
+                .tipoRectificativa(porSustitucion)
+                .importeRectificacion(porSustitucion == ClaveTipoRectificativa.S
+                        ? new ImporteRectificacion(Importe.de("100.00"), Importe.de("21.00"), null)
+                        : null);
     }
 
     @Test

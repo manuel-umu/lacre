@@ -85,7 +85,7 @@ class EscritorRegistroTest {
         DatosRegistroAlta datos = Registros.alta()
                 .refExterna("PEDIDO-2024-0001")
                 .tipoFactura(TipoFactura.R1)
-                .tipoRectificativa(dev.lacre.verifactu.registro.ClaveTipoRectificativa.I)
+                .tipoRectificativa(dev.lacre.verifactu.registro.ClaveTipoRectificativa.S)
                 .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
                 .importeRectificacion(new dev.lacre.verifactu.registro.ImporteRectificacion(
                         Importe.de("100.00"), Importe.de("21.00"), Importe.de("5.20")))
@@ -93,6 +93,7 @@ class EscritorRegistroTest {
                 .subsanacion(true)
                 .rechazoPrevio(dev.lacre.verifactu.registro.RechazoPrevio.S)
                 .macrodato(true)
+                .importeTotal(Importe.de("100000000.00"))
                 .cupon(true)
                 .emitidaPorTerceroODestinatario(dev.lacre.verifactu.registro.EmitidaPor.T)
                 .tercero(new PersonaFisicaJuridica("Asesoría SL", new Nif("B12345674")))
@@ -152,7 +153,7 @@ class EscritorRegistroTest {
                 .contains("<sf:IDEmisorFacturaAnulada>89890001K</sf:IDEmisorFacturaAnulada>")
                 .contains("<sf:NumSerieFacturaAnulada>12345679/G34</sf:NumSerieFacturaAnulada>")
                 .contains("<sf:FechaExpedicionFacturaAnulada>01-01-2024</sf:FechaExpedicionFacturaAnulada>")
-                .contains("<sf:GeneradoPor>E</sf:GeneradoPor>");
+                .doesNotContain("<sf:GeneradoPor>");
     }
 
     @Test

@@ -86,7 +86,7 @@ class EncadenadorRegistrosTest {
         DatosRegistroAlta otraDescripcion = Registros.alta()
                 .descripcionOperacion("Otra cosa completamente distinta")
                 .refExterna("REF-9999")
-                .macrodato(true)
+                .facturaSimplificadaArt7273(true)
                 .build();
 
         RegistroEncadenado registro = encadenador(CASO_1).encadenar(otraDescripcion, Optional.empty(), MADRID);
@@ -186,7 +186,7 @@ class EncadenadorRegistrosTest {
             case EMISOR -> emisor = new Nif("12345678Z");
             case NUM_SERIE -> numSerie = "12345678/G34";
             case FECHA_EXPEDICION -> fecha = LocalDate.of(2024, 1, 2);
-            case TIPO_FACTURA -> tipo = TipoFactura.F2;
+            case TIPO_FACTURA -> tipo = TipoFactura.F3;
             case CUOTA_TOTAL -> cuota = Importe.de("12.36");
             case IMPORTE_TOTAL -> total = Importe.de("123.46");
             case HUELLA_ANTERIOR -> anterior = Optional.of(Registros.anterior(HUELLA_CASO_1));

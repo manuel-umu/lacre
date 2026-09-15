@@ -10,10 +10,28 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class IdOtroTest {
 
     @Test
-    void elCodigoDePaisEsOpcional() {
-        IdOtro sinPais = new IdOtro(null, TipoIdentificacion.NO_CENSADO, "X123");
+    void elCodigoDePaisSoloEsOpcionalConNifIva() {
+        IdOtro sinPais = new IdOtro(null, TipoIdentificacion.NIF_IVA, "IE6388047V");
 
         assertThat(sinPais.codigoPais()).isNull();
+        assertThatThrownBy(() -> new IdOtro(null, TipoIdentificacion.PASAPORTE, "12AB34567"))
+                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                        e -> assertThat(e.codigoAeat()).isEqualTo("1111"));
+    }
+
+    @Test
+    void unNoCensadoEsDeEspanaConElNifDeUnaPersonaFisica() {
+        assertThat(new IdOtro("ES", TipoIdentificacion.NO_CENSADO, "12345678Z").id())
+                .isEqualTo("12345678Z");
+        assertThatThrownBy(() -> new IdOtro("FR", TipoIdentificacion.NO_CENSADO, "12345678Z"))
+                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                        e -> assertThat(e.codigoAeat()).isEqualTo("1126"));
+        assertThatThrownBy(() -> new IdOtro("ES", TipoIdentificacion.NO_CENSADO, "B12345674"))
+                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                        e -> assertThat(e.codigoAeat()).isEqualTo("1131"));
+        assertThatThrownBy(() -> new IdOtro("ES", TipoIdentificacion.NO_CENSADO, "X123"))
+                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                        e -> assertThat(e.codigoAeat()).isEqualTo("1131"));
     }
 
     @Test

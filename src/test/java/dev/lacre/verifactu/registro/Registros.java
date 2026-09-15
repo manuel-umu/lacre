@@ -47,7 +47,7 @@ public final class Registros {
     /** Anulación del ejemplo oficial de la huella. */
     public static DatosRegistroAnulacion anulacion() {
         return new DatosRegistroAnulacion(
-                idFactura("12345679/G34"), null, false, false, GeneradoPor.E, null,
+                idFactura("12345679/G34"), null, false, false, null, null,
                 sistemaInformatico());
     }
 

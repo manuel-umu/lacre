@@ -117,8 +117,7 @@ class AnulacionRestTest {
                     "idEmisorFactura": "%s",
                     "numSerieFactura": "%s",
                     "fechaExpedicionFactura": "2026-01-15"
-                  },
-                  "generadoPor": "E"
+                  }
                 }
                 """.formatted(nifDelObligado, numSerie);
     }

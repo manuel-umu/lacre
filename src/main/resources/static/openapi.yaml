@@ -898,7 +898,9 @@ components:
           description: La anulación anterior de esta factura fue rechazada por la AEAT.
         generadoPor:
           type: string
-          description: '`E` el emisor, `D` el destinatario, `T` un tercero.'
+          description: |
+            `E` el emisor, `D` el destinatario, `T` un tercero. Va con `generador`: se informan
+            los dos o ninguno.
           enum: [E, D, T]
         generador:
           $ref: '#/components/schemas/PersonaDto'

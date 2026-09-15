@@ -1,17 +1,26 @@
 package dev.lacre.verifactu.registro;
 
+import dev.lacre.shared.IdOtro;
 import dev.lacre.shared.Importe;
+import dev.lacre.shared.Nif;
+import dev.lacre.shared.Porcentaje;
 import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.Textos;
+import dev.lacre.shared.TipoIdentificacion;
 import dev.lacre.shared.ValorInvalidoException;
+import dev.lacre.verifactu.desglose.CalificacionOperacion;
 import dev.lacre.verifactu.desglose.ClaveRegimen;
 import dev.lacre.verifactu.desglose.Desglose;
 import dev.lacre.verifactu.desglose.DetalleDesglose;
+import dev.lacre.verifactu.desglose.Impuesto;
 import dev.lacre.verifactu.huella.Canonicalizador;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+
+import static dev.lacre.shared.ReglaAeatIncumplidaException.exigir;
 
 /**
  * Contenido de un registro de facturación de alta, {@code RegistroFacturacionAltaType} del XSD.
@@ -72,6 +81,21 @@ public record DatosRegistroAlta(
 
     /** Margen que admite la AEAT al contrastar los totales con el desglose. */
     public static final Importe MARGEN_CUADRE = Importe.de("10.00");
+
+    /** Importe total, en valor absoluto, a partir del cual el registro es macrodato. */
+    public static final Importe UMBRAL_MACRODATO = Importe.de("100000000.00");
+
+    /** Bases y cuotas repercutidas que admite una F2 sin acuerdo de facturación. */
+    public static final Importe LIMITE_SIMPLIFICADA = Importe.de("3000.00");
+
+    private static final Set<TipoFactura> CON_INVERSION_DEL_SUJETO_PASIVO = Set.of(TipoFactura.F1,
+            TipoFactura.F3, TipoFactura.R1, TipoFactura.R2, TipoFactura.R3, TipoFactura.R4);
+
+    private static final Set<TipoFactura> SIN_GRUPO_DE_ENTIDADES =
+            Set.of(TipoFactura.F2, TipoFactura.F3, TipoFactura.R5);
+
+    private static final Set<TipoFactura> CON_DEVENGO_PENDIENTE_EN_OBRA = Set.of(TipoFactura.F1,
+            TipoFactura.R1, TipoFactura.R2, TipoFactura.R3, TipoFactura.R4);
 
     public DatosRegistroAlta {
         if (idFactura == null) {
@@ -140,6 +164,175 @@ public record DatosRegistroAlta(
                 && tipoFactura != TipoFactura.R2 && tipoFactura != TipoFactura.R3) {
             desglose.detalles().forEach(DetalleDesglose::exigirCuotaCoherenteConLaBase);
         }
+
+        exigir(tipoRectificativa != ClaveTipoRectificativa.S || importeRectificacion != null,
+                "1118", "Una rectificativa por sustitución debe informar el importe de la "
+                        + "rectificación");
+        exigir(importeRectificacion == null || tipoRectificativa == ClaveTipoRectificativa.S,
+                "1119", "Solo una rectificativa por sustitución informa el importe de la "
+                        + "rectificación");
+
+        boolean simplificada = tipoFactura == TipoFactura.F2 || tipoFactura == TipoFactura.R5;
+        exigir(!facturaSimplificadaArt7273 || !simplificada, "1183", "La marca de factura "
+                + "simplificada de los artículos 7.2 y 7.3 no cabe en una "
+                + tipoFactura.codigo());
+        exigir(!facturaSinIdentifDestinatarioArt61d || simplificada, "1185", "La marca de factura "
+                + "sin identificación del destinatario del artículo 6.1.d) solo cabe en una F2 o "
+                + "R5, y esta es " + tipoFactura.codigo());
+        exigir(!cupon || tipoFactura == TipoFactura.R1 || tipoFactura == TipoFactura.R5, "1157",
+                "La marca de cupón solo cabe en una R1 o R5, y esta es " + tipoFactura.codigo());
+        boolean superaElUmbral =
+                importeTotal.valor().abs().compareTo(UMBRAL_MACRODATO.valor()) >= 0;
+        exigir(macrodato || !superaElUmbral, "1139", "Un importe total de "
+                + importeTotal.valor().toPlainString() + " exige la marca de macrodato");
+        exigir(!macrodato || superaElUmbral, "1138", "La marca de macrodato solo cabe con un "
+                + "importe total de 100.000.000 o más en valor absoluto");
+
+        exigir(emitidaPorTerceroODestinatario != EmitidaPor.D || !destinatarios.isEmpty(), "1158",
+                "Una factura emitida por el destinatario (D) debe llevar destinatarios");
+        exigir(!destinatarios.isEmpty() || simplificada, "1189",
+                "Una factura " + tipoFactura.codigo() + " debe llevar al menos un destinatario");
+        exigir(destinatarios.isEmpty() || !simplificada, "1190",
+                "Una factura " + tipoFactura.codigo() + " no lleva destinatarios");
+        destinatarios.forEach(PersonaFisicaJuridica::exigirComoDestinatario);
+        exigirIdentificacionDeDestinatarios(tipoFactura, destinatarios);
+
+        if (tercero != null) {
+            exigir(emitidaPorTerceroODestinatario != null, "1155",
+                    "El tercero solo se informa si la factura la emite un tercero (T)");
+            exigir(emitidaPorTerceroODestinatario != EmitidaPor.D, "1159",
+                    "Una factura emitida por el destinatario (D) no lleva tercero");
+            tercero.exigirComoTercero(idFactura.emisor());
+        }
+        exigir(emitidaPorTerceroODestinatario != EmitidaPor.T || tercero != null, "1186",
+                "Una factura emitida por un tercero (T) debe informar el tercero");
+
+        if (tipoFactura == TipoFactura.F2 && numRegistroAcuerdoFacturacion == null
+                && !facturaSinIdentifDestinatarioArt61d) {
+            Importe importe = desglose.detalles().stream()
+                    .map(detalle -> detalle.baseImponibleOimporteNoSujeto()
+                            .sumar(oCero(detalle.cuotaRepercutida())))
+                    .reduce(Importe.CERO, Importe::sumar);
+            exigir(importe.compareTo(LIMITE_SIMPLIFICADA.sumar(MARGEN_CUADRE)) <= 0, "1150",
+                    "Una F2 no puede superar " + LIMITE_SIMPLIFICADA.valor().toPlainString()
+                            + " € de bases y cuotas repercutidas, con "
+                            + MARGEN_CUADRE.valor().toPlainString() + " € de margen, y suma "
+                            + importe.valor().toPlainString());
+        }
+
+        exigirClavesDeRegimen(tipoFactura, desglose, destinatarios, idFactura.fechaExpedicion(),
+                fechaOperacion);
+        exigirTiposConVigencia(desglose,
+                fechaOperacion != null ? fechaOperacion : idFactura.fechaExpedicion());
+    }
+
+    /** Una R3 identifica al destinatario con NIF o no censado; una R2, también con NIF-IVA. */
+    private static void exigirIdentificacionDeDestinatarios(
+            TipoFactura tipoFactura, List<PersonaFisicaJuridica> destinatarios) {
+        for (PersonaFisicaJuridica destinatario : destinatarios) {
+            if (!(destinatario.identificador() instanceof IdOtro otro)) {
+                continue;
+            }
+            exigir(tipoFactura != TipoFactura.R3 || otro.tipo() == TipoIdentificacion.NO_CENSADO,
+                    "1191", "Una R3 identifica al destinatario con NIF o como no censado (07), y "
+                            + "es " + otro.tipo().codigo());
+            exigir(tipoFactura != TipoFactura.R2 || otro.tipo() == TipoIdentificacion.NO_CENSADO
+                            || otro.tipo() == TipoIdentificacion.NIF_IVA, "1192",
+                    "Una R2 identifica al destinatario con NIF, NIF-IVA (02) o como no censado "
+                            + "(07), y es " + otro.tipo().codigo());
+        }
+    }
+
+    /**
+     * Lo que cada clave de régimen exige al registro: tipo de factura, destinatarios y fecha de
+     * operación. Solo en las líneas de IVA o IGIC, salvo la inversión del sujeto pasivo.
+     */
+    private static void exigirClavesDeRegimen(TipoFactura tipoFactura, Desglose desglose,
+                                              List<PersonaFisicaJuridica> destinatarios,
+                                              LocalDate expedicion, LocalDate operacion) {
+        boolean hayIvaOIgic = false;
+        boolean hayDevengoPendiente = false;
+        for (DetalleDesglose detalle : desglose.detalles()) {
+            exigir(detalle.calificacion() != CalificacionOperacion.S2
+                            || CON_INVERSION_DEL_SUJETO_PASIVO.contains(tipoFactura), "1197",
+                    "Con inversión del sujeto pasivo (S2) la factura solo puede ser F1, F3, R1, "
+                            + "R2, R3 o R4, y es " + tipoFactura.codigo());
+            if (!esIvaOIgic(detalle.impuesto())) {
+                continue;
+            }
+            hayIvaOIgic = true;
+            String clave = detalle.claveRegimen() == null ? "" : detalle.claveRegimen().codigo();
+            hayDevengoPendiente |= clave.equals("14") || clave.equals("15");
+            switch (clave) {
+                case "06" -> exigir(!SIN_GRUPO_DE_ENTIDADES.contains(tipoFactura), "1202",
+                        "Con clave de régimen 06 la factura no puede ser F2, F3 ni R5, y es "
+                                + tipoFactura.codigo());
+                case "10" -> {
+                    exigir(tipoFactura == TipoFactura.F1, "1205", "Con clave de régimen 10 la "
+                            + "factura tiene que ser F1, y es " + tipoFactura.codigo());
+                    exigir(destinatarios.stream().allMatch(d -> d.identificador() instanceof Nif),
+                            "1205", "Con clave de régimen 10 todos los destinatarios se "
+                                    + "identifican con NIF");
+                }
+                case "14" -> {
+                    exigir(CON_DEVENGO_PENDIENTE_EN_OBRA.contains(tipoFactura), "1148",
+                            "Con clave de régimen 14 la factura tiene que ser F1, R1, R2, R3 o "
+                                    + "R4, y es " + tipoFactura.codigo());
+                    exigir(operacion != null && operacion.isAfter(expedicion), "1147",
+                            "Con clave de régimen 14 la fecha de operación es obligatoria y "
+                                    + "posterior a la de expedición");
+                    exigir(destinatarios.stream().allMatch(DatosRegistroAlta::esAdministracion),
+                            "1149", "Con clave de régimen 14 todos los destinatarios se "
+                                    + "identifican con un NIF que empieza por P, Q, S o V");
+                }
+                default -> {
+                }
+            }
+        }
+        exigir(!hayIvaOIgic || operacion == null || !expedicion.isBefore(operacion)
+                        || hayDevengoPendiente, "1146",
+                "La fecha de expedición solo puede ser anterior a la de operación con clave de "
+                        + "régimen 14 o 15");
+    }
+
+    /** El 5 % de IVA, y el 2 % y el 7,5 %, solo en los periodos en que estuvieron vigentes. */
+    private static void exigirTiposConVigencia(Desglose desglose, LocalDate referencia) {
+        for (DetalleDesglose detalle : desglose.detalles()) {
+            Impuesto impuesto = detalle.impuesto();
+            if ((impuesto != null && impuesto != Impuesto.IVA)
+                    || detalle.calificacion() != CalificacionOperacion.S1
+                    || detalle.tipoImpositivo() == null) {
+                continue;
+            }
+            Porcentaje tipo = detalle.tipoImpositivo();
+            if (tipo.equals(Porcentaje.de("5"))) {
+                exigir(!referencia.isBefore(LocalDate.of(2022, 7, 1))
+                                && !referencia.isAfter(LocalDate.of(2024, 9, 30)), "1194",
+                        "El tipo del 5 % solo se admite con fecha de operación, o de expedición "
+                                + "si no la hay, del 01-07-2022 al 30-09-2024, y es " + referencia);
+            }
+            if ((tipo.equals(Porcentaje.de("2")) || tipo.equals(Porcentaje.de("7.5")))
+                    && (referencia.isBefore(LocalDate.of(2024, 10, 1))
+                    || referencia.isAfter(LocalDate.of(2024, 12, 31)))) {
+                throw new ValorInvalidoException("El tipo del "
+                        + tipo.valor().stripTrailingZeros().toPlainString() + " % solo se admite "
+                        + "con fecha de operación, o de expedición si no la hay, del 01-10-2024 "
+                        + "al 31-12-2024, y es " + referencia);
+            }
+        }
+    }
+
+    private static boolean esIvaOIgic(Impuesto impuesto) {
+        return impuesto == null || impuesto == Impuesto.IVA || impuesto == Impuesto.IGIC;
+    }
+
+    private static boolean esAdministracion(PersonaFisicaJuridica destinatario) {
+        return destinatario.identificador() instanceof Nif nif
+                && "PQSV".indexOf(nif.valor().charAt(0)) >= 0;
+    }
+
+    private static Importe oCero(Importe importe) {
+        return importe == null ? Importe.CERO : importe;
     }
 
     /**

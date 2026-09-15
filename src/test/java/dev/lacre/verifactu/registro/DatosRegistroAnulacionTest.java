@@ -72,17 +72,17 @@ class DatosRegistroAnulacionTest {
     @Test
     void exigeLaFacturaAnuladaYElSistemaInformatico() {
         assertThatThrownBy(() -> new DatosRegistroAnulacion(null, null, false, false,
-                GeneradoPor.E, null, Registros.sistemaInformatico()))
+                null, null, Registros.sistemaInformatico()))
                 .isInstanceOf(ValorInvalidoException.class);
         assertThatThrownBy(() -> new DatosRegistroAnulacion(Registros.idFactura("FA/1"), null,
-                false, false, GeneradoPor.E, null, null))
+                false, false, null, null, null))
                 .isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test
     void respetaElLimiteDeLaReferenciaExterna() {
         assertThatThrownBy(() -> new DatosRegistroAnulacion(Registros.idFactura("FA/1"),
-                "X".repeat(61), false, false, GeneradoPor.E, null, Registros.sistemaInformatico()))
+                "X".repeat(61), false, false, null, null, Registros.sistemaInformatico()))
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("60");
     }

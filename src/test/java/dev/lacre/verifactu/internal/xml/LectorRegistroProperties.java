@@ -4,6 +4,7 @@ import dev.lacre.shared.Huella;
 import dev.lacre.shared.Importe;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
 import dev.lacre.verifactu.internal.CanonicalizadorAeat;
+import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
@@ -51,6 +52,8 @@ class LectorRegistroProperties {
                         .idFactura(new IdFactura(Registros.EMISOR, numSerie, expedicion))
                         .cuotaTotal(cuotaTotal)
                         .importeTotal(importeTotal)
+                        .macrodato(importeTotal.valor().abs()
+                                .compareTo(DatosRegistroAlta.UMBRAL_MACRODATO.valor()) >= 0)
                         .build(), anterior, zona);
 
         RegistroLeido leido = LectorRegistro.leer(EscritorRegistro.escribir(registro));

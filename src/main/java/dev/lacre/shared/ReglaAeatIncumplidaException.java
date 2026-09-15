@@ -16,4 +16,11 @@ public class ReglaAeatIncumplidaException extends ValorInvalidoException {
     public String codigoAeat() {
         return codigoAeat;
     }
+
+    /** Lanza la excepción con ese código y ese mensaje si la regla no se cumple. */
+    public static void exigir(boolean cumple, String codigoAeat, String mensaje) {
+        if (!cumple) {
+            throw new ReglaAeatIncumplidaException(codigoAeat, mensaje);
+        }
+    }
 }
