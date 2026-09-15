@@ -1,6 +1,7 @@
 package dev.lacre.verifactu.desglose;
 
 import dev.lacre.shared.Importe;
+import dev.lacre.shared.Porcentaje;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.Assume;
@@ -8,6 +9,7 @@ import net.jqwik.api.Combinators;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
+import net.jqwik.api.constraints.IntRange;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * Las sumas del desglose son consistentes para cualquier desglose válido. Los importes
@@ -33,14 +36,40 @@ class DesgloseProperties {
         return Combinators.combine(importes(), importes(), importes())
                 .as((base, cuota, recargo) -> new DetalleDesglose(
                         Impuesto.IVA, new ClaveRegimen("01"), CalificacionOperacion.S1,
-                        null, base, null, cuota, null, recargo));
+                        Porcentaje.de("21"), base, null, cuota, null, recargo));
     }
 
-    private Arbitrary<Importe> importes() {
+    @Provide
+    Arbitrary<Importe> importes() {
         return Arbitraries.bigDecimals()
                 .between(new BigDecimal("-999999"), new BigDecimal("999999"))
                 .ofScale(2)
                 .map(Importe::new);
+    }
+
+    /**
+     * Una línea S1 con cualquier tipo de IVA y una cuota a menos de diez euros de la de su base.
+     * La cuota redondeada se aparta hasta medio céntimo del producto exacto con el que se compara.
+     */
+    @Property
+    void unaCuotaDentroDelMargenDeSuBaseYSuTipoSiempreSeAdmite(
+            @ForAll("importes") Importe base,
+            @ForAll("tiposDeIva") String tipo,
+            @ForAll @IntRange(min = -999, max = 999) int desvioEnCentimos) {
+        Porcentaje porcentaje = Porcentaje.de(tipo);
+        Importe cuota = porcentaje.aplicarA(base).sumar(
+                new Importe(BigDecimal.valueOf(desvioEnCentimos, Importe.ESCALA)));
+        Assume.that(base.valor().signum() * cuota.valor().signum() >= 0);
+
+        DetalleDesglose linea = new DetalleDesglose(Impuesto.IVA, new ClaveRegimen("01"),
+                CalificacionOperacion.S1, porcentaje, base, null, cuota, null, null);
+
+        assertThatCode(linea::exigirCuotaCoherenteConLaBase).doesNotThrowAnyException();
+    }
+
+    @Provide
+    Arbitrary<String> tiposDeIva() {
+        return Arbitraries.of("0", "2", "4", "5", "7.5", "10", "21");
     }
 
     @Property

@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * Veredicto sobre la cadena de un obligado. {@code alcance} indica hasta dónde llega la
- * comprobación: {@code ENLACES} verifica el encadenamiento sin recalcular huellas.
+ * comprobación: {@code HUELLAS} recalcula además la huella de cada registro.
  *
  * @param roturas vacía si la cadena encaja; en orden de posición
  */

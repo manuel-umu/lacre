@@ -20,6 +20,7 @@ import dev.lacre.verifactu.registro.DatosRegistro;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
+import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.SistemaInformatico;
 import dev.lacre.verifactu.registro.TipoFactura;
@@ -52,7 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * LACRE_PORTAL_PRUEBAS=si \
  * LACRE_CERT_P12=ruta/al/certificado.p12 \
  * LACRE_CERT_PASS=... \
- * LACRE_OBLIGADO_NIF=99999999R \
+ * LACRE_OBLIGADO_NIF=99999999R  * LACRE_OBLIGADO_NOMBRE="APELLIDOS NOMBRE" \
  * ./mvnw test -Dtest=PortalDePruebasTest
  * }</pre>
  * <p>
@@ -88,7 +89,7 @@ class PortalDePruebasTest {
     @Test
     void unAltaLlegaALaAeatYResponde() {
         RespuestaRemision respuesta = remitir(alta(numeroDeSerie("ALTA"), desgloseQueCuadra(),
-                Importe.de("12.35"), Importe.de("123.45")));
+                Importe.de("23.33"), Importe.de("134.43")));
 
         informar("ALTA SIMPLE", respuesta);
         assertThat(respuesta.lineas()).isNotEmpty();
@@ -110,7 +111,8 @@ class PortalDePruebasTest {
 
     /**
      * El mismo descuadre con una sola línea en clave 03. Sin error 2005/2006, la exclusión es por
-     * registro, como interpreta {@code seContrastanLosTotales()}; con error, es por línea.
+     * registro, como interpreta {@code seContrastanLosTotales()}; con error, es por línea. Enlaza
+     * con un alta previa: la respuesta trae un único error por registro, y un 2007 lo taparía.
      */
     @Test
     void unDescuadreConUnaLineaEnClaveExentaResuelveLaInterpretacion() {
@@ -120,8 +122,14 @@ class PortalDePruebasTest {
                 new DetalleDesglose(Impuesto.IVA, new ClaveRegimen("03"), CalificacionOperacion.S1,
                         Porcentaje.de("21"), Importe.de("100.00"), null, Importe.de("21.00"), null, null));
 
-        RespuestaRemision respuesta = remitir(alta(numeroDeSerie("MIXTO"), mixto,
-                Importe.de("999.99"), Importe.de("999.99")));
+        RegistroEncadenado previo = encadenar(alta(numeroDeSerie("PREVIO"), desgloseQueCuadra(),
+                Importe.de("23.33"), Importe.de("134.43")), Optional.empty());
+        informar("ALTA PREVIA", remitir(previo));
+
+        DatosRegistroAlta datos = alta(numeroDeSerie("MIXTO"), mixto,
+                Importe.de("999.99"), Importe.de("999.99"));
+        RespuestaRemision respuesta = remitir(encadenar(datos, Optional.of(
+                new RegistroAnterior(previo.datos().idFactura(), previo.huella()))));
 
         informar("DESCUADRE CON UNA LÍNEA EN CLAVE 03", respuesta);
     }
@@ -129,8 +137,15 @@ class PortalDePruebasTest {
     // --- Apoyo ---
 
     private RespuestaRemision remitir(DatosRegistro datos) {
-        RegistroEncadenado encadenado = new EncadenadorRegistros(Clock.systemUTC(), new CanonicalizadorAeat())
-                .encadenar(datos, Optional.empty(), ZoneId.of("Europe/Madrid"));
+        return remitir(encadenar(datos, Optional.empty()));
+    }
+
+    private RegistroEncadenado encadenar(DatosRegistro datos, Optional<RegistroAnterior> anterior) {
+        return new EncadenadorRegistros(Clock.systemUTC(), new CanonicalizadorAeat())
+                .encadenar(datos, anterior, ZoneId.of("Europe/Madrid"));
+    }
+
+    private RespuestaRemision remitir(RegistroEncadenado encadenado) {
         return aeat.remitir(obligado(), List.of(EscritorRegistro.escribir(encadenado)));
     }
 
@@ -151,13 +166,13 @@ class PortalDePruebasTest {
     private static Desglose desgloseQueCuadra() {
         return Desglose.de(new DetalleDesglose(
                 Impuesto.IVA, new ClaveRegimen("01"), CalificacionOperacion.S1,
-                Porcentaje.de("21"), Importe.de("111.10"), null, Importe.de("12.35"), null, null));
+                Porcentaje.de("21"), Importe.de("111.10"), null, Importe.de("23.33"), null, null));
     }
 
-    /** Identidad declarada como sistema informático. */
+    /** Identidad declarada como sistema informático, con el nombre del censo del titular. */
     private static SistemaInformatico sistemaInformatico() {
         return new SistemaInformatico(
-                new PersonaFisicaJuridica("lacre", OBLIGADO_NIF),
+                new PersonaFisicaJuridica(NOMBRE_OBLIGADO, OBLIGADO_NIF),
                 "lacre", "01", "0.0.1", "0001",
                 true, true, false);
     }

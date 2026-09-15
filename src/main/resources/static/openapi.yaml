@@ -63,7 +63,7 @@ info:
           "impuesto": "01",
           "claveRegimen": "01",
           "calificacion": "S1",
-          "tipoImpositivo": 21,
+          "tipoImpositivo": 10,
           "baseImponibleOimporteNoSujeto": 111.10,
           "cuotaRepercutida": 12.35
         } ],
@@ -159,7 +159,7 @@ paths:
                     - impuesto: "01"
                       claveRegimen: "01"
                       calificacion: S1
-                      tipoImpositivo: 21
+                      tipoImpositivo: 10
                       baseImponibleOimporteNoSujeto: 111.10
                       cuotaRepercutida: 12.35
                   cuotaTotal: 12.35
@@ -214,7 +214,7 @@ paths:
                     - impuesto: "01"
                       claveRegimen: "01"
                       calificacion: S1
-                      tipoImpositivo: 21
+                      tipoImpositivo: 10
                       baseImponibleOimporteNoSujeto: 111.10
                       cuotaRepercutida: 12.35
                   cuotaTotal: 12.35
@@ -442,11 +442,11 @@ paths:
       tags: [consulta]
       summary: Verifica la cadena de registros de un obligado
       description: |
-        Recorre la cadena entera y denuncia los eslabones que no encajan. **`alcance` dice hasta
-        dónde llega la comprobación**: hoy vale `ENLACES`, que verifica que cada eslabón declara
-        la huella del que le precede y que no falta ninguna posición, sin recalcular las
-        huellas. Valdrá `HUELLAS` cuando se recalculen. No lo ignores: un `intacta: true` con
-        alcance `ENLACES` no afirma que las huellas sean correctas.
+        Recorre la cadena entera y denuncia los eslabones que no encajan. Comprueba que cada uno
+        declara la huella del que le precede y que no falta ninguna posición, y **recalcula su
+        huella desde el XML guardado**, que es lo que se remitió a la AEAT: un registro cuyo
+        contenido se haya cambiado después de guardarlo se denuncia aunque sus enlaces cuadren.
+        `alcance` lo declara, y hoy vale `HUELLAS`.
       operationId: verificacionDeCadena
       parameters:
         - name: nif
@@ -472,7 +472,7 @@ paths:
                     nifObligado: "89890001K"
                     registros: 3
                     intacta: true
-                    alcance: ENLACES
+                    alcance: HUELLAS
                     roturas: []
                 rota:
                   summary: Un eslabón no enlaza con el anterior
@@ -480,7 +480,7 @@ paths:
                     nifObligado: "89890001K"
                     registros: 3
                     intacta: false
-                    alcance: ENLACES
+                    alcance: HUELLAS
                     roturas:
                       - posicion: 2
                         motivo: HUELLA_ANTERIOR_NO_CUADRA
@@ -547,7 +547,8 @@ components:
     PeticionInvalida:
       description: |
         El cuerpo no cumple el contrato, o los datos no forman un registro que la AEAT vaya a
-        aceptar. Cuando falla el contrato, `errores` nombra los campos.
+        aceptar. Cuando falla el contrato, `errores` nombra los campos; cuando es una validación
+        de la AEAT, `codigoAeat` dice cuál.
       content:
         application/problem+json:
           schema:
@@ -571,9 +572,10 @@ components:
                 title: Datos de facturación no válidos
                 status: 400
                 detail: >-
-                  El número de serie de la factura no admite el carácter '<' (ASCII 60): solo
-                  ASCII imprimible salvo ", ', <, = y >
+                  La cuota repercutida 12.35 no es la base imponible por el tipo impositivo
+                  (111.10 al 21 %) con un margen de 10.00 €
                 codigo: validacion
+                codigoAeat: "1142"
 
     SinCredencial:
       description: |
@@ -1045,7 +1047,8 @@ components:
           type: string
           description: |
             `ENLACES` comprueba que cada eslabón enlaza con el anterior y que no falta ninguno.
-            `HUELLAS` comprobaría además que cada huella es la que corresponde a su registro.
+            `HUELLAS` comprueba además que cada huella es la que corresponde al contenido de su
+            registro, recalculándola desde el XML guardado. Es el que se devuelve hoy.
           enum: [ENLACES, HUELLAS]
         roturas:
           type: array
@@ -1065,12 +1068,16 @@ components:
             `HUELLA_ANTERIOR_NO_CUADRA`: la huella anterior declarada no es la del registro que
             le precede. `POSICION_SALTADA`: falta al menos una posición. `SIN_HUELLA_ANTERIOR`:
             no es el primero y no declara huella anterior. `PRIMERO_CON_HUELLA_ANTERIOR`: abre
-            la cadena y declara una que no debería existir.
+            la cadena y declara una que no debería existir. `HUELLA_NO_CUADRA`: el contenido de
+            su XML no produce la huella guardada. `XML_ILEGIBLE`: su XML no se puede leer, así
+            que no hay forma de recalcular su huella.
           enum:
             - HUELLA_ANTERIOR_NO_CUADRA
             - POSICION_SALTADA
             - SIN_HUELLA_ANTERIOR
             - PRIMERO_CON_HUELLA_ANTERIOR
+            - HUELLA_NO_CUADRA
+            - XML_ILEGIBLE
 
     Problema:
       type: object
@@ -1099,6 +1106,14 @@ components:
             - registro-desconocido
             - clave-idempotencia-reutilizada
             - no-autorizado
+        codigoAeat:
+          type: string
+          description: |
+            Solo cuando los datos incumplen una validación de negocio por la que la AEAT
+            rechazaría el registro: el código de esa validación en el catálogo de errores de la
+            AEAT, el mismo catálogo que el de `codigoError` en el estado de un registro. El
+            registro no se ha creado.
+          example: "1142"
         errores:
           type: array
           description: Solo en las violaciones de contrato; un elemento por campo.

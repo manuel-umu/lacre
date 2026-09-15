@@ -169,6 +169,35 @@ class AltaRestTest {
                         org.hamcrest.Matchers.containsString(NIF_NO_CENSADO)));
     }
 
+    /** Un alta que la AEAT rechazaría no entra en la cadena, y el error trae su código. */
+    @Test
+    void unaCuotaQueLaAeatRechazariaSeDevuelveConSuCodigoYNoSeRegistra() throws Exception {
+        String alVeintiuno = cuerpo("FA/6", "123.45")
+                .replace("\"tipoImpositivo\": 10", "\"tipoImpositivo\": 21");
+
+        mvc.perform(alta("clave-6", alVeintiuno))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.codigo").value("validacion"))
+                .andExpect(jsonPath("$.codigoAeat").value("1142"))
+                .andExpect(jsonPath("$.detail").value(
+                        org.hamcrest.Matchers.containsString("12.35")));
+
+        assertThat(jdbc.sql("""
+                        select count(*) from registro_facturacion where obligado_id = :obligado
+                        """).param("obligado", obligadoId).query(Long.class).single()).isZero();
+    }
+
+    /** Sin validación de la AEAT de por medio, el error no trae código de la AEAT. */
+    @Test
+    void unErrorDeContratoNoTraeCodigoAeat() throws Exception {
+        String sinDescripcion = cuerpo("FA/7", "123.45")
+                .replace("\"descripcionOperacion\": \"Servicios de consultoría\",", "");
+
+        mvc.perform(alta("clave-7", sinDescripcion))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.codigoAeat").doesNotExist());
+    }
+
     /** Un código de catálogo inventado se responde con la lista de los admitidos. */
     @Test
     void unCodigoDeCatalogoDesconocidoDiceCualesValen() throws Exception {
@@ -211,7 +240,7 @@ class AltaRestTest {
                 respuesta.getResponse().getContentAsString(), "$.registroId"));
     }
 
-    /** Los mismos importes del ejemplo oficial de la huella: 111,10 + 12,35 = 123,45. */
+    /** Los importes del ejemplo oficial de la huella, 111,10 + 12,35 = 123,45, al 10 %. */
     private String cuerpo(String numSerie, String importeTotal) {
         return """
                 {
@@ -229,7 +258,7 @@ class AltaRestTest {
                       "impuesto": "01",
                       "claveRegimen": "01",
                       "calificacion": "S1",
-                      "tipoImpositivo": 21,
+                      "tipoImpositivo": 10,
                       "baseImponibleOimporteNoSujeto": 111.10,
                       "cuotaRepercutida": 12.35
                     }

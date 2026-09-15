@@ -12,4 +12,6 @@ public sealed interface DatosRegistro permits DatosRegistroAlta, DatosRegistroAn
     IdFactura idFactura();
 
     SistemaInformatico sistemaInformatico();
+
+    CamposDeHuella camposDeHuella();
 }

@@ -28,7 +28,8 @@ class DesgloseTest {
 
     @Test
     void unaCuotaAusenteCuentaComoCero() {
-        Desglose desglose = Desglose.de(linea("100.00", null, null));
+        Desglose desglose = Desglose.de(new DetalleDesglose(Impuesto.IVA, new ClaveRegimen("01"),
+                CalificacionOperacion.N1, null, Importe.de("100.00"), null, null, null, null));
 
         assertThat(desglose.totalCuotas()).isEqualTo(Importe.CERO);
         assertThat(desglose.totalConImpuestos()).isEqualTo(Importe.de("100.00"));
@@ -44,7 +45,7 @@ class DesgloseTest {
 
     @Test
     void aceptaEntreUnaYDoceLineas() {
-        assertThat(Desglose.de(linea("1.00", null, null)).detalles()).hasSize(1);
+        assertThat(Desglose.de(linea("1.00", "0.21", null)).detalles()).hasSize(1);
         assertThat(desgloseCon(12).detalles()).hasSize(12);
     }
 
@@ -95,7 +96,7 @@ class DesgloseTest {
 
     private static Desglose desgloseCon(int lineas) {
         return new Desglose(IntStream.range(0, lineas)
-                .mapToObj(i -> linea("1.00", null, null))
+                .mapToObj(i -> linea("1.00", "0.21", null))
                 .toList());
     }
 

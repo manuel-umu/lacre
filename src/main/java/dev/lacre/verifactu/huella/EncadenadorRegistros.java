@@ -41,7 +41,8 @@ public final class EncadenadorRegistros {
         OffsetDateTime fechaHoraHusoGenRegistro =
                 OffsetDateTime.now(reloj.withZone(zonaDelObligado)).truncatedTo(ChronoUnit.SECONDS);
 
-        String cadenaCanonica = canonicalizador.canonicalizar(datos, registroAnterior, fechaHoraHusoGenRegistro);
+        String cadenaCanonica = canonicalizador.canonicalizar(
+                datos.camposDeHuella(), registroAnterior, fechaHoraHusoGenRegistro);
         return new RegistroEncadenado(datos, registroAnterior, fechaHoraHusoGenRegistro,
                 CalculadorHuella.calcular(cadenaCanonica));
     }

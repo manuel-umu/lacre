@@ -55,11 +55,14 @@ public final class Registros {
         return new IdFactura(EMISOR, numSerie, FECHA_EXPEDICION);
     }
 
-    /** Desglose que cuadra con los totales del ejemplo oficial: 111,10 + 12,35 = 123,45. */
+    /**
+     * Desglose que cuadra con los totales del ejemplo oficial, 111,10 + 12,35 = 123,45, y cuya
+     * cuota es la del 10 % dentro del margen de la AEAT.
+     */
     public static Desglose desglose() {
         return Desglose.de(new DetalleDesglose(
                 Impuesto.IVA, new ClaveRegimen("01"), CalificacionOperacion.S1,
-                Porcentaje.de("21"), Importe.de("111.10"), null, Importe.de("12.35"), null, null));
+                Porcentaje.de("10"), Importe.de("111.10"), null, Importe.de("12.35"), null, null));
     }
 
     public static SistemaInformatico sistemaInformatico() {

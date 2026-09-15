@@ -23,6 +23,11 @@ public record DatosRegistroAnulacion(
 
     public static final int MAXIMO_LONGITUD_REF_EXTERNA = 60;
 
+    @Override
+    public CamposDeHuella camposDeHuella() {
+        return new CamposDeHuella.Anulacion(idFactura);
+    }
+
     public DatosRegistroAnulacion {
         if (idFactura == null) {
             throw new ValorInvalidoException("La identificación de la factura anulada es obligatoria");

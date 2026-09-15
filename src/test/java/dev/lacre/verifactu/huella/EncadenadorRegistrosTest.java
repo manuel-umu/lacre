@@ -125,7 +125,7 @@ class EncadenadorRegistrosTest {
     }
 
     @Test
-    void elCanonicalizadorRecibeLosDatosElEnlaceYLaFechaHora() {
+    void elCanonicalizadorRecibeLosCamposDeLaHuellaElEnlaceYLaFechaHora() {
         List<Object[]> invocaciones = new ArrayList<>();
         Canonicalizador espia = (datos, huellaAnterior, fechaHora) -> {
             invocaciones.add(new Object[]{datos, huellaAnterior, fechaHora});
@@ -137,7 +137,7 @@ class EncadenadorRegistrosTest {
                 .encadenar(datos, Optional.empty(), MADRID);
 
         assertThat(invocaciones).singleElement().satisfies(argumentos -> {
-            assertThat(argumentos[0]).isSameAs(datos);
+            assertThat(argumentos[0]).isEqualTo(datos.camposDeHuella());
             assertThat(argumentos[1]).isEqualTo(Optional.empty());
             assertThat(argumentos[2].toString()).isEqualTo("2024-01-01T19:20:30+01:00");
         });

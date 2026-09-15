@@ -1,6 +1,7 @@
 package dev.lacre.verifactu.registro;
 
 import dev.lacre.shared.Importe;
+import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
 import dev.lacre.verifactu.desglose.ClaveRegimen;
@@ -44,6 +45,11 @@ public record DatosRegistroAlta(
         SistemaInformatico sistemaInformatico,
         String numRegistroAcuerdoFacturacion,
         String idAcuerdoSistemaInformatico) implements DatosRegistro {
+
+    @Override
+    public CamposDeHuella camposDeHuella() {
+        return new CamposDeHuella.Alta(idFactura, tipoFactura, cuotaTotal, importeTotal);
+    }
 
     @Override
     public TipoRegistro tipo() {
@@ -104,30 +110,35 @@ public record DatosRegistroAlta(
 
         // Estos bloques solo se rellenan en el tipo de factura que les corresponde.
         if (!facturasRectificadas.isEmpty() && !tipoFactura.esRectificativa()) {
-            throw new ValorInvalidoException(
+            throw new ReglaAeatIncumplidaException("1117",
                     "Solo una factura rectificativa puede referenciar facturas rectificadas, y esta es "
                             + tipoFactura.codigo());
         }
         if (!facturasSustituidas.isEmpty() && tipoFactura != TipoFactura.F3) {
-            throw new ValorInvalidoException(
+            throw new ReglaAeatIncumplidaException("1116",
                     "Solo una factura F3 puede referenciar facturas sustituidas, y esta es "
                             + tipoFactura.codigo());
         }
 
         // Estas tres reglas provocan el rechazo del registro por la AEAT, así que se validan al construir.
         if (tipoRectificativa == null && tipoFactura.esRectificativa()) {
-            throw new ValorInvalidoException(
+            throw new ReglaAeatIncumplidaException("1114",
                     "Una factura rectificativa debe declarar si rectifica por sustitución o por "
                             + "diferencias, y esta es " + tipoFactura.codigo());
         }
         if (tipoRectificativa != null && !tipoFactura.esRectificativa()) {
-            throw new ValorInvalidoException(
+            throw new ReglaAeatIncumplidaException("1115",
                     "Solo una factura rectificativa lleva tipo de rectificativa, y esta es "
                             + tipoFactura.codigo());
         }
         if (!subsanacion && (rechazoPrevio == RechazoPrevio.S || rechazoPrevio == RechazoPrevio.X)) {
-            throw new ValorInvalidoException(
+            String codigo = rechazoPrevio == RechazoPrevio.S ? "1161" : "1153";
+            throw new ReglaAeatIncumplidaException(codigo,
                     "RechazoPrevio = " + rechazoPrevio.codigo() + " solo cabe en una subsanación");
+        }
+        if (tipoRectificativa != ClaveTipoRectificativa.I
+                && tipoFactura != TipoFactura.R2 && tipoFactura != TipoFactura.R3) {
+            desglose.detalles().forEach(DetalleDesglose::exigirCuotaCoherenteConLaBase);
         }
     }
 

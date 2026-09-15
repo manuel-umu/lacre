@@ -1,9 +1,7 @@
 package dev.lacre.verifactu.internal;
 
 import dev.lacre.verifactu.huella.Canonicalizador;
-import dev.lacre.verifactu.registro.DatosRegistro;
-import dev.lacre.verifactu.registro.DatosRegistroAlta;
-import dev.lacre.verifactu.registro.DatosRegistroAnulacion;
+import dev.lacre.verifactu.registro.CamposDeHuella;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 
 import java.time.OffsetDateTime;
@@ -19,18 +17,18 @@ import java.util.StringJoiner;
 public final class CanonicalizadorAeat implements Canonicalizador {
 
     @Override
-    public String canonicalizar(DatosRegistro datos, Optional<RegistroAnterior> registroAnterior,
+    public String canonicalizar(CamposDeHuella campos, Optional<RegistroAnterior> registroAnterior,
                                 OffsetDateTime fechaHoraHusoGenRegistro) {
 
-        return switch (datos) {
-            case DatosRegistroAlta alta -> alta(alta, registroAnterior, fechaHoraHusoGenRegistro);
-            case DatosRegistroAnulacion anulacion ->
+        return switch (campos) {
+            case CamposDeHuella.Alta alta -> alta(alta, registroAnterior, fechaHoraHusoGenRegistro);
+            case CamposDeHuella.Anulacion anulacion ->
                     anulacion(anulacion, registroAnterior, fechaHoraHusoGenRegistro);
         };
     }
 
     /** Alta: ocho campos. */
-    private static String alta(DatosRegistroAlta datos, Optional<RegistroAnterior> anterior,
+    private static String alta(CamposDeHuella.Alta datos, Optional<RegistroAnterior> anterior,
                                OffsetDateTime fechaHoraHusoGenRegistro) {
         StringJoiner cadena = new StringJoiner("&");
         cadena.add(campo("IDEmisorFactura", datos.idFactura().emisor().valor()));
@@ -45,7 +43,8 @@ public final class CanonicalizadorAeat implements Canonicalizador {
     }
 
     /** Anulación: cinco campos; los tres primeros llevan el sufijo {@code Anulada}. */
-    private static String anulacion(DatosRegistroAnulacion datos, Optional<RegistroAnterior> anterior,
+    private static String anulacion(CamposDeHuella.Anulacion datos,
+                                    Optional<RegistroAnterior> anterior,
                                     OffsetDateTime fechaHoraHusoGenRegistro) {
         StringJoiner cadena = new StringJoiner("&");
         cadena.add(campo("IDEmisorFacturaAnulada", datos.idFactura().emisor().valor()));

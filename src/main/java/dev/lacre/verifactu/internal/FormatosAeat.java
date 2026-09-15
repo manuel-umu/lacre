@@ -30,6 +30,14 @@ public final class FormatosAeat {
         return fechaHora.format(FECHA_HORA_HUSO);
     }
 
+    public static LocalDate leerFecha(String texto) {
+        return LocalDate.parse(texto, FECHA);
+    }
+
+    public static OffsetDateTime leerFechaHoraHuso(String texto) {
+        return OffsetDateTime.parse(texto, FECHA_HORA_HUSO);
+    }
+
     public static String importe(Importe importe) {
         return importe.valor().toPlainString();
     }

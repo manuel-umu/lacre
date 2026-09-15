@@ -16,6 +16,7 @@ import net.jqwik.api.Provide;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -49,9 +50,10 @@ class EncadenadorRegistrosProperties {
 
     @Property
     void laHuellaAnteriorSiempreEntraEnLaCadenaCanonica(@ForAll("huellas") Huella anterior) {
+        OffsetDateTime fechaHora =
+                ENCADENADOR.encadenar(DATOS, Optional.empty(), MADRID).fechaHoraHusoGenRegistro();
         String cadena = new CanonicalizadorAeat().canonicalizar(
-                DATOS, Optional.of(Registros.anterior(anterior)), ENCADENADOR.encadenar(DATOS, Optional.empty(), MADRID)
-                        .fechaHoraHusoGenRegistro());
+                DATOS.camposDeHuella(), Optional.of(Registros.anterior(anterior)), fechaHora);
 
         assertThat(cadena).contains("&Huella=" + anterior.valor() + "&");
     }

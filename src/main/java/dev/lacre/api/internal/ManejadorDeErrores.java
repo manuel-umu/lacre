@@ -3,6 +3,7 @@ package dev.lacre.api.internal;
 import dev.lacre.api.internal.consulta.RegistroDesconocidoException;
 import dev.lacre.api.internal.emision.ClaveIdempotenciaReutilizadaException;
 import dev.lacre.identidad.ObligadoDesconocidoException;
+import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.ValorInvalidoException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,11 +26,18 @@ import java.util.Map;
 @RestControllerAdvice
 class ManejadorDeErrores extends ResponseEntityExceptionHandler {
 
-    /** Los datos no forman un registro válido; el mensaje del dominio se devuelve tal cual. */
+    /**
+     * Los datos no forman un registro válido; el mensaje del dominio se devuelve tal cual, y el
+     * código de la AEAT cuando es una validación suya.
+     */
     @ExceptionHandler(ValorInvalidoException.class)
     ProblemDetail valorInvalido(ValorInvalidoException e) {
-        return problema(HttpStatus.BAD_REQUEST, "Datos de facturación no válidos",
-                e.getMessage(), "validacion");
+        ProblemDetail problema = problema(HttpStatus.BAD_REQUEST,
+                "Datos de facturación no válidos", e.getMessage(), "validacion");
+        if (e instanceof ReglaAeatIncumplidaException regla) {
+            problema.setProperty("codigoAeat", regla.codigoAeat());
+        }
+        return problema;
     }
 
     /** 422: el cuerpo está bien formado, pero el obligado emisor no está dado de alta. */

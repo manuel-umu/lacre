@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Resultado de recorrer la cadena de un obligado buscando roturas. Comprueba los enlaces entre
- * eslabones; {@link #alcance()} declara hasta dónde llega la comprobación.
+ * Resultado de recorrer la cadena de un obligado buscando roturas: en los enlaces entre
+ * eslabones y, según {@link #alcance()}, en la huella de cada registro.
  *
  * @param registros cuántos tiene la cadena
  * @param roturas vacía si todo encaja; en orden de posición
@@ -46,7 +46,13 @@ public record VerificacionDeCadena(
             SIN_HUELLA_ANTERIOR,
 
             /** Abre la cadena y declara una huella anterior que no debería existir. */
-            PRIMERO_CON_HUELLA_ANTERIOR
+            PRIMERO_CON_HUELLA_ANTERIOR,
+
+            /** El contenido de su XML no produce la huella guardada. */
+            HUELLA_NO_CUADRA,
+
+            /** Su XML no se puede leer, así que no hay forma de recalcular su huella. */
+            XML_ILEGIBLE
         }
     }
 }

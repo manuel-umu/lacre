@@ -1,6 +1,7 @@
 package dev.lacre.verifactu.internal.adaptador;
 
 import dev.lacre.shared.Nif;
+import dev.lacre.verifactu.huella.Canonicalizador;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
 import dev.lacre.verifactu.internal.CanonicalizadorAeat;
 import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
@@ -16,9 +17,15 @@ import java.time.Clock;
 @EnableConfigurationProperties(PropiedadesComponente.class)
 class ConfiguracionComponente {
 
+    /** El mismo para calcular la huella de un registro nuevo y para verificar los guardados. */
     @Bean
-    EncadenadorRegistros encadenadorRegistros(Clock reloj) {
-        return new EncadenadorRegistros(reloj, new CanonicalizadorAeat());
+    Canonicalizador canonicalizador() {
+        return new CanonicalizadorAeat();
+    }
+
+    @Bean
+    EncadenadorRegistros encadenadorRegistros(Clock reloj, Canonicalizador canonicalizador) {
+        return new EncadenadorRegistros(reloj, canonicalizador);
     }
 
     /**

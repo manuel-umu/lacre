@@ -32,7 +32,7 @@ class CanonicalizadorAeatTest {
     @Test
     void caso1PrimerRegistroDeLaCadena() {
         String cadena = CANONICALIZADOR.canonicalizar(
-                datos("12345678/G33", "12.35", "123.45"),
+                datos("12345678/G33", "12.35", "123.45").camposDeHuella(),
                 Optional.empty(),
                 OffsetDateTime.parse("2024-01-01T19:20:30+01:00"));
 
@@ -49,7 +49,7 @@ class CanonicalizadorAeatTest {
     @Test
     void caso2ConRegistroAnterior() {
         String cadena = CANONICALIZADOR.canonicalizar(
-                datos("12345679/G34", "12.35", "123.45"),
+                datos("12345679/G34", "12.35", "123.45").camposDeHuella(),
                 Optional.of(Registros.anterior(HUELLA_CASO_1)),
                 OffsetDateTime.parse("2024-01-01T19:20:35+01:00"));
 
@@ -66,7 +66,7 @@ class CanonicalizadorAeatTest {
     @Test
     void recortaLosEspaciosDeLosExtremosPeroNoLosInteriores() {
         String cadena = CANONICALIZADOR.canonicalizar(
-                datos("  12345678 / G33  ", "12.35", "123.45"),
+                datos("  12345678 / G33  ", "12.35", "123.45").camposDeHuella(),
                 Optional.empty(),
                 OffsetDateTime.parse("2024-01-01T19:20:30+01:00"));
 
@@ -76,7 +76,7 @@ class CanonicalizadorAeatTest {
     @Test
     void laFechaDeExpedicionVaEnFormatoDiaMesAnio() {
         String cadena = CANONICALIZADOR.canonicalizar(
-                datosConFecha(LocalDate.of(2024, 12, 3)),
+                datosConFecha(LocalDate.of(2024, 12, 3)).camposDeHuella(),
                 Optional.empty(),
                 OffsetDateTime.parse("2024-01-01T19:20:30+01:00"));
 
@@ -90,7 +90,7 @@ class CanonicalizadorAeatTest {
     @Test
     void laFechaHoraConservaLosSegundosAunqueSeanCero() {
         String cadena = CANONICALIZADOR.canonicalizar(
-                datos("FA/1", "12.35", "123.45"),
+                datos("FA/1", "12.35", "123.45").camposDeHuella(),
                 Optional.empty(),
                 OffsetDateTime.parse("2024-01-01T19:20:00+01:00"));
 
@@ -100,7 +100,7 @@ class CanonicalizadorAeatTest {
     @Test
     void losImportesVanConDosDecimalesYSinNotacionCientifica() {
         String cadena = CANONICALIZADOR.canonicalizar(
-                datos("FA/1", "0", "1000000.5"),
+                datos("FA/1", "0", "1000000.5").camposDeHuella(),
                 Optional.empty(),
                 OffsetDateTime.parse("2024-01-01T19:20:30+01:00"));
 
@@ -110,7 +110,7 @@ class CanonicalizadorAeatTest {
     @Test
     void losCamposQueNoEntranEnLaHuellaNoAparecenEnLaCadena() {
         String cadena = CANONICALIZADOR.canonicalizar(
-                datos("FA/1", "12.35", "123.45"),
+                datos("FA/1", "12.35", "123.45").camposDeHuella(),
                 Optional.empty(),
                 OffsetDateTime.parse("2024-01-01T19:20:30+01:00"));
 

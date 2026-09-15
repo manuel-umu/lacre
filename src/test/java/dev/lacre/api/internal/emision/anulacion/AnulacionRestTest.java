@@ -140,7 +140,7 @@ class AnulacionRestTest {
                       "impuesto": "01",
                       "claveRegimen": "01",
                       "calificacion": "S1",
-                      "tipoImpositivo": 21,
+                      "tipoImpositivo": 10,
                       "baseImponibleOimporteNoSujeto": 111.10,
                       "cuotaRepercutida": 12.35
                     }
