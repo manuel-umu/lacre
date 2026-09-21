@@ -39,7 +39,7 @@ class FlujoDeEmisionTest {
     void cadaRegistroCreadoDejaSuEnvioPendiente() {
         UUID obligado = ObligadosDePrueba.nuevo(obligados);
 
-        RegistroFacturacion registro = cadena.anadir(obligado, Registros.alta().build());
+        RegistroFacturacion registro = cadena.anadir(obligado, Registros.emitible().build());
 
         assertThat(envios.findByRegistroId(registro.id())).hasValueSatisfying(envio -> {
             assertThat(envio.estado()).isEqualTo(EstadoEnvio.PENDIENTE);
@@ -51,7 +51,7 @@ class FlujoDeEmisionTest {
     @Test
     void elDesenlaceDeUnEnvioSeGuardaYSeRecupera() {
         UUID obligado = ObligadosDePrueba.nuevo(obligados);
-        RegistroFacturacion registro = cadena.anadir(obligado, Registros.alta().build());
+        RegistroFacturacion registro = cadena.anadir(obligado, Registros.emitible().build());
         EnvioRegistro pendiente = envios.findByRegistroId(registro.id()).orElseThrow();
 
         envios.save(pendiente.aceptadoConErrores(
@@ -70,9 +70,9 @@ class FlujoDeEmisionTest {
     void cadaRegistroDeLaCadenaTieneElSuyo() {
         UUID obligado = ObligadosDePrueba.nuevo(obligados);
 
-        RegistroFacturacion primero = cadena.anadir(obligado, Registros.alta().build());
+        RegistroFacturacion primero = cadena.anadir(obligado, Registros.emitible().build());
         RegistroFacturacion segundo = cadena.anadir(obligado,
-                Registros.alta().idFactura(Registros.idFactura("FA/2")).build());
+                Registros.emitible().idFactura(Registros.idFacturaEmitible("FA/2")).build());
 
         assertThat(envios.findByRegistroId(primero.id())).isPresent();
         assertThat(envios.findByRegistroId(segundo.id())).isPresent();

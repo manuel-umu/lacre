@@ -44,7 +44,7 @@ class AtomicidadDeLaEmisionTest {
         UUID obligado = ObligadosDePrueba.nuevo(obligados);
         given(envios.save(any())).willThrow(new IllegalStateException("outbox caído"));
 
-        assertThatThrownBy(() -> cadena.anadir(obligado, Registros.alta().build()))
+        assertThatThrownBy(() -> cadena.anadir(obligado, Registros.emitible().build()))
                 .isInstanceOf(IllegalStateException.class);
 
         assertThat(registrosDe(obligado)).isZero();

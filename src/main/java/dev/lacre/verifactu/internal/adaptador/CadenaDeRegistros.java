@@ -9,8 +9,10 @@ import dev.lacre.verifactu.emision.AnomaliaPrevia;
 import dev.lacre.verifactu.emision.EmisorDeRegistros;
 import dev.lacre.verifactu.emision.RegistroEmitido;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
+import dev.lacre.verifactu.internal.FechasAeat;
 import dev.lacre.verifactu.internal.xml.EscritorRegistro;
 import dev.lacre.verifactu.registro.DatosRegistro;
+import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.evento.RegistroCreado;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +44,9 @@ import java.util.function.Supplier;
 public class CadenaDeRegistros implements EmisorDeRegistros {
 
     private static final Logger log = LoggerFactory.getLogger(CadenaDeRegistros.class);
+
+    /** Zona horaria de la que depende la fecha de hoy para las validaciones de la AEAT. */
+    private static final ZoneId ZONA_AEAT = ZoneId.of("Europe/Madrid");
 
     private final JdbcClient jdbc;
     private final RegistroRepository repositorio;
@@ -82,6 +88,10 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
                 .orElseThrow(() -> new ObligadoDesconocidoException(obligadoId));
 
         serializarLaCadenaDe(obligadoId);
+
+        if (datos instanceof DatosRegistroAlta alta) {
+            FechasAeat.exigir(alta, LocalDate.now(reloj.withZone(ZONA_AEAT)));
+        }
 
         List<Enlace> cola = losDosUltimosDe(obligadoId);
         Optional<Enlace> ultimo = cola.stream().findFirst();
@@ -139,7 +149,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         return jdbc.sql("""
                 select posicion, emisor, num_serie_factura, fecha_expedicion_factura,
                        huella, huella_anterior,
-                       fecha_hora_huso_gen_registro, huso_offset_segundos
+                       fecha_hora_huso_gen_registro, huso_offset_segundos, xml
                 from registro_facturacion
                 where obligado_id = :obligado
                 order by posicion desc
@@ -155,7 +165,9 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
                         huellaOpcional(rs.getString("huella_anterior")),
                         rs.getObject("fecha_hora_huso_gen_registro", OffsetDateTime.class)
                                 .withOffsetSameInstant(
-                                        ZoneOffset.ofTotalSeconds(rs.getInt("huso_offset_segundos")))))
+                                        ZoneOffset.ofTotalSeconds(
+                                                rs.getInt("huso_offset_segundos"))),
+                        rs.getString("xml")))
                 .list();
     }
 
@@ -172,12 +184,17 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
      *
      * @param huellaAnterior nula en el primer registro de la cadena
      * @param fechaHora con el huso original con el que se calculó la huella
+     * @param xml el registro tal y como se guardó
      */
     record Enlace(long posicion, Nif emisor, String numSerieFactura, LocalDate fechaExpedicion,
-                  Huella huella, Huella huellaAnterior, OffsetDateTime fechaHora) {
+                  Huella huella, Huella huellaAnterior, OffsetDateTime fechaHora, String xml) {
+
+        IdFactura idFactura() {
+            return new IdFactura(emisor, numSerieFactura, fechaExpedicion);
+        }
 
         RegistroAnterior comoAnterior() {
-            return new RegistroAnterior(new IdFactura(emisor, numSerieFactura, fechaExpedicion), huella);
+            return new RegistroAnterior(idFactura(), huella);
         }
     }
 }

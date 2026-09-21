@@ -941,7 +941,15 @@ components:
       properties:
         codigo:
           type: string
-          enum: [HUELLA_ANTERIOR_NO_CUADRA, FECHA_DEL_ANTERIOR_EN_EL_FUTURO]
+          description: |
+            `HUELLA_ANTERIOR_NO_CUADRA`: el registro que precede al emitido declara una huella
+            anterior que no es la del que le precede. `IDENTIFICACION_ANTERIOR_NO_CUADRA`: declara
+            como anterior otra factura, o su XML no se puede leer. `FECHA_DEL_ANTERIOR_EN_EL_FUTURO`:
+            se generó con más de un minuto de adelanto.
+          enum:
+            - HUELLA_ANTERIOR_NO_CUADRA
+            - IDENTIFICACION_ANTERIOR_NO_CUADRA
+            - FECHA_DEL_ANTERIOR_EN_EL_FUTURO
         mensaje:
           type: string
 

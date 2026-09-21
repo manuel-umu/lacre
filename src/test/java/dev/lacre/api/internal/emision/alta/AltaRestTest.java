@@ -6,6 +6,13 @@ import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.Envios;
+import dev.lacre.shared.Huella;
+import dev.lacre.shared.Nif;
+import dev.lacre.verifactu.internal.xml.EscritorRegistro;
+import dev.lacre.verifactu.registro.IdFactura;
+import dev.lacre.verifactu.registro.RegistroAnterior;
+import dev.lacre.verifactu.registro.RegistroEncadenado;
+import dev.lacre.verifactu.registro.Registros;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +24,11 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -110,6 +121,23 @@ class AltaRestTest {
                         org.hamcrest.Matchers.not(org.hamcrest.Matchers.emptyString())));
     }
 
+    /** El eslabón enlaza por huella, pero su XML dice venir de otra factura. */
+    @Test
+    void unAnteriorQueDeclaraOtraFacturaSeAvisa() throws Exception {
+        mvc.perform(alta("clave-otra-1", cuerpo("FA/1", "123.45"))).andExpect(status().isCreated());
+        String huellaDelPrimero = jdbc.sql("""
+                        select huella from registro_facturacion
+                        where obligado_id = :obligado and posicion = 1
+                        """).param("obligado", obligadoId).query(String.class).single();
+        insertarEslabon("FA/OTRA", huellaDelPrimero);
+
+        mvc.perform(alta("clave-otra-2", cuerpo("FA/3", "123.45")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.avisos.length()").value(1))
+                .andExpect(jsonPath("$.avisos[0].codigo")
+                        .value("IDENTIFICACION_ANTERIOR_NO_CUADRA"));
+    }
+
     /** Sin anotarlos, el reintento diría que la cadena está sana. */
     @Test
     void elReintentoIdempotenteRepiteLosAvisos() throws Exception {
@@ -187,6 +215,30 @@ class AltaRestTest {
                         """).param("obligado", obligadoId).query(Long.class).single()).isZero();
     }
 
+    /** Fecha de expedición futura, código 1112 del catálogo de errores de la AEAT. */
+    @Test
+    void unaFechaDeExpedicionFuturaSeDevuelveConSuCodigoYNoSeRegistra() throws Exception {
+        String futura = cuerpo("FA/8", "123.45").replace("2026-01-15", "2099-01-01");
+
+        mvc.perform(alta("clave-8", futura))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.codigoAeat").value("1112"));
+
+        assertThat(jdbc.sql("""
+                        select count(*) from registro_facturacion where obligado_id = :obligado
+                        """).param("obligado", obligadoId).query(Long.class).single()).isZero();
+    }
+
+    /** Fecha de expedición anterior a la entrada en vigor de la Orden HAC/1177/2024. */
+    @Test
+    void unaFechaDeExpedicionAnteriorALaEntradaEnVigorSeDevuelveConSuCodigo() throws Exception {
+        String anterior = cuerpo("FA/9", "123.45").replace("2026-01-15", "2024-01-01");
+
+        mvc.perform(alta("clave-9", anterior))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.codigoAeat").value("1152"));
+    }
+
     /** Sin validación de la AEAT de por medio, el error no trae código de la AEAT. */
     @Test
     void unErrorDeContratoNoTraeCodigoAeat() throws Exception {
@@ -210,21 +262,37 @@ class AltaRestTest {
 
     /** Segundo eslabón de la cadena, válido salvo por su huella anterior. */
     private void insertarEslabonSuelto() {
+        insertarEslabon("FA/1", "0".repeat(64));
+    }
+
+    /** Segundo eslabón, cuyo XML declara como anterior la factura y la huella indicadas. */
+    private void insertarEslabon(String numSerieDeclarado, String huellaAnterior) {
+        String xml = EscritorRegistro.escribir(new RegistroEncadenado(
+                Registros.emitible().idFactura(idFactura("MANIPULADA")).build(),
+                Optional.of(new RegistroAnterior(idFactura(numSerieDeclarado),
+                        new Huella(huellaAnterior))),
+                OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS),
+                new Huella("F".repeat(64))));
         jdbc.sql("""
                 insert into registro_facturacion
                     (id, obligado_id, posicion, tipo, emisor, num_serie_factura,
                      fecha_expedicion_factura, huella, huella_anterior,
                      fecha_hora_huso_gen_registro, huso_offset_segundos, xml)
                 values (:id, :obligado, 2, 'ALTA', :emisor, 'MANIPULADA', date '2026-01-15',
-                        :huella, :huellaAnterior, :fechaHora, 0, '<x/>')
+                        :huella, :huellaAnterior, :fechaHora, 0, :xml)
                 """)
                 .param("id", UUID.randomUUID())
                 .param("obligado", obligadoId)
                 .param("emisor", nifDelObligado)
                 .param("huella", "F".repeat(64))
-                .param("huellaAnterior", "0".repeat(64))
+                .param("huellaAnterior", huellaAnterior)
                 .param("fechaHora", OffsetDateTime.now())
+                .param("xml", xml)
                 .update();
+    }
+
+    private IdFactura idFactura(String numSerie) {
+        return new IdFactura(new Nif(nifDelObligado), numSerie, LocalDate.of(2026, 1, 15));
     }
 
     private org.springframework.test.web.servlet.RequestBuilder alta(String clave, String cuerpo) {

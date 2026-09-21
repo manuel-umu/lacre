@@ -2,6 +2,8 @@ package dev.lacre.verifactu.internal.adaptador;
 
 import dev.lacre.shared.Huella;
 import dev.lacre.verifactu.emision.AnomaliaPrevia;
+import dev.lacre.verifactu.internal.xml.LectorRegistro;
+import dev.lacre.verifactu.internal.xml.RegistroIlegibleException;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -10,8 +12,9 @@ import java.util.Set;
 
 /**
  * Comprobación previa del art. 7.i de la OM HAC/1177/2024: el último registro debe estar
- * correctamente encadenado con el anterior, y su fecha de generación no debe superar en más de
- * un minuto a la actual. Devuelve las anomalías en vez de lanzar, porque no impiden emitir.
+ * correctamente encadenado con el anterior —huella e identificación—, y su fecha de generación
+ * no debe superar en más de un minuto a la actual. Devuelve las anomalías en vez de lanzar,
+ * porque no impiden emitir.
  */
 final class ComprobacionPrevia {
 
@@ -33,6 +36,9 @@ final class ComprobacionPrevia {
         if (!enlazaCon(ultimo, penultimo)) {
             anomalias.add(AnomaliaPrevia.HUELLA_ANTERIOR_NO_CUADRA);
         }
+        if (penultimo != null && !declaraComoAnteriorA(ultimo, penultimo)) {
+            anomalias.add(AnomaliaPrevia.IDENTIFICACION_ANTERIOR_NO_CUADRA);
+        }
         if (ultimo.fechaHora().isAfter(ahora.plus(ADELANTO_MAXIMO))) {
             anomalias.add(AnomaliaPrevia.FECHA_DEL_ANTERIOR_EN_EL_FUTURO);
         }
@@ -45,5 +51,20 @@ final class ComprobacionPrevia {
         return penultimo == null
                 ? declarada == null
                 : declarada != null && declarada.equals(penultimo.huella());
+    }
+
+    /**
+     * La factura que el XML del último declara como anterior es la del penúltimo. Si no declara
+     * ninguna, la falta ya la denuncia la huella.
+     */
+    private static boolean declaraComoAnteriorA(CadenaDeRegistros.Enlace ultimo,
+                                                CadenaDeRegistros.Enlace penultimo) {
+        try {
+            return LectorRegistro.leer(ultimo.xml()).anterior()
+                    .map(anterior -> anterior.idFactura().equals(penultimo.idFactura()))
+                    .orElse(true);
+        } catch (RegistroIlegibleException e) {
+            return false;
+        }
     }
 }

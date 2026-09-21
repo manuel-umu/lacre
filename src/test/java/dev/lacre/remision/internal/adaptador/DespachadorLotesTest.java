@@ -17,6 +17,7 @@ import dev.lacre.remision.RemisionFallidaException;
 import dev.lacre.remision.RespuestaRemision;
 import dev.lacre.verifactu.internal.adaptador.CadenaDeRegistros;
 import dev.lacre.verifactu.internal.adaptador.RegistroFacturacion;
+import dev.lacre.verifactu.registro.DatosRegistroAnulacion;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.Registros;
 import dev.lacre.verifactu.registro.TipoRegistro;
@@ -84,7 +85,7 @@ class DespachadorLotesTest {
 
     private RegistroFacturacion emitir(String numSerie) {
         return cadena.anadir(obligado,
-                Registros.alta().idFactura(Registros.idFactura(numSerie)).build());
+                Registros.emitible().idFactura(Registros.idFacturaEmitible(numSerie)).build());
     }
 
     // --- Control de flujo, art. 16.2 ---
@@ -141,7 +142,7 @@ class DespachadorLotesTest {
     void cadaObligadoTieneSuPropioTurno() {
         UUID otro = ObligadosDePrueba.nuevo(obligados);
         emitir("FA/1");
-        cadena.anadir(otro, Registros.alta().build());
+        cadena.anadir(otro, Registros.emitible().build());
         aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60));
 
         assertThat(despachador.despachar()).isEqualTo(2);
@@ -184,9 +185,10 @@ class DespachadorLotesTest {
      */
     @Test
     void distingueElAltaDeLaAnulacionDeLaMismaFactura() {
-        // Registros.anulacion() anula esta misma factura.
         RegistroFacturacion alta = emitir("12345679/G34");
-        RegistroFacturacion anulacion = cadena.anadir(obligado, Registros.anulacion());
+        RegistroFacturacion anulacion = cadena.anadir(obligado, new DatosRegistroAnulacion(
+                Registros.idFacturaEmitible("12345679/G34"), null, false, false, null, null,
+                Registros.sistemaInformatico()));
         assertThat(idFacturaDe(alta)).isEqualTo(idFacturaDe(anulacion));
 
         aeat.responder(EstadoEnvioAeat.PARCIALMENTE_CORRECTO, Duration.ofSeconds(60),
@@ -250,7 +252,7 @@ class DespachadorLotesTest {
     void unFalloInesperadoEnUnObligadoNoImpideDespacharALosDemas() {
         RegistroFacturacion delPrimero = emitir("FA/1");
         RegistroFacturacion delSegundo =
-                cadena.anadir(ObligadosDePrueba.nuevo(obligados), Registros.alta().build());
+                cadena.anadir(ObligadosDePrueba.nuevo(obligados), Registros.emitible().build());
         aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
                 linea(delPrimero, EstadoRegistroAeat.CORRECTO, null),
                 linea(delSegundo, EstadoRegistroAeat.CORRECTO, null));

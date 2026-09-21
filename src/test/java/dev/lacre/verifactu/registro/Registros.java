@@ -22,6 +22,9 @@ public final class Registros {
     public static final Nif EMISOR = new Nif("89890001K");
     public static final LocalDate FECHA_EXPEDICION = LocalDate.of(2024, 1, 1);
 
+    /** Fecha de expedición posterior a la entrada en vigor de la Orden HAC/1177/2024. */
+    public static final LocalDate FECHA_EMITIBLE = LocalDate.of(2025, 1, 15);
+
     private Registros() {
     }
 
@@ -39,6 +42,14 @@ public final class Registros {
                 .sistemaInformatico(sistemaInformatico());
     }
 
+    /**
+     * Igual que {@link #alta()}, con una fecha de expedición que la AEAT admite, porque la del
+     * ejemplo oficial es anterior a la entrada en vigor de la Orden HAC/1177/2024.
+     */
+    public static DatosRegistroAlta.Builder emitible() {
+        return alta().idFactura(new IdFactura(EMISOR, "12345678/G33", FECHA_EMITIBLE));
+    }
+
     /** Enlace con un registro anterior ficticio, para probar la cadena. */
     public static RegistroAnterior anterior(Huella huella) {
         return new RegistroAnterior(idFactura("12345678/G32"), huella);
@@ -53,6 +64,11 @@ public final class Registros {
 
     public static IdFactura idFactura(String numSerie) {
         return new IdFactura(EMISOR, numSerie, FECHA_EXPEDICION);
+    }
+
+    /** Igual que {@link #idFactura(String)}, con {@link #FECHA_EMITIBLE}. */
+    public static IdFactura idFacturaEmitible(String numSerie) {
+        return new IdFactura(EMISOR, numSerie, FECHA_EMITIBLE);
     }
 
     /**

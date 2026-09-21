@@ -11,6 +11,11 @@ public enum AnomaliaPrevia {
                     + "del registro que le precede a él. La cadena está rota por debajo del "
                     + "registro nuevo, que sí ha quedado encadenado."),
 
+    IDENTIFICACION_ANTERIOR_NO_CUADRA(
+            "El registro que precede al emitido declara como anterior una factura que no es la "
+                    + "del registro que le precede a él, o su XML no se puede leer. La cadena "
+                    + "está rota por debajo del registro nuevo, que sí ha quedado encadenado."),
+
     FECHA_DEL_ANTERIOR_EN_EL_FUTURO(
             "El registro que precede al emitido se generó con más de un minuto de adelanto "
                     + "sobre la hora actual.");
