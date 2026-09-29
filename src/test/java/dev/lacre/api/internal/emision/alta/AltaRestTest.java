@@ -1,11 +1,16 @@
 package dev.lacre.api.internal.emision.alta;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import dev.lacre.TestcontainersConfiguration;
 import dev.lacre.api.internal.ApiDePrueba;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
-import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.Envios;
+import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.internal.xml.EscritorRegistro;
@@ -13,28 +18,22 @@ import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.Registros;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * El alta por HTTP, de extremo a extremo y contra Postgres: contrato, mapeo al modelo fiscal,
@@ -77,8 +76,8 @@ class AltaRestTest {
                 .andExpect(jsonPath("$.posicion").value(1))
                 .andExpect(jsonPath("$.huella").value(org.hamcrest.Matchers.matchesPattern("[0-9A-F]{64}")))
                 .andExpect(jsonPath("$.avisos").isEmpty())
-                .andExpect(jsonPath("$.urlQr").value(
-                        "https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=" + nifDelObligado
+                .andExpect(jsonPath("$.urlQr")
+                        .value("https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=" + nifDelObligado
                                 + "&numserie=FA%2F1&fecha=15-01-2026&importe=123.45"))
                 .andReturn();
 
@@ -91,12 +90,12 @@ class AltaRestTest {
         String cuerpo = cuerpo("FA/1", "123.45");
 
         MvcResult primera = mvc.perform(alta("clave-repetida", cuerpo))
-                .andExpect(status().isCreated()).andReturn();
+                .andExpect(status().isCreated())
+                .andReturn();
         MvcResult segunda = mvc.perform(alta("clave-repetida", cuerpo))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.posicion").value(1))
-                .andExpect(jsonPath("$.urlQr").value(
-                        org.hamcrest.Matchers.containsString("numserie=FA%2F1")))
+                .andExpect(jsonPath("$.urlQr").value(org.hamcrest.Matchers.containsString("numserie=FA%2F1")))
                 .andReturn();
 
         assertThat(registroId(segunda)).isEqualTo(registroId(primera));
@@ -117,15 +116,16 @@ class AltaRestTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.posicion").value(3))
                 .andExpect(jsonPath("$.avisos[0].codigo").value("HUELLA_ANTERIOR_NO_CUADRA"))
-                .andExpect(jsonPath("$.avisos[0].mensaje").value(
-                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.emptyString())));
+                .andExpect(jsonPath("$.avisos[0].mensaje")
+                        .value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.emptyString())));
     }
 
     /** El eslabón enlaza por huella, pero su XML dice venir de otra factura. */
     @Test
     void unAnteriorQueDeclaraOtraFacturaSeAvisa() throws Exception {
         mvc.perform(alta("clave-otra-1", cuerpo("FA/1", "123.45"))).andExpect(status().isCreated());
-        String huellaDelPrimero = jdbc.sql("""
+        String huellaDelPrimero =
+                jdbc.sql("""
                         select huella from registro_facturacion
                         where obligado_id = :obligado and posicion = 1
                         """).param("obligado", obligadoId).query(String.class).single();
@@ -134,8 +134,7 @@ class AltaRestTest {
         mvc.perform(alta("clave-otra-2", cuerpo("FA/3", "123.45")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.avisos.length()").value(1))
-                .andExpect(jsonPath("$.avisos[0].codigo")
-                        .value("IDENTIFICACION_ANTERIOR_NO_CUADRA"));
+                .andExpect(jsonPath("$.avisos[0].codigo").value("IDENTIFICACION_ANTERIOR_NO_CUADRA"));
     }
 
     /** Sin anotarlos, el reintento diría que la cadena está sana. */
@@ -175,14 +174,13 @@ class AltaRestTest {
     /** El error nombra el campo que falta. */
     @Test
     void unCampoObligatorioQueFaltaSeDicePorSuNombre() throws Exception {
-        String sinDescripcion = cuerpo("FA/3", "123.45")
-                .replace("\"descripcionOperacion\": \"Servicios de consultoría\",", "");
+        String sinDescripcion =
+                cuerpo("FA/3", "123.45").replace("\"descripcionOperacion\": \"Servicios de consultoría\",", "");
 
         mvc.perform(alta("clave-3", sinDescripcion))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.codigo").value("validacion"))
-                .andExpect(jsonPath("$.errores[*].campo").value(
-                        org.hamcrest.Matchers.hasItem("descripcionOperacion")));
+                .andExpect(jsonPath("$.errores[*].campo").value(org.hamcrest.Matchers.hasItem("descripcionOperacion")));
     }
 
     /** El obligado sale del emisor de la factura, así que un emisor no censado se ve aquí. */
@@ -193,26 +191,24 @@ class AltaRestTest {
         mvc.perform(alta("clave-4", deOtroEmisor))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.codigo").value("obligado-desconocido"))
-                .andExpect(jsonPath("$.detail").value(
-                        org.hamcrest.Matchers.containsString(NIF_NO_CENSADO)));
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString(NIF_NO_CENSADO)));
     }
 
     /** Un alta que la AEAT rechazaría no entra en la cadena, y el error trae su código. */
     @Test
     void unaCuotaQueLaAeatRechazariaSeDevuelveConSuCodigoYNoSeRegistra() throws Exception {
-        String alVeintiuno = cuerpo("FA/6", "123.45")
-                .replace("\"tipoImpositivo\": 10", "\"tipoImpositivo\": 21");
+        String alVeintiuno = cuerpo("FA/6", "123.45").replace("\"tipoImpositivo\": 10", "\"tipoImpositivo\": 21");
 
         mvc.perform(alta("clave-6", alVeintiuno))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.codigo").value("validacion"))
                 .andExpect(jsonPath("$.codigoAeat").value("1142"))
-                .andExpect(jsonPath("$.detail").value(
-                        org.hamcrest.Matchers.containsString("12.35")));
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("12.35")));
 
         assertThat(jdbc.sql("""
                         select count(*) from registro_facturacion where obligado_id = :obligado
-                        """).param("obligado", obligadoId).query(Long.class).single()).isZero();
+                        """).param("obligado", obligadoId).query(Long.class).single())
+                .isZero();
     }
 
     /** Fecha de expedición futura, código 1112 del catálogo de errores de la AEAT. */
@@ -226,7 +222,8 @@ class AltaRestTest {
 
         assertThat(jdbc.sql("""
                         select count(*) from registro_facturacion where obligado_id = :obligado
-                        """).param("obligado", obligadoId).query(Long.class).single()).isZero();
+                        """).param("obligado", obligadoId).query(Long.class).single())
+                .isZero();
     }
 
     /** Fecha de expedición anterior a la entrada en vigor de la Orden HAC/1177/2024. */
@@ -249,7 +246,8 @@ class AltaRestTest {
 
         assertThat(jdbc.sql("""
                         select count(*) from registro_facturacion where obligado_id = :obligado
-                        """).param("obligado", obligadoId).query(Long.class).single()).isEqualTo(1);
+                        """).param("obligado", obligadoId).query(Long.class).single())
+                .isEqualTo(1);
     }
 
     @Test
@@ -265,8 +263,10 @@ class AltaRestTest {
     @Test
     void siLaAeatRechazoElAltaSePuedeVolverAEnviar() throws Exception {
         UUID rechazada = registroId(mvc.perform(alta("rech-1", cuerpo("FA/12", "123.45")))
-                .andExpect(status().isCreated()).andReturn());
-        envios.save(envios.findByRegistroId(rechazada).orElseThrow()
+                .andExpect(status().isCreated())
+                .andReturn());
+        envios.save(envios.findByRegistroId(rechazada)
+                .orElseThrow()
                 .rechazado(OffsetDateTime.now(), 1142, "Cuota incorrecta"));
 
         mvc.perform(alta("rech-2", cuerpo("FA/12", "123.45")))
@@ -277,8 +277,8 @@ class AltaRestTest {
     /** Sin validación de la AEAT de por medio, el error no trae código de la AEAT. */
     @Test
     void unErrorDeContratoNoTraeCodigoAeat() throws Exception {
-        String sinDescripcion = cuerpo("FA/7", "123.45")
-                .replace("\"descripcionOperacion\": \"Servicios de consultoría\",", "");
+        String sinDescripcion =
+                cuerpo("FA/7", "123.45").replace("\"descripcionOperacion\": \"Servicios de consultoría\",", "");
 
         mvc.perform(alta("clave-7", sinDescripcion))
                 .andExpect(status().isBadRequest())
@@ -304,8 +304,7 @@ class AltaRestTest {
     private void insertarEslabon(String numSerieDeclarado, String huellaAnterior) {
         String xml = EscritorRegistro.escribir(new RegistroEncadenado(
                 Registros.emitible().idFactura(idFactura("MANIPULADA")).build(),
-                Optional.of(new RegistroAnterior(idFactura(numSerieDeclarado),
-                        new Huella(huellaAnterior))),
+                Optional.of(new RegistroAnterior(idFactura(numSerieDeclarado), new Huella(huellaAnterior))),
                 OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS),
                 new Huella("F".repeat(64))));
         jdbc.sql("""
@@ -339,13 +338,12 @@ class AltaRestTest {
     }
 
     private static UUID registroId(MvcResult respuesta) throws Exception {
-        return UUID.fromString(com.jayway.jsonpath.JsonPath.read(
-                respuesta.getResponse().getContentAsString(), "$.registroId"));
+        return UUID.fromString(
+                com.jayway.jsonpath.JsonPath.read(respuesta.getResponse().getContentAsString(), "$.registroId"));
     }
 
     private static String subsanacion(String cuerpo) {
-        return cuerpo.replace("\"tipoFactura\": \"F1\",",
-                "\"tipoFactura\": \"F1\", \"subsanacion\": true,");
+        return cuerpo.replace("\"tipoFactura\": \"F1\",", "\"tipoFactura\": \"F1\", \"subsanacion\": true,");
     }
 
     /** Los importes del ejemplo oficial de la huella, 111,10 + 12,35 = 123,45, al 10 %. */

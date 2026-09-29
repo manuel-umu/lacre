@@ -15,9 +15,7 @@ class ComprobacionDelRolDeAplicacion {
                         select current_user as usuario,
                                has_table_privilege('registro_facturacion',
                                                    'UPDATE, DELETE, TRUNCATE') as puede_modificar
-                        """)
-                .query(Conexion.class)
-                .single();
+                        """).query(Conexion.class).single();
         if (conexion.puedeModificar()) {
             throw new IllegalStateException("La aplicación se conecta a la base de datos como «"
                     + conexion.usuario() + "», que puede modificar o borrar registros de "
@@ -27,6 +25,5 @@ class ComprobacionDelRolDeAplicacion {
         }
     }
 
-    private record Conexion(String usuario, boolean puedeModificar) {
-    }
+    private record Conexion(String usuario, boolean puedeModificar) {}
 }

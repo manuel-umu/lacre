@@ -3,12 +3,11 @@ package dev.lacre.api.internal.consulta;
 import dev.lacre.remision.Envios;
 import dev.lacre.verifactu.consulta.RegistroGuardado;
 import dev.lacre.verifactu.consulta.RegistrosGuardados;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.UUID;
 
 /**
  * Controlador REST de consulta del estado de un registro: posición en la cadena y desenlace de
@@ -28,8 +27,7 @@ class EstadoController {
 
     @GetMapping("/{id}")
     EstadoDelRegistro estado(@PathVariable UUID id) {
-        RegistroGuardado registro = registros.porId(id)
-                .orElseThrow(() -> new RegistroDesconocidoException(id));
+        RegistroGuardado registro = registros.porId(id).orElseThrow(() -> new RegistroDesconocidoException(id));
 
         return EstadoDelRegistro.de(registro, envios.findByRegistroId(id).orElse(null));
     }

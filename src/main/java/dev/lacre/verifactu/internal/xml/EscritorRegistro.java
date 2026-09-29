@@ -15,12 +15,11 @@ import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.SistemaInformatico;
-
+import java.io.StringWriter;
+import java.util.List;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
-import java.io.StringWriter;
-import java.util.List;
 
 /**
  * Serializa un registro al XML de {@code sf:RegistroAlta} o {@code sf:RegistroAnulacion}, en el
@@ -60,8 +59,7 @@ public final class EscritorRegistro {
         }
     }
 
-    private void registroAlta(RegistroEncadenado registro, DatosRegistroAlta datos)
-            throws XMLStreamException {
+    private void registroAlta(RegistroEncadenado registro, DatosRegistroAlta datos) throws XMLStreamException {
         xml.writeStartElement(NS, "RegistroAlta");
         xml.writeNamespace(PREFIJO, NS);
 
@@ -83,7 +81,8 @@ public final class EscritorRegistro {
             xml.writeStartElement(NS, "ImporteRectificacion");
             importe("BaseRectificada", datos.importeRectificacion().baseRectificada());
             importe("CuotaRectificada", datos.importeRectificacion().cuotaRectificada());
-            importeOpcional("CuotaRecargoRectificado", datos.importeRectificacion().cuotaRecargoRectificado());
+            importeOpcional(
+                    "CuotaRecargoRectificado", datos.importeRectificacion().cuotaRecargoRectificado());
             xml.writeEndElement();
         }
         if (datos.fechaOperacion() != null) {
@@ -94,7 +93,9 @@ public final class EscritorRegistro {
         indicadorSiVerdadero("FacturaSinIdentifDestinatarioArt61d", datos.facturaSinIdentifDestinatarioArt61d());
         indicadorSiVerdadero("Macrodato", datos.macrodato());
         if (datos.emitidaPorTerceroODestinatario() != null) {
-            texto("EmitidaPorTerceroODestinatario", datos.emitidaPorTerceroODestinatario().codigo());
+            texto(
+                    "EmitidaPorTerceroODestinatario",
+                    datos.emitidaPorTerceroODestinatario().codigo());
         }
         if (datos.tercero() != null) {
             persona("Tercero", datos.tercero());
@@ -131,7 +132,9 @@ public final class EscritorRegistro {
         xml.writeStartElement(NS, "IDFactura");
         texto("IDEmisorFacturaAnulada", datos.idFactura().emisor().valor());
         texto("NumSerieFacturaAnulada", datos.idFactura().numSerieFactura());
-        texto("FechaExpedicionFacturaAnulada", FormatosAeat.fecha(datos.idFactura().fechaExpedicion()));
+        texto(
+                "FechaExpedicionFacturaAnulada",
+                FormatosAeat.fecha(datos.idFactura().fechaExpedicion()));
         xml.writeEndElement();
         opcional("RefExterna", datos.refExterna());
         indicadorSiVerdadero("SinRegistroPrevio", datos.sinRegistroPrevio());
@@ -186,7 +189,9 @@ public final class EscritorRegistro {
             xml.writeStartElement(NS, "RegistroAnterior");
             texto("IDEmisorFactura", enlace.idFactura().emisor().valor());
             texto("NumSerieFactura", enlace.idFactura().numSerieFactura());
-            texto("FechaExpedicionFactura", FormatosAeat.fecha(enlace.idFactura().fechaExpedicion()));
+            texto(
+                    "FechaExpedicionFactura",
+                    FormatosAeat.fecha(enlace.idFactura().fechaExpedicion()));
             texto("Huella", enlace.huella().valor());
             xml.writeEndElement();
         }

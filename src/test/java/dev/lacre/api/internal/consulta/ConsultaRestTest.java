@@ -1,5 +1,12 @@
 package dev.lacre.api.internal.consulta;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import dev.lacre.TestcontainersConfiguration;
 import dev.lacre.api.internal.ApiDePrueba;
 import dev.lacre.identidad.Obligados;
@@ -13,6 +20,10 @@ import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.Registros;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,21 +32,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.matchesPattern;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Consulta del estado de un registro y verificación de la cadena de un obligado. Cada test usa
@@ -90,8 +89,8 @@ class ConsultaRestTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.remision.estado").value("PENDIENTE"))
                 .andExpect(jsonPath("$.remision.intentos").value(1))
-                .andExpect(jsonPath("$.remision.descripcionError").value(org.hamcrest.Matchers
-                        .startsWith("Certificado no disponible (" + nifDelObligado + ")")));
+                .andExpect(jsonPath("$.remision.descripcionError")
+                        .value(org.hamcrest.Matchers.startsWith("Certificado no disponible (" + nifDelObligado + ")")));
     }
 
     @Test
@@ -186,7 +185,8 @@ class ConsultaRestTest {
     @Test
     void unRegistroConElXmlIlegibleSeDenuncia() throws Exception {
         emitir("FA/1", "ilegible-1");
-        Huella delPrimero = new Huella(jdbc.sql("""
+        Huella delPrimero = new Huella(
+                jdbc.sql("""
                 select huella from registro_facturacion
                 where obligado_id = :obligado and posicion = 1
                 """).param("obligado", obligadoId).query(String.class).single());
@@ -209,9 +209,9 @@ class ConsultaRestTest {
 
     /** Un alta del obligado que declara como anterior la huella indicada. */
     private RegistroEncadenado registroQueApuntaA(Huella anterior) {
-        IdFactura factura =
-                new IdFactura(new Nif(nifDelObligado), "SUELTA", LocalDate.of(2026, 1, 15));
-        return encadenador.encadenar(Registros.alta().idFactura(factura).build(),
+        IdFactura factura = new IdFactura(new Nif(nifDelObligado), "SUELTA", LocalDate.of(2026, 1, 15));
+        return encadenador.encadenar(
+                Registros.alta().idFactura(factura).build(),
                 Optional.of(new RegistroAnterior(Registros.idFactura("FA/0"), anterior)),
                 ZoneId.of("Europe/Madrid"));
     }
@@ -232,7 +232,9 @@ class ConsultaRestTest {
                 .param("numSerie", registro.datos().idFactura().numSerieFactura())
                 .param("fecha", registro.datos().idFactura().fechaExpedicion())
                 .param("huella", registro.huella().valor())
-                .param("huellaAnterior", registro.registroAnterior().orElseThrow().huella().valor())
+                .param(
+                        "huellaAnterior",
+                        registro.registroAnterior().orElseThrow().huella().valor())
                 .param("fechaHora", registro.fechaHoraHusoGenRegistro())
                 .param("huso", registro.fechaHoraHusoGenRegistro().getOffset().getTotalSeconds())
                 .param("xml", xml)
@@ -248,7 +250,8 @@ class ConsultaRestTest {
         try {
             return jdbc.sql(sentencia).param("obligado", obligadoId).update();
         } finally {
-            jdbc.sql("alter table registro_facturacion enable trigger " + TRIGGER).update();
+            jdbc.sql("alter table registro_facturacion enable trigger " + TRIGGER)
+                    .update();
         }
     }
 
@@ -261,8 +264,8 @@ class ConsultaRestTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        return UUID.fromString(com.jayway.jsonpath.JsonPath.read(
-                respuesta.getResponse().getContentAsString(), "$.registroId"));
+        return UUID.fromString(
+                com.jayway.jsonpath.JsonPath.read(respuesta.getResponse().getContentAsString(), "$.registroId"));
     }
 
     private String alta(String numSerie) {

@@ -1,5 +1,8 @@
 package dev.lacre.verifactu.internal.adaptador;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.TestcontainersConfiguration;
 import dev.lacre.identidad.ObligadoDesconocidoException;
 import dev.lacre.identidad.Obligados;
@@ -10,16 +13,6 @@ import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.Registros;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.simple.JdbcClient;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,11 +23,16 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * La cadena contra Postgres real y bajo concurrencia: sin el cerrojo consultivo, dos hilos
@@ -65,7 +63,8 @@ class CadenaDeRegistrosTest {
 
     @Test
     void elPrimerRegistroAbreLaCadenaEnLaPosicionUno() {
-        RegistroFacturacion registro = cadena.anadir(obligado, Registros.emitible().build());
+        RegistroFacturacion registro =
+                cadena.anadir(obligado, Registros.emitible().build());
 
         assertThat(registro.posicion()).isEqualTo(1);
         assertThat(registro.huellaAnterior()).isNull();
@@ -74,9 +73,13 @@ class CadenaDeRegistrosTest {
 
     @Test
     void elSegundoRegistroEnlazaConLaHuellaDelPrimero() {
-        RegistroFacturacion primero = cadena.anadir(obligado, Registros.emitible().build());
-        RegistroFacturacion segundo = cadena.anadir(obligado,
-                Registros.emitible().idFactura(Registros.idFacturaEmitible("FA/2")).build());
+        RegistroFacturacion primero =
+                cadena.anadir(obligado, Registros.emitible().build());
+        RegistroFacturacion segundo = cadena.anadir(
+                obligado,
+                Registros.emitible()
+                        .idFactura(Registros.idFacturaEmitible("FA/2"))
+                        .build());
 
         assertThat(segundo.posicion()).isEqualTo(2);
         assertThat(segundo.huellaAnterior()).isEqualTo(primero.huella());
@@ -88,7 +91,8 @@ class CadenaDeRegistrosTest {
         UUID otro = ObligadosDePrueba.nuevo(obligados);
 
         cadena.anadir(obligado, Registros.emitible().build());
-        RegistroFacturacion primeroDelOtro = cadena.anadir(otro, Registros.emitible().build());
+        RegistroFacturacion primeroDelOtro =
+                cadena.anadir(otro, Registros.emitible().build());
 
         assertThat(primeroDelOtro.posicion()).isEqualTo(1);
         assertThat(primeroDelOtro.huellaAnterior()).isNull();
@@ -96,24 +100,32 @@ class CadenaDeRegistrosTest {
 
     @Test
     void laFechaConservaSuHusoOriginalAlLeerlaDeLaBaseDeDatos() {
-        RegistroFacturacion guardado = cadena.anadir(obligado, Registros.emitible().build());
+        RegistroFacturacion guardado =
+                cadena.anadir(obligado, Registros.emitible().build());
 
         RegistroFacturacion leido = jdbc.sql("""
                 select fecha_hora_huso_gen_registro, huso_offset_segundos
                 from registro_facturacion where id = :id
                 """)
                 .param("id", guardado.id())
-                .query((rs, fila) -> new RegistroFacturacion(guardado.id(), obligado, 1,
-                        guardado.tipo(), guardado.emisor(), guardado.numSerieFactura(),
-                        guardado.fechaExpedicionFactura(), guardado.huella(), null,
+                .query((rs, fila) -> new RegistroFacturacion(
+                        guardado.id(),
+                        obligado,
+                        1,
+                        guardado.tipo(),
+                        guardado.emisor(),
+                        guardado.numSerieFactura(),
+                        guardado.fechaExpedicionFactura(),
+                        guardado.huella(),
+                        null,
                         rs.getObject("fecha_hora_huso_gen_registro", java.time.OffsetDateTime.class)
-                                .withOffsetSameInstant(java.time.ZoneOffset.ofTotalSeconds(
-                                        rs.getInt("huso_offset_segundos"))),
-                        rs.getInt("huso_offset_segundos"), guardado.xml()))
+                                .withOffsetSameInstant(
+                                        java.time.ZoneOffset.ofTotalSeconds(rs.getInt("huso_offset_segundos"))),
+                        rs.getInt("huso_offset_segundos"),
+                        guardado.xml()))
                 .single();
 
-        assertThat(leido.fechaHoraConSuHusoOriginal())
-                .isEqualTo(guardado.fechaHoraConSuHusoOriginal());
+        assertThat(leido.fechaHoraConSuHusoOriginal()).isEqualTo(guardado.fechaHoraConSuHusoOriginal());
         assertThat(leido.fechaHoraConSuHusoOriginal().getOffset().getTotalSeconds())
                 .isEqualTo(guardado.husoOffsetSegundos());
     }
@@ -123,8 +135,10 @@ class CadenaDeRegistrosTest {
     void cadaObligadoFechaSusRegistrosConSuPropiaZona() {
         UUID canario = ObligadosDePrueba.nuevo(obligados, ObligadosDePrueba.CANARIAS);
 
-        RegistroFacturacion peninsular = cadena.anadir(obligado, Registros.emitible().build());
-        RegistroFacturacion enCanarias = cadena.anadir(canario, Registros.emitible().build());
+        RegistroFacturacion peninsular =
+                cadena.anadir(obligado, Registros.emitible().build());
+        RegistroFacturacion enCanarias =
+                cadena.anadir(canario, Registros.emitible().build());
 
         // Canarias va una hora por detrás todo el año.
         assertThat(peninsular.husoOffsetSegundos() - enCanarias.husoOffsetSegundos())
@@ -133,7 +147,8 @@ class CadenaDeRegistrosTest {
 
     @Test
     void facturarPorUnObligadoQueNoExisteFallaConUnErrorDelDominio() {
-        assertThatThrownBy(() -> cadena.anadir(UUID.randomUUID(), Registros.emitible().build()))
+        assertThatThrownBy(() ->
+                        cadena.anadir(UUID.randomUUID(), Registros.emitible().build()))
                 .isInstanceOf(ObligadoDesconocidoException.class);
     }
 
@@ -145,52 +160,65 @@ class CadenaDeRegistrosTest {
      */
     @Test
     void unaCadenaRotaSeDenunciaPeroNoImpideFacturar(CapturedOutput salida) {
-        RegistroFacturacion primero = cadena.anadir(obligado, Registros.emitible().build());
+        RegistroFacturacion primero =
+                cadena.anadir(obligado, Registros.emitible().build());
         insertarEslabonRoto(primero);
 
-        RegistroFacturacion tercero = cadena.anadir(obligado,
-                Registros.emitible().idFactura(Registros.idFacturaEmitible("FA/3")).build());
+        RegistroFacturacion tercero = cadena.anadir(
+                obligado,
+                Registros.emitible()
+                        .idFactura(Registros.idFacturaEmitible("FA/3"))
+                        .build());
 
         assertThat(tercero.posicion()).isEqualTo(3);
-        assertThat(salida).contains("HUELLA_ANTERIOR_NO_CUADRA")
-                .contains("art. 7.i");
+        assertThat(salida).contains("HUELLA_ANTERIOR_NO_CUADRA").contains("art. 7.i");
     }
 
     /** El eslabón enlaza por huella, pero su XML dice venir de otra factura. */
     @Test
     void unAnteriorQueDeclaraOtraFacturaSeDenuncia(CapturedOutput salida) {
-        RegistroFacturacion primero = cadena.anadir(obligado, Registros.emitible().build());
+        RegistroFacturacion primero =
+                cadena.anadir(obligado, Registros.emitible().build());
         insertarEslabon(primero, Registros.idFacturaEmitible("FA/OTRA"), primero.huella());
 
-        cadena.anadir(obligado,
-                Registros.emitible().idFactura(Registros.idFacturaEmitible("FA/3")).build());
+        cadena.anadir(
+                obligado,
+                Registros.emitible()
+                        .idFactura(Registros.idFacturaEmitible("FA/3"))
+                        .build());
 
-        assertThat(salida).contains("IDENTIFICACION_ANTERIOR_NO_CUADRA")
-                .doesNotContain("HUELLA_ANTERIOR_NO_CUADRA");
+        assertThat(salida).contains("IDENTIFICACION_ANTERIOR_NO_CUADRA").doesNotContain("HUELLA_ANTERIOR_NO_CUADRA");
     }
 
     @Test
     void unaCadenaSanaNoDenunciaNada(CapturedOutput salida) {
         cadena.anadir(obligado, Registros.emitible().build());
-        cadena.anadir(obligado,
-                Registros.emitible().idFactura(Registros.idFacturaEmitible("FA/2")).build());
+        cadena.anadir(
+                obligado,
+                Registros.emitible()
+                        .idFactura(Registros.idFacturaEmitible("FA/2"))
+                        .build());
 
         assertThat(salida).doesNotContain("art. 7.i");
     }
 
     /** Una fila válida salvo por su huella anterior, que no es la del registro que le precede. */
     private void insertarEslabonRoto(RegistroFacturacion anterior) {
-        insertarEslabon(anterior, new IdFactura(anterior.emisor(), anterior.numSerieFactura(),
-                anterior.fechaExpedicionFactura()), new Huella("D".repeat(64)));
+        insertarEslabon(
+                anterior,
+                new IdFactura(anterior.emisor(), anterior.numSerieFactura(), anterior.fechaExpedicionFactura()),
+                new Huella("D".repeat(64)));
     }
 
     /** Segundo eslabón, cuyo XML declara como anterior la factura y la huella indicadas. */
-    private void insertarEslabon(RegistroFacturacion anterior, IdFactura declarada,
-                                 Huella huellaAnterior) {
+    private void insertarEslabon(RegistroFacturacion anterior, IdFactura declarada, Huella huellaAnterior) {
         String xml = EscritorRegistro.escribir(new RegistroEncadenado(
-                Registros.emitible().idFactura(Registros.idFacturaEmitible("FA/2")).build(),
+                Registros.emitible()
+                        .idFactura(Registros.idFacturaEmitible("FA/2"))
+                        .build(),
                 Optional.of(new RegistroAnterior(declarada, huellaAnterior)),
-                anterior.fechaHoraConSuHusoOriginal(), new Huella("C".repeat(64))));
+                anterior.fechaHoraConSuHusoOriginal(),
+                new Huella("C".repeat(64))));
         jdbc.sql("""
                 insert into registro_facturacion (
                     id, obligado_id, posicion, tipo, emisor, num_serie_factura,
@@ -219,8 +247,11 @@ class CadenaDeRegistrosTest {
         List<Callable<RegistroFacturacion>> tareas = IntStream.range(0, HILOS)
                 .<Callable<RegistroFacturacion>>mapToObj(i -> () -> {
                     salida.await();
-                    return cadena.anadir(obligado, Registros.emitible()
-                            .idFactura(Registros.idFacturaEmitible("FA/" + i)).build());
+                    return cadena.anadir(
+                            obligado,
+                            Registros.emitible()
+                                    .idFactura(Registros.idFacturaEmitible("FA/" + i))
+                                    .build());
                 })
                 .toList();
 
@@ -235,7 +266,8 @@ class CadenaDeRegistrosTest {
         }
 
         assertThat(registros).hasSize(HILOS);
-        assertThat(registros).extracting(RegistroFacturacion::posicion)
+        assertThat(registros)
+                .extracting(RegistroFacturacion::posicion)
                 .containsExactlyInAnyOrderElementsOf(
                         IntStream.rangeClosed(1, HILOS).mapToObj(Long::valueOf).toList());
 
@@ -244,15 +276,13 @@ class CadenaDeRegistrosTest {
 
     /** Cada registro apunta a la huella del anterior; solo el primero no tiene anterior. */
     private void cadenaIntacta() {
-        List<Map<String, Object>> cadenaGuardada = jdbc.sql("""
+        List<Map<String, Object>> cadenaGuardada =
+                jdbc.sql("""
                 select posicion, huella, huella_anterior
                 from registro_facturacion
                 where obligado_id = :obligado
                 order by posicion
-                """)
-                .param("obligado", obligado)
-                .query()
-                .listOfRows();
+                """).param("obligado", obligado).query().listOfRows();
 
         assertThat(cadenaGuardada).hasSize(HILOS);
         assertThat(cadenaGuardada.getFirst().get("huella_anterior")).isNull();

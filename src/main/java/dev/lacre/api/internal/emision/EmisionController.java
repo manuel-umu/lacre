@@ -31,16 +31,15 @@ class EmisionController {
      */
     @PostMapping("/alta")
     @ResponseStatus(HttpStatus.CREATED)
-    RespuestaRegistro alta(@RequestHeader("Idempotency-Key") String clave,
-                           @Valid @RequestBody PeticionAlta peticion) {
+    RespuestaRegistro alta(@RequestHeader("Idempotency-Key") String clave, @Valid @RequestBody PeticionAlta peticion) {
         return emisiones.emitir(clave, peticion);
     }
 
     /** Anular añade un eslabón a la cadena; no borra el del alta. */
     @PostMapping("/anulacion")
     @ResponseStatus(HttpStatus.CREATED)
-    RespuestaRegistro anulacion(@RequestHeader("Idempotency-Key") String clave,
-                                @Valid @RequestBody PeticionAnulacion peticion) {
+    RespuestaRegistro anulacion(
+            @RequestHeader("Idempotency-Key") String clave, @Valid @RequestBody PeticionAnulacion peticion) {
         return emisiones.emitir(clave, peticion);
     }
 }

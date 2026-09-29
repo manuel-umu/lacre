@@ -1,13 +1,11 @@
 package dev.lacre.identidad.internal.adaptador;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.identidad.CertificadoDeObligado;
 import dev.lacre.identidad.CertificadoNoDisponibleException;
 import dev.lacre.shared.Nif;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
-
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,9 +14,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 /**
  * El almacén contra ficheros PKCS#12 reales, sin Spring ni base de datos. Los certificados de
@@ -39,10 +38,12 @@ class AlmacenCertificadosEnDiscoTest {
 
     private static AlmacenCertificadosEnDisco almacenA(Instant momento) {
         return new AlmacenCertificadosEnDisco(
-                new PropiedadesCertificados(DIRECTORIO, Map.of(
-                        "89890001K", "cambiar",
-                        "00000001R", "cambiar",
-                        "00000002W", "n0-es-la-buena")),
+                new PropiedadesCertificados(
+                        DIRECTORIO,
+                        Map.of(
+                                "89890001K", "cambiar",
+                                "00000001R", "cambiar",
+                                "00000002W", "n0-es-la-buena")),
                 Clock.fixed(momento, ZoneOffset.UTC));
     }
 
@@ -115,8 +116,7 @@ class AlmacenCertificadosEnDiscoTest {
     @Test
     void sinContrasenaConfiguradaLoDiceSinInventarsela() {
         AlmacenCertificadosEnDisco sinContrasenas = new AlmacenCertificadosEnDisco(
-                new PropiedadesCertificados(DIRECTORIO, Map.of()),
-                Clock.fixed(AHORA, ZoneOffset.UTC));
+                new PropiedadesCertificados(DIRECTORIO, Map.of()), Clock.fixed(AHORA, ZoneOffset.UTC));
 
         assertThatThrownBy(() -> sinContrasenas.de(VIGENTE))
                 .isInstanceOf(CertificadoNoDisponibleException.class)
@@ -148,8 +148,7 @@ class AlmacenCertificadosEnDiscoTest {
         soloPublico.load(null, null);
         soloPublico.setCertificateEntry("elCertificado", conClave.getCertificate("obligado"));
 
-        assertThatThrownBy(() ->
-                CertificadoDeObligado.desde(soloPublico, "da igual".toCharArray(), VIGENTE.valor()))
+        assertThatThrownBy(() -> CertificadoDeObligado.desde(soloPublico, "da igual".toCharArray(), VIGENTE.valor()))
                 .isInstanceOf(CertificadoNoDisponibleException.class)
                 .hasMessageContaining("no contiene ninguna clave privada");
     }

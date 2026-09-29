@@ -4,7 +4,6 @@ import dev.lacre.shared.Nif;
 import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
-
 import java.time.LocalDate;
 
 /**
@@ -23,8 +22,8 @@ public record IdFactura(Nif emisor, String numSerieFactura, LocalDate fechaExped
         if (emisor == null) {
             throw new ValorInvalidoException("El emisor de la factura es obligatorio");
         }
-        numSerieFactura = Textos.obligatorio(
-                numSerieFactura, MAXIMO_LONGITUD_NUM_SERIE, "El número de serie de la factura");
+        numSerieFactura =
+                Textos.obligatorio(numSerieFactura, MAXIMO_LONGITUD_NUM_SERIE, "El número de serie de la factura");
         exigirCaracteresAdmitidos(numSerieFactura);
         if (fechaExpedicion == null) {
             throw new ValorInvalidoException("La fecha de expedición es obligatoria");
@@ -36,9 +35,10 @@ public record IdFactura(Nif emisor, String numSerieFactura, LocalDate fechaExped
         for (int i = 0; i < numSerieFactura.length(); i++) {
             char caracter = numSerieFactura.charAt(i);
             if (caracter < 32 || caracter > 126 || PROHIBIDOS.indexOf(caracter) >= 0) {
-                throw new ReglaAeatIncumplidaException("1130",
+                throw new ReglaAeatIncumplidaException(
+                        "1130",
                         "El número de serie de la factura no admite el carácter '%c' (ASCII %d): "
-                                .formatted(caracter, (int) caracter)
+                                        .formatted(caracter, (int) caracter)
                                 + "solo ASCII imprimible salvo \", ', <, = y >");
             }
         }

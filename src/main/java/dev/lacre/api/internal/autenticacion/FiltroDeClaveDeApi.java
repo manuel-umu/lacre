@@ -4,6 +4,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -12,11 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 /**
  * Autentica las peticiones a {@code /v1/**} con la clave del despliegue. Compara resúmenes
@@ -38,8 +37,8 @@ class FiltroDeClaveDeApi extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest peticion, HttpServletResponse respuesta,
-                                    FilterChain cadena) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest peticion, HttpServletResponse respuesta, FilterChain cadena)
+            throws ServletException, IOException {
         if (!autorizada(peticion)) {
             rechazar(peticion, respuesta);
             return;
@@ -55,12 +54,11 @@ class FiltroDeClaveDeApi extends OncePerRequestFilter {
         return MessageDigest.isEqual(resumenEsperado, sha256(cabecera.substring(PREFIJO.length())));
     }
 
-    private void rechazar(HttpServletRequest peticion, HttpServletResponse respuesta)
-            throws IOException {
-        log.warn("Petición sin credencial válida a {} desde {}",
-                peticion.getRequestURI(), peticion.getRemoteAddr());
+    private void rechazar(HttpServletRequest peticion, HttpServletResponse respuesta) throws IOException {
+        log.warn("Petición sin credencial válida a {} desde {}", peticion.getRequestURI(), peticion.getRemoteAddr());
 
-        ProblemDetail problema = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED,
+        ProblemDetail problema = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED,
                 "Falta la cabecera Authorization con la clave de la API, o no es válida. "
                         + "El formato es: Authorization: Bearer <clave>");
         problema.setTitle("No autenticado");

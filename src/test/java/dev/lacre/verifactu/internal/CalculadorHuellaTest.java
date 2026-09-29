@@ -1,9 +1,9 @@
 package dev.lacre.verifactu.internal;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.Test;
 
 /** Vectores conocidos de SHA-256 y los ejemplos oficiales de la AEAT. */
 class CalculadorHuellaTest {

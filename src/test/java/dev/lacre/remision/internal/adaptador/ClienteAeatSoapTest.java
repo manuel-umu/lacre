@@ -1,27 +1,5 @@
 package dev.lacre.remision.internal.adaptador;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-import dev.lacre.identidad.AlmacenCertificados;
-import dev.lacre.identidad.CertificadoDeObligado;
-import dev.lacre.identidad.ObligadoTributario;
-import dev.lacre.remision.EstadoEnvio;
-import dev.lacre.remision.EstadoEnvioAeat;
-import dev.lacre.remision.RemisionFallidaException;
-import dev.lacre.remision.RespuestaRemision;
-import dev.lacre.shared.Nif;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.KeyStore;
-import java.time.Duration;
-import java.time.ZoneId;
-import java.util.List;
-import java.util.UUID;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
@@ -31,6 +9,27 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.github.tomakehurst.wiremock.WireMockServer;
+import dev.lacre.identidad.AlmacenCertificados;
+import dev.lacre.identidad.CertificadoDeObligado;
+import dev.lacre.identidad.ObligadoTributario;
+import dev.lacre.remision.EstadoEnvio;
+import dev.lacre.remision.EstadoEnvioAeat;
+import dev.lacre.remision.RemisionFallidaException;
+import dev.lacre.remision.RespuestaRemision;
+import dev.lacre.shared.Nif;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyStore;
+import java.time.Duration;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * El cliente de la AEAT contra WireMock: aceptado, aceptado con errores, rechazado, timeout,
@@ -43,7 +42,9 @@ class ClienteAeatSoapTest {
 
     private static final ObligadoTributario OBLIGADO = ObligadoTributario.nuevo(
             UUID.fromString("00000000-0000-0000-0000-0000000000a1"),
-            new Nif("89890001K"), "Obligado de prueba SL", ZoneId.of("Europe/Madrid"));
+            new Nif("89890001K"),
+            "Obligado de prueba SL",
+            ZoneId.of("Europe/Madrid"));
 
     private static final String REGISTRO =
             "<sf:RegistroAlta xmlns:sf=\"https://www2.agenciatributaria.gob.es/static_files/common/"
@@ -58,8 +59,7 @@ class ClienteAeatSoapTest {
         aeat = new WireMockServer(options().dynamicPort());
         aeat.start();
         cliente = new ClienteAeatSoap(
-                new PropiedadesAeat(aeat.baseUrl() + RUTA, Duration.ofSeconds(2)),
-                almacenDePrueba());
+                new PropiedadesAeat(aeat.baseUrl() + RUTA, Duration.ofSeconds(2)), almacenDePrueba());
     }
 
     @AfterEach
@@ -71,15 +71,15 @@ class ClienteAeatSoapTest {
 
     @Test
     void unEnvioAceptadoDevuelveElCsvYLosDesenlacesDeCadaLinea() {
-        responder(200, respuesta("Correcto", "60",
-                linea("FA/1", "Correcto", "")));
+        responder(200, respuesta("Correcto", "60", linea("FA/1", "Correcto", "")));
 
         RespuestaRemision respuesta = cliente.remitir(OBLIGADO, List.of(REGISTRO));
 
         assertThat(respuesta.estado()).isEqualTo(EstadoEnvioAeat.CORRECTO);
         assertThat(respuesta.csv()).isEqualTo("A-CSV-DE-PRUEBA");
         assertThat(respuesta.tiempoEspera()).isEqualTo(Duration.ofSeconds(60));
-        assertThat(respuesta.lineas()).singleElement()
+        assertThat(respuesta.lineas())
+                .singleElement()
                 .satisfies(linea -> assertThat(linea.desenlace()).isEqualTo(EstadoEnvio.ACEPTADO));
     }
 
@@ -103,9 +103,16 @@ class ClienteAeatSoapTest {
 
     @Test
     void unRegistroAceptadoConErroresQuedaPresentadoYConSuCodigo() {
-        responder(200, respuesta("Correcto", "60", linea("FA/1", "AceptadoConErrores",
-                "<tikR:CodigoErrorRegistro>2000</tikR:CodigoErrorRegistro>"
-                        + "<tikR:DescripcionErrorRegistro>Huella incorrecta</tikR:DescripcionErrorRegistro>")));
+        responder(
+                200,
+                respuesta(
+                        "Correcto",
+                        "60",
+                        linea(
+                                "FA/1",
+                                "AceptadoConErrores",
+                                "<tikR:CodigoErrorRegistro>2000</tikR:CodigoErrorRegistro>"
+                                        + "<tikR:DescripcionErrorRegistro>Huella incorrecta</tikR:DescripcionErrorRegistro>")));
 
         RespuestaRemision respuesta = cliente.remitir(OBLIGADO, List.of(REGISTRO));
 
@@ -119,13 +126,18 @@ class ClienteAeatSoapTest {
 
     @Test
     void unRegistroRechazadoLlegaComoRechazoYNoComoFalloDeRemision() {
-        responder(200, respuesta("Incorrecto", "60", linea("FA/1", "Incorrecto",
-                "<tikR:CodigoErrorRegistro>1130</tikR:CodigoErrorRegistro>")));
+        responder(
+                200,
+                respuesta(
+                        "Incorrecto",
+                        "60",
+                        linea("FA/1", "Incorrecto", "<tikR:CodigoErrorRegistro>1130</tikR:CodigoErrorRegistro>")));
 
         RespuestaRemision respuesta = cliente.remitir(OBLIGADO, List.of(REGISTRO));
 
         assertThat(respuesta.estado()).isEqualTo(EstadoEnvioAeat.INCORRECTO);
-        assertThat(respuesta.lineas()).singleElement()
+        assertThat(respuesta.lineas())
+                .singleElement()
                 .satisfies(linea -> assertThat(linea.desenlace()).isEqualTo(EstadoEnvio.RECHAZADO));
     }
 
@@ -134,8 +146,8 @@ class ClienteAeatSoapTest {
     /** Un timeout no es un rechazo: el envío queda pendiente para reintentarlo. */
     @Test
     void unTimeoutNoSeConfundeConUnRechazo() {
-        aeat.stubFor(post(urlEqualTo(RUTA)).willReturn(
-                aResponse().withFixedDelay(5000).withStatus(200)));
+        aeat.stubFor(post(urlEqualTo(RUTA))
+                .willReturn(aResponse().withFixedDelay(5000).withStatus(200)));
 
         assertThatThrownBy(() -> cliente.remitir(OBLIGADO, List.of(REGISTRO)))
                 .isInstanceOf(RemisionFallidaException.class)
@@ -158,8 +170,7 @@ class ClienteAeatSoapTest {
     void elCuerpoDeUnErrorNoAcabaEnElMensaje() {
         responder(503, "<html>NIF 89890001K no autorizado</html>");
 
-        assertThatThrownBy(() -> cliente.remitir(OBLIGADO, List.of(REGISTRO)))
-                .hasMessageNotContaining("89890001K");
+        assertThatThrownBy(() -> cliente.remitir(OBLIGADO, List.of(REGISTRO))).hasMessageNotContaining("89890001K");
     }
 
     @Test
@@ -174,10 +185,11 @@ class ClienteAeatSoapTest {
     // --- Apoyo ---
 
     private void responder(int estado, String cuerpo) {
-        aeat.stubFor(post(urlEqualTo(RUTA)).willReturn(aResponse()
-                .withStatus(estado)
-                .withHeader("Content-Type", "text/xml; charset=utf-8")
-                .withBody(cuerpo)));
+        aeat.stubFor(post(urlEqualTo(RUTA))
+                .willReturn(aResponse()
+                        .withStatus(estado)
+                        .withHeader("Content-Type", "text/xml; charset=utf-8")
+                        .withBody(cuerpo)));
     }
 
     private static String respuesta(String estadoEnvio, String espera, String lineas) {
@@ -217,8 +229,7 @@ class ClienteAeatSoapTest {
     /** El mismo PKCS#12 autofirmado que usa el almacén en sus tests. */
     private static AlmacenCertificados almacenDePrueba() {
         return nif -> {
-            try (InputStream entrada = Files.newInputStream(
-                    Path.of("src/test/resources/certificados/89890001K.p12"))) {
+            try (InputStream entrada = Files.newInputStream(Path.of("src/test/resources/certificados/89890001K.p12"))) {
                 KeyStore almacen = KeyStore.getInstance("PKCS12");
                 almacen.load(entrada, "cambiar".toCharArray());
                 return CertificadoDeObligado.desde(almacen, "cambiar".toCharArray(), nif.valor());

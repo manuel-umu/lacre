@@ -1,5 +1,7 @@
 package dev.lacre.verifactu.internal.xml;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.IdOtro;
 import dev.lacre.shared.Importe;
@@ -14,13 +16,6 @@ import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.Registros;
 import dev.lacre.verifactu.registro.TipoFactura;
-import org.junit.jupiter.api.Test;
-import org.xml.sax.SAXException;
-import org.xmlunit.builder.DiffBuilder;
-import org.xmlunit.diff.Diff;
-
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Validator;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -31,8 +26,12 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Validator;
+import org.junit.jupiter.api.Test;
+import org.xml.sax.SAXException;
+import org.xmlunit.builder.DiffBuilder;
+import org.xmlunit.diff.Diff;
 
 /**
  * Serialización validada contra el XSD oficial: {@code RegistroFacturacionAltaType} es una
@@ -42,11 +41,11 @@ class EscritorRegistroTest {
 
     private static final Instant MOMENTO = Instant.parse("2024-01-01T18:20:30Z");
     private static final ZoneId MADRID = ZoneId.of("Europe/Madrid");
-    private static final EncadenadorRegistros ENCADENADOR = new EncadenadorRegistros(
-            Clock.fixed(MOMENTO, ZoneOffset.UTC), new CanonicalizadorAeat());
+    private static final EncadenadorRegistros ENCADENADOR =
+            new EncadenadorRegistros(Clock.fixed(MOMENTO, ZoneOffset.UTC), new CanonicalizadorAeat());
 
-    private static final Huella HUELLA_ANTERIOR = new Huella(
-            "3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60");
+    private static final Huella HUELLA_ANTERIOR =
+            new Huella("3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60");
 
     @Test
     void elPrimerRegistroDeLaCadenaValidaContraElEsquemaOficial() {
@@ -58,8 +57,7 @@ class EscritorRegistroTest {
 
     @Test
     void unRegistroEnlazadoValidaYLlevaLaIdentificacionCompletaDelAnterior() {
-        String xml = EscritorRegistro.escribir(
-                encadenar(Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
+        String xml = EscritorRegistro.escribir(encadenar(Optional.of(Registros.anterior(HUELLA_ANTERIOR))));
 
         assertThat(validar(xml)).isEmpty();
         assertThat(xml)
@@ -110,8 +108,8 @@ class EscritorRegistroTest {
     @Test
     void unDestinatarioExtranjeroSeSerializaComoIdOtro() {
         DatosRegistroAlta datos = Registros.alta()
-                .destinatarios(List.of(new PersonaFisicaJuridica("Jean Dupont",
-                        new IdOtro("FR", TipoIdentificacion.PASAPORTE, "12AB34567"))))
+                .destinatarios(List.of(new PersonaFisicaJuridica(
+                        "Jean Dupont", new IdOtro("FR", TipoIdentificacion.PASAPORTE, "12AB34567"))))
                 .build();
 
         String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(datos, Optional.empty(), MADRID));
@@ -127,10 +125,7 @@ class EscritorRegistroTest {
     void losIndicadoresEnFalsoNoSeEmiten() {
         String xml = EscritorRegistro.escribir(encadenar(Optional.empty()));
 
-        assertThat(xml)
-                .doesNotContain("Macrodato")
-                .doesNotContain("Cupon")
-                .doesNotContain("Subsanacion");
+        assertThat(xml).doesNotContain("Macrodato").doesNotContain("Cupon").doesNotContain("Subsanacion");
     }
 
     @Test
@@ -144,8 +139,8 @@ class EscritorRegistroTest {
 
     @Test
     void unaAnulacionValidaContraElEsquemaOficial() {
-        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(
-                Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
+        String xml = EscritorRegistro.escribir(
+                ENCADENADOR.encadenar(Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
 
         assertThat(validar(xml)).isEmpty();
         assertThat(xml)
@@ -158,8 +153,7 @@ class EscritorRegistroTest {
 
     @Test
     void unaAnulacionNoLlevaDesgloseNiImportes() {
-        String xml = EscritorRegistro.escribir(
-                ENCADENADOR.encadenar(Registros.anulacion(), Optional.empty(), MADRID));
+        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(Registros.anulacion(), Optional.empty(), MADRID));
 
         assertThat(xml)
                 .doesNotContain("Desglose")
@@ -172,7 +166,10 @@ class EscritorRegistroTest {
     void unaAnulacionGeneradaPorUnTerceroValidaConSuGenerador() {
         dev.lacre.verifactu.registro.DatosRegistroAnulacion datos =
                 new dev.lacre.verifactu.registro.DatosRegistroAnulacion(
-                        Registros.idFactura("12345679/G34"), "REF-ANU-1", true, true,
+                        Registros.idFactura("12345679/G34"),
+                        "REF-ANU-1",
+                        true,
+                        true,
                         dev.lacre.verifactu.registro.GeneradoPor.T,
                         new PersonaFisicaJuridica("Asesoría SL", new Nif("B12345674")),
                         Registros.sistemaInformatico());
@@ -189,11 +186,14 @@ class EscritorRegistroTest {
 
     @Test
     void coincideConElFicheroGoldenDeAnulacion() throws Exception {
-        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(
-                Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
+        String xml = EscritorRegistro.escribir(
+                ENCADENADOR.encadenar(Registros.anulacion(), Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
 
         Diff diff = DiffBuilder.compare(golden("registro-anulacion.xml"))
-                .withTest(xml).ignoreWhitespace().checkForSimilar().build();
+                .withTest(xml)
+                .ignoreWhitespace()
+                .checkForSimilar()
+                .build();
 
         assertThat(diff.hasDifferences())
                 .withFailMessage("El XML cambió respecto del golden:%n%s%n%nGenerado:%n%s", diff, xml)
@@ -211,8 +211,7 @@ class EscritorRegistroTest {
                 .build();
 
         assertThat(diff.hasDifferences())
-                .withFailMessage("El XML cambió respecto del golden:%n%s%n%nGenerado:%n%s",
-                        diff.toString(), xml)
+                .withFailMessage("El XML cambió respecto del golden:%n%s%n%nGenerado:%n%s", diff.toString(), xml)
                 .isFalse();
     }
 
@@ -223,7 +222,8 @@ class EscritorRegistroTest {
     /** Devuelve el mensaje del error de validación, o vacío si el documento es válido. */
     private static Optional<String> validar(String xml) {
         try {
-            Validator validador = EsquemasAeat.compilar("SuministroInformacion.xsd").newValidator();
+            Validator validador =
+                    EsquemasAeat.compilar("SuministroInformacion.xsd").newValidator();
             validador.validate(new StreamSource(new StringReader(xml)));
             return Optional.empty();
         } catch (SAXException e) {

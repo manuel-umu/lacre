@@ -1,7 +1,14 @@
 package dev.lacre.verifactu.desglose;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Porcentaje;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.Assume;
@@ -10,14 +17,6 @@ import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
 import net.jqwik.api.constraints.IntRange;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * Las sumas del desglose son consistentes para cualquier desglose válido. Los importes
@@ -28,15 +27,26 @@ class DesgloseProperties {
 
     @Provide
     Arbitrary<Desglose> desgloses() {
-        return detalles().list().ofMinSize(1).ofMaxSize(Desglose.MAXIMO_DETALLES).map(Desglose::new);
+        return detalles()
+                .list()
+                .ofMinSize(1)
+                .ofMaxSize(Desglose.MAXIMO_DETALLES)
+                .map(Desglose::new);
     }
 
     @Provide
     Arbitrary<DetalleDesglose> detalles() {
         return Combinators.combine(importes(), importes(), importes())
                 .as((base, cuota, recargo) -> new DetalleDesglose(
-                        Impuesto.IVA, new ClaveRegimen("01"), CalificacionOperacion.S1,
-                        Porcentaje.de("21"), base, null, cuota, null, recargo));
+                        Impuesto.IVA,
+                        new ClaveRegimen("01"),
+                        CalificacionOperacion.S1,
+                        Porcentaje.de("21"),
+                        base,
+                        null,
+                        cuota,
+                        null,
+                        recargo));
     }
 
     @Provide
@@ -57,12 +67,20 @@ class DesgloseProperties {
             @ForAll("tiposDeIva") String tipo,
             @ForAll @IntRange(min = -999, max = 999) int desvioEnCentimos) {
         Porcentaje porcentaje = Porcentaje.de(tipo);
-        Importe cuota = porcentaje.aplicarA(base).sumar(
-                new Importe(BigDecimal.valueOf(desvioEnCentimos, Importe.ESCALA)));
+        Importe cuota =
+                porcentaje.aplicarA(base).sumar(new Importe(BigDecimal.valueOf(desvioEnCentimos, Importe.ESCALA)));
         Assume.that(base.valor().signum() * cuota.valor().signum() >= 0);
 
-        DetalleDesglose linea = new DetalleDesglose(Impuesto.IVA, new ClaveRegimen("01"),
-                CalificacionOperacion.S1, porcentaje, base, null, cuota, null, null);
+        DetalleDesglose linea = new DetalleDesglose(
+                Impuesto.IVA,
+                new ClaveRegimen("01"),
+                CalificacionOperacion.S1,
+                porcentaje,
+                base,
+                null,
+                cuota,
+                null,
+                null);
 
         assertThatCode(linea::exigirCuotaCoherenteConLaBase).doesNotThrowAnyException();
     }
@@ -74,8 +92,7 @@ class DesgloseProperties {
 
     @Property
     void elTotalConImpuestosEsSiempreBasesMasCuotas(@ForAll("desgloses") Desglose desglose) {
-        assertThat(desglose.totalConImpuestos())
-                .isEqualTo(desglose.totalBases().sumar(desglose.totalCuotas()));
+        assertThat(desglose.totalConImpuestos()).isEqualTo(desglose.totalBases().sumar(desglose.totalCuotas()));
     }
 
     @Property
@@ -94,14 +111,14 @@ class DesgloseProperties {
     }
 
     @Property
-    void anadirUnaLineaSumaExactamenteSuAportacion(@ForAll("desgloses") Desglose desglose,
-                                                   @ForAll("detalles") DetalleDesglose nueva) {
+    void anadirUnaLineaSumaExactamenteSuAportacion(
+            @ForAll("desgloses") Desglose desglose, @ForAll("detalles") DetalleDesglose nueva) {
         List<DetalleDesglose> conUnaMas = new ArrayList<>(desglose.detalles());
         conUnaMas.add(nueva);
         Assume.that(conUnaMas.size() <= Desglose.MAXIMO_DETALLES);
 
-        assertThat(new Desglose(conUnaMas).totalConImpuestos()).isEqualTo(
-                desglose.totalConImpuestos()
+        assertThat(new Desglose(conUnaMas).totalConImpuestos())
+                .isEqualTo(desglose.totalConImpuestos()
                         .sumar(nueva.baseImponibleOimporteNoSujeto())
                         .sumar(nueva.cuotas()));
     }

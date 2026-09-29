@@ -24,10 +24,9 @@ public record PropiedadesApi(String clave) {
         }
         clave = clave.strip();
         if (clave.length() < MINIMO_LONGITUD_CLAVE) {
-            throw new IllegalStateException(
-                    "La clave de la API (LACRE_API_CLAVE) necesita al menos "
-                            + MINIMO_LONGITUD_CLAVE + " caracteres y tiene " + clave.length()
-                            + ". Genérala con: openssl rand -base64 32");
+            throw new IllegalStateException("La clave de la API (LACRE_API_CLAVE) necesita al menos "
+                    + MINIMO_LONGITUD_CLAVE + " caracteres y tiene " + clave.length()
+                    + ". Genérala con: openssl rand -base64 32");
         }
     }
 }

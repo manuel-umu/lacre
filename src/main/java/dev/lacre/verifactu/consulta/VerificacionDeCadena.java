@@ -10,8 +10,7 @@ import java.util.UUID;
  * @param registros cuántos tiene la cadena
  * @param roturas vacía si todo encaja; en orden de posición
  */
-public record VerificacionDeCadena(
-        UUID obligadoId, long registros, List<Rotura> roturas, Alcance alcance) {
+public record VerificacionDeCadena(UUID obligadoId, long registros, List<Rotura> roturas, Alcance alcance) {
 
     public VerificacionDeCadena {
         roturas = List.copyOf(roturas);

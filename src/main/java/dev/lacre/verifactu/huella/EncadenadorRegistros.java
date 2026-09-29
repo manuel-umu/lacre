@@ -1,10 +1,9 @@
 package dev.lacre.verifactu.huella;
 
-import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.internal.CalculadorHuella;
 import dev.lacre.verifactu.registro.DatosRegistro;
+import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
-
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -31,8 +30,8 @@ public final class EncadenadorRegistros {
      * @param registroAnterior vacío si es el primer registro de la cadena del obligado
      * @param zonaDelObligado zona con la que se fecha el registro; entra en el cálculo de la huella
      */
-    public RegistroEncadenado encadenar(DatosRegistro datos, Optional<RegistroAnterior> registroAnterior,
-                                        ZoneId zonaDelObligado) {
+    public RegistroEncadenado encadenar(
+            DatosRegistro datos, Optional<RegistroAnterior> registroAnterior, ZoneId zonaDelObligado) {
         Objects.requireNonNull(datos, "datos");
         Objects.requireNonNull(registroAnterior, "registroAnterior");
         Objects.requireNonNull(zonaDelObligado, "zonaDelObligado");
@@ -41,9 +40,9 @@ public final class EncadenadorRegistros {
         OffsetDateTime fechaHoraHusoGenRegistro =
                 OffsetDateTime.now(reloj.withZone(zonaDelObligado)).truncatedTo(ChronoUnit.SECONDS);
 
-        String cadenaCanonica = canonicalizador.canonicalizar(
-                datos.camposDeHuella(), registroAnterior, fechaHoraHusoGenRegistro);
-        return new RegistroEncadenado(datos, registroAnterior, fechaHoraHusoGenRegistro,
-                CalculadorHuella.calcular(cadenaCanonica));
+        String cadenaCanonica =
+                canonicalizador.canonicalizar(datos.camposDeHuella(), registroAnterior, fechaHoraHusoGenRegistro);
+        return new RegistroEncadenado(
+                datos, registroAnterior, fechaHoraHusoGenRegistro, CalculadorHuella.calcular(cadenaCanonica));
     }
 }

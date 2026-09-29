@@ -1,14 +1,13 @@
 package dev.lacre.identidad;
 
-import dev.lacre.shared.Nif;
-import dev.lacre.shared.ValorInvalidoException;
-import org.junit.jupiter.api.Test;
-
-import java.time.ZoneId;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import dev.lacre.shared.Nif;
+import dev.lacre.shared.ValorInvalidoException;
+import java.time.ZoneId;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
 
 class ObligadoTributarioTest {
 
@@ -18,8 +17,8 @@ class ObligadoTributarioTest {
 
     @Test
     void unObligadoNuevoNaceEnLaVersionCero() {
-        ObligadoTributario obligado = ObligadoTributario.nuevo(
-                ID, NIF, "Obligado de prueba SL", ZoneId.of("Atlantic/Canary"));
+        ObligadoTributario obligado =
+                ObligadoTributario.nuevo(ID, NIF, "Obligado de prueba SL", ZoneId.of("Atlantic/Canary"));
 
         assertThat(obligado.version()).isZero();
         assertThat(obligado.zonaHoraria()).isEqualTo(ZoneId.of("Atlantic/Canary"));

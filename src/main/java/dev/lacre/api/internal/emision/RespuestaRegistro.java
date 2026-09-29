@@ -1,7 +1,6 @@
 package dev.lacre.api.internal.emision;
 
 import dev.lacre.verifactu.emision.AnomaliaPrevia;
-
 import java.util.List;
 import java.util.UUID;
 
@@ -13,8 +12,7 @@ import java.util.UUID;
  *               imprime
  * @param avisos anomalías de la cadena detectadas al registrar; vacío si no hubo ninguna
  */
-public record RespuestaRegistro(UUID registroId, long posicion, String huella, String urlQr,
-                                List<Aviso> avisos) {
+public record RespuestaRegistro(UUID registroId, long posicion, String huella, String urlQr, List<Aviso> avisos) {
 
     public RespuestaRegistro {
         avisos = List.copyOf(avisos);

@@ -3,12 +3,11 @@ package dev.lacre.identidad;
 import dev.lacre.shared.Nif;
 import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
+import java.time.ZoneId;
+import java.util.UUID;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.relational.core.mapping.Table;
-
-import java.time.ZoneId;
-import java.util.UUID;
 
 /**
  * Obligado tributario por cuya cuenta se expiden facturas (art. 3 del RD 1007/2023). Su zona
@@ -30,8 +29,7 @@ public record ObligadoTributario(
             throw new ValorInvalidoException("El obligado necesita NIF");
         }
         if (zonaHoraria == null) {
-            throw new ValorInvalidoException(
-                    "El obligado necesita zona horaria: entra en el cálculo de la huella");
+            throw new ValorInvalidoException("El obligado necesita zona horaria: entra en el cálculo de la huella");
         }
         nombreRazon = Textos.obligatorio(nombreRazon, 120, "El nombre o razón social del obligado");
     }

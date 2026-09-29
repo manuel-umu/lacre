@@ -3,7 +3,6 @@ package dev.lacre.verifactu.qr;
 import dev.lacre.verifactu.internal.FormatosAeat;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -13,8 +12,7 @@ import java.nio.charset.StandardCharsets;
  */
 public final class UrlDeCotejo {
 
-    private UrlDeCotejo() {
-    }
+    private UrlDeCotejo() {}
 
     /**
      * @param urlBase del servicio de cotejo, terminada en {@code ?}; distingue producción de

@@ -18,7 +18,6 @@ import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.ImporteRectificacion;
 import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
 import dev.lacre.verifactu.registro.SistemaInformatico;
-
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -32,12 +31,10 @@ import java.util.stream.Collectors;
  */
 final class MapeadorDeAlta {
 
-    private static final Map<String, Impuesto> IMPUESTOS_POR_CODIGO = Arrays
-            .stream(Impuesto.values())
+    private static final Map<String, Impuesto> IMPUESTOS_POR_CODIGO = Arrays.stream(Impuesto.values())
             .collect(Collectors.toUnmodifiableMap(Impuesto::codigo, impuesto -> impuesto));
 
-    private MapeadorDeAlta() {
-    }
+    private MapeadorDeAlta() {}
 
     static DatosRegistroAlta aDatos(PeticionAlta peticion, SistemaInformatico sistemaInformatico) {
         return DatosRegistroAlta.builder()
@@ -61,7 +58,9 @@ final class MapeadorDeAlta {
                 .tercero(PersonaDto.opcional(peticion.tercero()))
                 .destinatarios(personas(peticion.destinatarios()))
                 .cupon(PeticionRegistro.si(peticion.cupon()))
-                .desglose(new Desglose(peticion.desglose().stream().map(MapeadorDeAlta::detalle).toList()))
+                .desglose(new Desglose(peticion.desglose().stream()
+                        .map(MapeadorDeAlta::detalle)
+                        .toList()))
                 .cuotaTotal(importe(peticion.cuotaTotal()))
                 .importeTotal(importe(peticion.importeTotal()))
                 .sistemaInformatico(sistemaInformatico)
@@ -71,11 +70,15 @@ final class MapeadorDeAlta {
     }
 
     private static List<IdFactura> idsFactura(List<IdFacturaDto> dtos) {
-        return dtos == null ? List.of() : dtos.stream().map(IdFacturaDto::aDominio).toList();
+        return dtos == null
+                ? List.of()
+                : dtos.stream().map(IdFacturaDto::aDominio).toList();
     }
 
     private static List<PersonaFisicaJuridica> personas(List<PersonaDto> dtos) {
-        return dtos == null ? List.of() : dtos.stream().map(PersonaDto::aDominio).toList();
+        return dtos == null
+                ? List.of()
+                : dtos.stream().map(PersonaDto::aDominio).toList();
     }
 
     private static DetalleDesglose detalle(PeticionAlta.Detalle dto) {
@@ -94,8 +97,8 @@ final class MapeadorDeAlta {
     private static Impuesto impuesto(String codigo) {
         Impuesto impuesto = IMPUESTOS_POR_CODIGO.get(codigo.strip());
         if (impuesto == null) {
-            throw new ValorInvalidoException("Código de impuesto desconocido: " + codigo
-                    + ". Admitidos: " + IMPUESTOS_POR_CODIGO.keySet().stream().sorted().toList());
+            throw new ValorInvalidoException("Código de impuesto desconocido: " + codigo + ". Admitidos: "
+                    + IMPUESTOS_POR_CODIGO.keySet().stream().sorted().toList());
         }
         return impuesto;
     }
@@ -104,9 +107,7 @@ final class MapeadorDeAlta {
     private static Calificacion calificacion(String codigo) {
         String limpio = codigo.strip().toUpperCase(Locale.ROOT);
         try {
-            return limpio.startsWith("E")
-                    ? OperacionExenta.valueOf(limpio)
-                    : CalificacionOperacion.valueOf(limpio);
+            return limpio.startsWith("E") ? OperacionExenta.valueOf(limpio) : CalificacionOperacion.valueOf(limpio);
         } catch (IllegalArgumentException e) {
             throw new ValorInvalidoException("Calificación desconocida: " + codigo
                     + ". Admitidas: " + Arrays.toString(CalificacionOperacion.values())
@@ -115,10 +116,12 @@ final class MapeadorDeAlta {
     }
 
     private static ImporteRectificacion rectificacion(PeticionAlta.Rectificacion dto) {
-        return dto == null ? null : new ImporteRectificacion(
-                importe(dto.baseRectificada()),
-                importe(dto.cuotaRectificada()),
-                importe(dto.cuotaRecargoRectificado()));
+        return dto == null
+                ? null
+                : new ImporteRectificacion(
+                        importe(dto.baseRectificada()),
+                        importe(dto.cuotaRectificada()),
+                        importe(dto.cuotaRecargoRectificado()));
     }
 
     private static Importe importe(BigDecimal valor) {

@@ -3,7 +3,6 @@ package dev.lacre.verifactu.consulta;
 import dev.lacre.shared.Huella;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.TipoRegistro;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -21,5 +20,4 @@ public record RegistroGuardado(
         IdFactura idFactura,
         Huella huella,
         Huella huellaAnterior,
-        OffsetDateTime fechaHoraHusoGenRegistro) {
-}
+        OffsetDateTime fechaHoraHusoGenRegistro) {}

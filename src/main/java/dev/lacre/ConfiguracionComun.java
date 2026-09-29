@@ -1,11 +1,10 @@
 package dev.lacre;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import java.time.Clock;
 import java.util.UUID;
 import java.util.function.Supplier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * Reloj y generador de identificadores de la aplicación, inyectables para que los tests puedan

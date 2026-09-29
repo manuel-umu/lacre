@@ -3,7 +3,6 @@ package dev.lacre.verifactu.registro;
 import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
-
 import java.util.regex.Pattern;
 
 /**
@@ -45,11 +44,13 @@ public record SistemaInformatico(
         idSistemaInformatico = Textos.obligatorio(
                 idSistemaInformatico, MAXIMO_LONGITUD_ID, "El identificador del sistema informático");
         version = Textos.obligatorio(version, MAXIMO_LONGITUD_VERSION, "La versión del sistema informático");
-        numeroInstalacion = Textos.obligatorio(
-                numeroInstalacion, MAXIMO_LONGITUD_NUMERO_INSTALACION, "El número de instalación");
+        numeroInstalacion =
+                Textos.obligatorio(numeroInstalacion, MAXIMO_LONGITUD_NUMERO_INSTALACION, "El número de instalación");
 
-        ReglaAeatIncumplidaException.exigir(ID_SISTEMA.matcher(idSistemaInformatico).matches(),
-                "1177", "El identificador del sistema informático son dos caracteres, cada uno "
+        ReglaAeatIncumplidaException.exigir(
+                ID_SISTEMA.matcher(idSistemaInformatico).matches(),
+                "1177",
+                "El identificador del sistema informático son dos caracteres, cada uno "
                         + "letra mayúscula sin Ñ o dígito, y es " + idSistemaInformatico);
         productor.exigirComoProductor();
         if (indicadorMultiplesOT && !tipoUsoPosibleMultiOT) {

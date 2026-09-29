@@ -21,8 +21,8 @@ public record PropiedadesQr(String urlBase) {
         }
         if (!urlBase.endsWith("?")) {
             throw new IllegalStateException(
-                    "lacre.qr.url-base debe terminar en '?': los cuatro parámetros se le añaden "
-                            + "detrás. Recibido: " + urlBase);
+                    "lacre.qr.url-base debe terminar en '?': los cuatro parámetros se le añaden " + "detrás. Recibido: "
+                            + urlBase);
         }
     }
 }

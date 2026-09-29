@@ -1,7 +1,6 @@
 package dev.lacre.verifactu.internal;
 
 import dev.lacre.shared.Importe;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -16,11 +15,9 @@ public final class FormatosAeat {
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     /** Patrón explícito: {@code ISO_OFFSET_DATE_TIME} omite los segundos cuando valen cero. */
-    private static final DateTimeFormatter FECHA_HORA_HUSO =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+    private static final DateTimeFormatter FECHA_HORA_HUSO = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
 
-    private FormatosAeat() {
-    }
+    private FormatosAeat() {}
 
     public static String fecha(LocalDate fecha) {
         return fecha.format(FECHA);

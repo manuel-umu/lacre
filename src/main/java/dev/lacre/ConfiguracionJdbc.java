@@ -2,14 +2,13 @@ package dev.lacre;
 
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Nif;
+import java.time.ZoneId;
+import java.util.List;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
 import org.springframework.data.jdbc.repository.config.AbstractJdbcConfiguration;
-
-import java.time.ZoneId;
-import java.util.List;
 
 /**
  * Conversores de Spring Data JDBC para los value objects que ocupan una columna: {@link Nif},

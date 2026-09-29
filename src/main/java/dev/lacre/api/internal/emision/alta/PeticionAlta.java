@@ -14,7 +14,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -50,7 +49,8 @@ public record PeticionAlta(
         @NotNull BigDecimal cuotaTotal,
         @NotNull BigDecimal importeTotal,
         String numRegistroAcuerdoFacturacion,
-        String idAcuerdoSistemaInformatico) implements PeticionRegistro {
+        String idAcuerdoSistemaInformatico)
+        implements PeticionRegistro {
 
     @Override
     public IdFacturaDto factura() {
@@ -65,9 +65,10 @@ public record PeticionAlta(
     /** El importe total entra normalizado a dos decimales. */
     @Override
     public String discriminante() {
-        return "ALTA:" + (importeTotal == null
-                ? ""
-                : importeTotal.setScale(2, RoundingMode.HALF_UP).toPlainString());
+        return "ALTA:"
+                + (importeTotal == null
+                        ? ""
+                        : importeTotal.setScale(2, RoundingMode.HALF_UP).toPlainString());
     }
 
     /**
@@ -86,13 +87,11 @@ public record PeticionAlta(
             BigDecimal baseImponibleACoste,
             BigDecimal cuotaRepercutida,
             BigDecimal tipoRecargoEquivalencia,
-            BigDecimal cuotaRecargoEquivalencia) {
-    }
+            BigDecimal cuotaRecargoEquivalencia) {}
 
     /** Base y cuota sustituidas en una rectificativa por sustitución. */
     public record Rectificacion(
             @NotNull BigDecimal baseRectificada,
             @NotNull BigDecimal cuotaRectificada,
-            BigDecimal cuotaRecargoRectificado) {
-    }
+            BigDecimal cuotaRecargoRectificado) {}
 }

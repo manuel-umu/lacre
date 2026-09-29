@@ -9,7 +9,6 @@ import dev.lacre.verifactu.desglose.ClaveRegimen;
 import dev.lacre.verifactu.desglose.Desglose;
 import dev.lacre.verifactu.desglose.DetalleDesglose;
 import dev.lacre.verifactu.desglose.Impuesto;
-
 import java.time.LocalDate;
 import java.util.List;
 
@@ -25,8 +24,7 @@ public final class Registros {
     /** Fecha de expedición posterior a la entrada en vigor de la Orden HAC/1177/2024. */
     public static final LocalDate FECHA_EMITIBLE = LocalDate.of(2025, 1, 15);
 
-    private Registros() {
-    }
+    private Registros() {}
 
     /** Builder con todos los campos obligatorios ya puestos, listo para sobrescribir. */
     public static DatosRegistroAlta.Builder alta() {
@@ -58,8 +56,7 @@ public final class Registros {
     /** Anulación del ejemplo oficial de la huella. */
     public static DatosRegistroAnulacion anulacion() {
         return new DatosRegistroAnulacion(
-                idFactura("12345679/G34"), null, false, false, null, null,
-                sistemaInformatico());
+                idFactura("12345679/G34"), null, false, false, null, null, sistemaInformatico());
     }
 
     public static IdFactura idFactura(String numSerie) {
@@ -77,14 +74,26 @@ public final class Registros {
      */
     public static Desglose desglose() {
         return Desglose.de(new DetalleDesglose(
-                Impuesto.IVA, new ClaveRegimen("01"), CalificacionOperacion.S1,
-                Porcentaje.de("10"), Importe.de("111.10"), null, Importe.de("12.35"), null, null));
+                Impuesto.IVA,
+                new ClaveRegimen("01"),
+                CalificacionOperacion.S1,
+                Porcentaje.de("10"),
+                Importe.de("111.10"),
+                null,
+                Importe.de("12.35"),
+                null,
+                null));
     }
 
     public static SistemaInformatico sistemaInformatico() {
         return new SistemaInformatico(
                 new PersonaFisicaJuridica("lacre", new Nif("12345678Z")),
-                "lacre", "01", "0.0.1", "0001",
-                true, false, false);
+                "lacre",
+                "01",
+                "0.0.1",
+                "0001",
+                true,
+                false,
+                false);
     }
 }

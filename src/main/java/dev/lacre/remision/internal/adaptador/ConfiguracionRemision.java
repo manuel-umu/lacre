@@ -6,5 +6,4 @@ import org.springframework.context.annotation.Configuration;
 /** Configuración del módulo {@code remision}. */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(PropiedadesAeat.class)
-class ConfiguracionRemision {
-}
+class ConfiguracionRemision {}

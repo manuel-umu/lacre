@@ -1,5 +1,9 @@
 package dev.lacre.verifactu.internal;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Porcentaje;
 import dev.lacre.shared.ReglaAeatIncumplidaException;
@@ -11,16 +15,11 @@ import dev.lacre.verifactu.desglose.Impuesto;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.Registros;
+import java.time.LocalDate;
+import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.time.LocalDate;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class FechasAeatTest {
 
@@ -28,14 +27,22 @@ class FechasAeatTest {
 
     /** Clave de régimen 15, que admite una operación posterior a la expedición. */
     private static final Desglose DESGLOSE_DEVENGO_PENDIENTE = Desglose.de(new DetalleDesglose(
-            Impuesto.IVA, new ClaveRegimen("15"), CalificacionOperacion.S1,
-            Porcentaje.de("10"), Importe.de("111.10"), null, Importe.de("12.35"), null, null));
+            Impuesto.IVA,
+            new ClaveRegimen("15"),
+            CalificacionOperacion.S1,
+            Porcentaje.de("10"),
+            Importe.de("111.10"),
+            null,
+            Importe.de("12.35"),
+            null,
+            null));
 
     @ParameterizedTest
     @MethodSource("altasRechazadas")
     void rechazaFechasFueraDeRango(DatosRegistroAlta datos, String codigo) {
         assertThatThrownBy(() -> FechasAeat.exigir(datos, HOY))
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo(codigo));
     }
 
@@ -43,8 +50,7 @@ class FechasAeatTest {
         return Stream.of(
                 Arguments.arguments(conExpedicion(LocalDate.of(2024, 10, 27)), "1152"),
                 Arguments.arguments(conExpedicion(HOY.plusDays(1)), "1112"),
-                Arguments.arguments(
-                        conOperacion(HOY.minusYears(20).minusDays(1)), "1134"),
+                Arguments.arguments(conOperacion(HOY.minusYears(20).minusDays(1)), "1134"),
                 Arguments.arguments(conOperacion(LocalDate.of(2028, 1, 1)), "1125"));
     }
 

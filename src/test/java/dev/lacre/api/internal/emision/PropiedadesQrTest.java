@@ -1,12 +1,12 @@
 package dev.lacre.api.internal.emision;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Validación de la URL base del código QR, sin Spring. */
 class PropiedadesQrTest {
@@ -41,8 +41,8 @@ class PropiedadesQrTest {
         new ApplicationContextRunner()
                 .withUserConfiguration(HabilitaLasPropiedades.class)
                 .withPropertyValues("lacre.qr.url-base=")
-                .run(contexto -> assertThat(contexto).hasFailed()
-                        .getFailure().hasStackTraceContaining("lacre.qr.url-base"));
+                .run(contexto ->
+                        assertThat(contexto).hasFailed().getFailure().hasStackTraceContaining("lacre.qr.url-base"));
     }
 
     @Test
@@ -55,6 +55,5 @@ class PropiedadesQrTest {
 
     @Configuration(proxyBeanMethods = false)
     @EnableConfigurationProperties(PropiedadesQr.class)
-    static class HabilitaLasPropiedades {
-    }
+    static class HabilitaLasPropiedades {}
 }

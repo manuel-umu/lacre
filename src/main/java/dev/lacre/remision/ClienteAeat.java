@@ -1,7 +1,6 @@
 package dev.lacre.remision;
 
 import dev.lacre.identidad.ObligadoTributario;
-
 import java.util.List;
 
 /** Puerto hacia el servicio web de la AEAT. */

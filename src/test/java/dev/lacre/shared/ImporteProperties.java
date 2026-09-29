@@ -1,14 +1,13 @@
 package dev.lacre.shared;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.math.BigDecimal;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
-
-import java.math.BigDecimal;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class ImporteProperties {
 
@@ -33,8 +32,8 @@ class ImporteProperties {
     }
 
     @Property
-    void laSumaEsAsociativa(@ForAll("importes") Importe a, @ForAll("importes") Importe b,
-                            @ForAll("importes") Importe c) {
+    void laSumaEsAsociativa(
+            @ForAll("importes") Importe a, @ForAll("importes") Importe b, @ForAll("importes") Importe c) {
         assertThat(a.sumar(b).sumar(c)).isEqualTo(a.sumar(b.sumar(c)));
     }
 

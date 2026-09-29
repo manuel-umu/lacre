@@ -15,27 +15,30 @@ public final class OperativaAeat {
     /** Registro de facturación duplicado, en el catálogo de errores de la AEAT. */
     public static final String REGISTRO_DUPLICADO = "3000";
 
-    private OperativaAeat() {
-    }
+    private OperativaAeat() {}
 
     /** Exige que la operativa admita una factura que ya tiene un registro de alta o anulación. */
     public static void exigir(DatosRegistro datos, boolean laFacturaYaTieneRegistro) {
         if (!laFacturaYaTieneRegistro) {
             return;
         }
-        String yaExiste = "La factura " + datos.idFactura().numSerieFactura()
-                + " ya tiene un registro: ";
+        String yaExiste = "La factura " + datos.idFactura().numSerieFactura() + " ya tiene un registro: ";
         switch (datos) {
             case DatosRegistroAlta alta -> {
-                ReglaAeatIncumplidaException.exigir(alta.subsanacion(), REGISTRO_DUPLICADO,
+                ReglaAeatIncumplidaException.exigir(
+                        alta.subsanacion(),
+                        REGISTRO_DUPLICADO,
                         yaExiste + "un alta nueva tiene que ser una subsanación");
-                ReglaAeatIncumplidaException.exigir(alta.rechazoPrevio() != RechazoPrevio.X,
+                ReglaAeatIncumplidaException.exigir(
+                        alta.rechazoPrevio() != RechazoPrevio.X,
                         REGISTRO_DUPLICADO,
                         yaExiste + "RechazoPrevio = X solo cabe si no existe en la AEAT");
             }
-            case DatosRegistroAnulacion anulacion -> ReglaAeatIncumplidaException.exigir(
-                    !anulacion.sinRegistroPrevio(), REGISTRO_DUPLICADO,
-                    yaExiste + "la anulación no puede declararse sin registro previo");
+            case DatosRegistroAnulacion anulacion ->
+                ReglaAeatIncumplidaException.exigir(
+                        !anulacion.sinRegistroPrevio(),
+                        REGISTRO_DUPLICADO,
+                        yaExiste + "la anulación no puede declararse sin registro previo");
         }
     }
 }

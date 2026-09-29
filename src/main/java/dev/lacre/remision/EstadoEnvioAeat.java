@@ -7,7 +7,6 @@ import dev.lacre.shared.ValorInvalidoException;
  * no de cada registro.
  */
 public enum EstadoEnvioAeat {
-
     CORRECTO("Correcto"),
     PARCIALMENTE_CORRECTO("ParcialmenteCorrecto"),
     INCORRECTO("Incorrecto");

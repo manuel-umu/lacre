@@ -1,22 +1,19 @@
 package dev.lacre.verifactu.desglose;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.shared.ValorInvalidoException;
-import dev.lacre.verifactu.registro.TipoFactura;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Fija los catálogos del desglose: el nombre de cada constante es formato de intercambio. */
 class CatalogosDesgloseTest {
 
     @Test
     void elCatalogoDeImpuestosEsElDeLaListaL1() {
-        assertThat(Impuesto.values())
-                .extracting(Impuesto::codigo)
-                .containsExactly("01", "02", "03", "05");
+        assertThat(Impuesto.values()).extracting(Impuesto::codigo).containsExactly("01", "02", "03", "05");
     }
 
     @Test
@@ -40,8 +37,11 @@ class CatalogosDesgloseTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"01", "02", "03", "04", "05", "06", "07", "08", "09",
-            "10", "11", "14", "15", "17", "18", "19", "20", "21"})
+    @ValueSource(
+            strings = {
+                "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "14", "15", "17", "18", "19", "20",
+                "21"
+            })
     void aceptaLasDieciochoClavesDeRegimenDelXsd(String codigo) {
         assertThat(new ClaveRegimen(codigo).codigo()).isEqualTo(codigo);
     }
@@ -49,8 +49,7 @@ class CatalogosDesgloseTest {
     @ParameterizedTest
     @ValueSource(strings = {"12", "13", "16", "00", "22", "1", "IVA", ""})
     void rechazaClavesDeRegimenQueNoEstanEnElCatalogo(String codigo) {
-        assertThatThrownBy(() -> new ClaveRegimen(codigo))
-                .isInstanceOf(ValorInvalidoException.class);
+        assertThatThrownBy(() -> new ClaveRegimen(codigo)).isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test

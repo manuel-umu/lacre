@@ -8,7 +8,6 @@ import dev.lacre.shared.ValorInvalidoException;
 import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,19 +17,18 @@ import java.util.stream.Collectors;
  * identifica con {@code nif} o con {@code idOtro}, exactamente uno de los dos.
  */
 public record PersonaDto(
-        @NotBlank String nombreRazon,
-        String nif,
-        @Valid IdOtroDto idOtro) {
+        @NotBlank String nombreRazon, String nif, @Valid IdOtroDto idOtro) {
 
     /**
      * @param tipo código de la lista L7: 02 NIF-IVA, 03 pasaporte, 04 documento del país de
      *             residencia, 05 certificado de residencia, 06 otro documento, 07 no censado
      */
-    public record IdOtroDto(String codigoPais, @NotBlank String tipo, @NotBlank String id) {
-    }
+    public record IdOtroDto(
+            String codigoPais,
+            @NotBlank String tipo,
+            @NotBlank String id) {}
 
-    private static final Map<String, TipoIdentificacion> POR_CODIGO = Arrays
-            .stream(TipoIdentificacion.values())
+    private static final Map<String, TipoIdentificacion> POR_CODIGO = Arrays.stream(TipoIdentificacion.values())
             .collect(Collectors.toUnmodifiableMap(TipoIdentificacion::codigo, tipo -> tipo));
 
     /** Admite nulo y devuelve nulo. */
@@ -45,18 +43,18 @@ public record PersonaDto(
     private IdentificadorFiscal identificador() {
         boolean tieneNif = nif != null && !nif.isBlank();
         if (tieneNif == (idOtro != null)) {
-            throw new ValorInvalidoException(
-                    "El destinatario o tercero " + nombreRazon + " debe identificarse con "
-                            + "nif o con idOtro, exactamente uno de los dos: el XSD los declara "
-                            + "excluyentes");
+            throw new ValorInvalidoException("El destinatario o tercero " + nombreRazon + " debe identificarse con "
+                    + "nif o con idOtro, exactamente uno de los dos: el XSD los declara "
+                    + "excluyentes");
         }
         if (tieneNif) {
             return new Nif(nif);
         }
-        TipoIdentificacion tipo = POR_CODIGO.get(idOtro.tipo() == null ? null : idOtro.tipo().strip());
+        TipoIdentificacion tipo =
+                POR_CODIGO.get(idOtro.tipo() == null ? null : idOtro.tipo().strip());
         if (tipo == null) {
-            throw new ValorInvalidoException("Código de tipo de identificación desconocido: "
-                    + idOtro.tipo() + ". Admitidos: " + POR_CODIGO.keySet().stream().sorted().toList());
+            throw new ValorInvalidoException("Código de tipo de identificación desconocido: " + idOtro.tipo()
+                    + ". Admitidos: " + POR_CODIGO.keySet().stream().sorted().toList());
         }
         return new IdOtro(idOtro.codigoPais(), tipo, idOtro.id());
     }

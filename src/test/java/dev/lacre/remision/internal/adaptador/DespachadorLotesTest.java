@@ -1,5 +1,7 @@
 package dev.lacre.remision.internal.adaptador;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.lacre.TestcontainersConfiguration;
 import dev.lacre.identidad.CertificadoNoDisponibleException;
 import dev.lacre.identidad.ObligadoTributario;
@@ -8,10 +10,10 @@ import dev.lacre.identidad.ObligadosDePrueba;
 import dev.lacre.remision.ClienteAeat;
 import dev.lacre.remision.EnvioRechazadoException;
 import dev.lacre.remision.EnvioRegistro;
+import dev.lacre.remision.Envios;
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.EstadoEnvioAeat;
 import dev.lacre.remision.EstadoRegistroAeat;
-import dev.lacre.remision.Envios;
 import dev.lacre.remision.LineaRespuesta;
 import dev.lacre.remision.RemisionFallidaException;
 import dev.lacre.remision.RespuestaRemision;
@@ -21,6 +23,15 @@ import dev.lacre.verifactu.registro.DatosRegistroAnulacion;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.Registros;
 import dev.lacre.verifactu.registro.TipoRegistro;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,18 +42,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * El despachador contra Postgres real y un cliente de la AEAT falso: control de flujo,
@@ -89,8 +88,11 @@ class DespachadorLotesTest {
     }
 
     private RegistroFacturacion emitir(String numSerie) {
-        return cadena.anadir(obligado,
-                Registros.emitible().idFactura(Registros.idFacturaEmitible(numSerie)).build());
+        return cadena.anadir(
+                obligado,
+                Registros.emitible()
+                        .idFactura(Registros.idFacturaEmitible(numSerie))
+                        .build());
     }
 
     // --- Control de flujo, art. 16.2 ---
@@ -160,7 +162,9 @@ class DespachadorLotesTest {
         RegistroFacturacion aceptado = emitir("FA/1");
         RegistroFacturacion conErrores = emitir("FA/2");
         RegistroFacturacion rechazado = emitir("FA/3");
-        aeat.responder(EstadoEnvioAeat.PARCIALMENTE_CORRECTO, Duration.ofSeconds(60),
+        aeat.responder(
+                EstadoEnvioAeat.PARCIALMENTE_CORRECTO,
+                Duration.ofSeconds(60),
                 linea(aceptado, EstadoRegistroAeat.CORRECTO, null),
                 linea(conErrores, EstadoRegistroAeat.ACEPTADO_CON_ERRORES, 2000),
                 linea(rechazado, EstadoRegistroAeat.INCORRECTO, 1130));
@@ -176,7 +180,9 @@ class DespachadorLotesTest {
     @Test
     void elCodigoDeDuplicadoNoSeGuardaComoRechazo() {
         RegistroFacturacion registro = emitir("FA/1");
-        aeat.responder(EstadoEnvioAeat.INCORRECTO, Duration.ofSeconds(60),
+        aeat.responder(
+                EstadoEnvioAeat.INCORRECTO,
+                Duration.ofSeconds(60),
                 linea(registro, EstadoRegistroAeat.INCORRECTO, 3000));
 
         despachador.despachar();
@@ -191,16 +197,28 @@ class DespachadorLotesTest {
     @Test
     void distingueElAltaDeLaAnulacionDeLaMismaFactura() {
         RegistroFacturacion alta = emitir("12345679/G34");
-        RegistroFacturacion anulacion = cadena.anadir(obligado, new DatosRegistroAnulacion(
-                Registros.idFacturaEmitible("12345679/G34"), null, false, false, null, null,
-                Registros.sistemaInformatico()));
+        RegistroFacturacion anulacion = cadena.anadir(
+                obligado,
+                new DatosRegistroAnulacion(
+                        Registros.idFacturaEmitible("12345679/G34"),
+                        null,
+                        false,
+                        false,
+                        null,
+                        null,
+                        Registros.sistemaInformatico()));
         assertThat(idFacturaDe(alta)).isEqualTo(idFacturaDe(anulacion));
 
-        aeat.responder(EstadoEnvioAeat.PARCIALMENTE_CORRECTO, Duration.ofSeconds(60),
-                new LineaRespuesta(idFacturaDe(alta), TipoRegistro.ALTA,
-                        EstadoRegistroAeat.CORRECTO, null, null),
-                new LineaRespuesta(idFacturaDe(anulacion), TipoRegistro.ANULACION,
-                        EstadoRegistroAeat.INCORRECTO, 1130, "Rechazada"));
+        aeat.responder(
+                EstadoEnvioAeat.PARCIALMENTE_CORRECTO,
+                Duration.ofSeconds(60),
+                new LineaRespuesta(idFacturaDe(alta), TipoRegistro.ALTA, EstadoRegistroAeat.CORRECTO, null, null),
+                new LineaRespuesta(
+                        idFacturaDe(anulacion),
+                        TipoRegistro.ANULACION,
+                        EstadoRegistroAeat.INCORRECTO,
+                        1130,
+                        "Rechazada"));
 
         despachador.despachar();
 
@@ -220,10 +238,16 @@ class DespachadorLotesTest {
     void unaSegundaVezLaMismaFacturaEsperaAlLoteSiguiente() {
         RegistroFacturacion alta = emitir("FA/1");
         RegistroFacturacion otra = emitir("FA/2");
-        RegistroFacturacion subsanacion = cadena.anadir(obligado, Registros.emitible()
-                .idFactura(Registros.idFacturaEmitible("FA/1")).subsanacion(true).build());
+        RegistroFacturacion subsanacion = cadena.anadir(
+                obligado,
+                Registros.emitible()
+                        .idFactura(Registros.idFacturaEmitible("FA/1"))
+                        .subsanacion(true)
+                        .build());
         RegistroFacturacion detras = emitir("FA/3");
-        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
+        aeat.responder(
+                EstadoEnvioAeat.CORRECTO,
+                Duration.ofSeconds(60),
                 linea(alta, EstadoRegistroAeat.CORRECTO, null),
                 linea(otra, EstadoRegistroAeat.CORRECTO, null));
 
@@ -237,7 +261,9 @@ class DespachadorLotesTest {
 
         jdbc.sql("update control_flujo_envio set ultimo_envio = ultimo_envio - interval '61 seconds'")
                 .update();
-        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
+        aeat.responder(
+                EstadoEnvioAeat.CORRECTO,
+                Duration.ofSeconds(60),
                 linea(subsanacion, EstadoRegistroAeat.CORRECTO, null),
                 linea(detras, EstadoRegistroAeat.CORRECTO, null));
 
@@ -252,7 +278,9 @@ class DespachadorLotesTest {
     void unRegistroSinLineaDeRespuestaSiguePendiente() {
         RegistroFacturacion conRespuesta = emitir("FA/1");
         RegistroFacturacion sinRespuesta = emitir("FA/2");
-        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
+        aeat.responder(
+                EstadoEnvioAeat.CORRECTO,
+                Duration.ofSeconds(60),
                 linea(conRespuesta, EstadoRegistroAeat.CORRECTO, null));
 
         despachador.despachar();
@@ -296,9 +324,11 @@ class DespachadorLotesTest {
     @Test
     void unFalloInesperadoEnUnObligadoNoImpideDespacharALosDemas() {
         RegistroFacturacion delPrimero = emitir("FA/1");
-        RegistroFacturacion delSegundo =
-                cadena.anadir(ObligadosDePrueba.nuevo(obligados), Registros.emitible().build());
-        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
+        RegistroFacturacion delSegundo = cadena.anadir(
+                ObligadosDePrueba.nuevo(obligados), Registros.emitible().build());
+        aeat.responder(
+                EstadoEnvioAeat.CORRECTO,
+                Duration.ofSeconds(60),
                 linea(delPrimero, EstadoRegistroAeat.CORRECTO, null),
                 linea(delSegundo, EstadoRegistroAeat.CORRECTO, null));
         aeat.fallarSoloLaPrimeraLlamadaCon(new IllegalStateException("fallo inesperado"));
@@ -313,8 +343,7 @@ class DespachadorLotesTest {
     @Test
     void unObligadoSinCertificadoDejaElMotivoEnLaFila() {
         RegistroFacturacion registro = emitir("FA/1");
-        aeat.fallarSoloLaPrimeraLlamadaCon(
-                new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
+        aeat.fallarSoloLaPrimeraLlamadaCon(new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
 
         assertThat(despachador.despachar()).isZero();
 
@@ -322,18 +351,16 @@ class DespachadorLotesTest {
         assertThat(envio.estado()).isEqualTo(EstadoEnvio.PENDIENTE);
         assertThat(envio.intentos()).isEqualTo(1);
         assertThat(envio.codigoError()).isNull();
-        assertThat(envio.descripcionError())
-                .isEqualTo("Certificado no disponible (89890001K): no hay fichero");
+        assertThat(envio.descripcionError()).isEqualTo("Certificado no disponible (89890001K): no hay fichero");
     }
 
     /** El turno se confirma antes de enviar, así que se consume igual: se reintenta al vencer. */
     @Test
     void unObligadoSinCertificadoSeReintentaCuandoVenceSuTurno() {
         RegistroFacturacion registro = emitir("FA/1");
-        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
-                linea(registro, EstadoRegistroAeat.CORRECTO, null));
-        aeat.fallarSoloLaPrimeraLlamadaCon(
-                new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
+        aeat.responder(
+                EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60), linea(registro, EstadoRegistroAeat.CORRECTO, null));
+        aeat.fallarSoloLaPrimeraLlamadaCon(new CertificadoNoDisponibleException("89890001K", "no hay fichero"));
 
         assertThat(despachador.despachar()).isZero();
         assertThat(despachador.despachar()).isZero();
@@ -351,9 +378,10 @@ class DespachadorLotesTest {
     void unRechazoConUnaDescripcionLargaDeLaAeatAterrizaEnSuFila() {
         RegistroFacturacion registro = emitir("FA/1");
         String larga = "x".repeat(1500);
-        aeat.responder(EstadoEnvioAeat.PARCIALMENTE_CORRECTO, Duration.ofSeconds(60),
-                new LineaRespuesta(idFacturaDe(registro), registro.tipo(),
-                        EstadoRegistroAeat.INCORRECTO, 1100, larga));
+        aeat.responder(
+                EstadoEnvioAeat.PARCIALMENTE_CORRECTO,
+                Duration.ofSeconds(60),
+                new LineaRespuesta(idFacturaDe(registro), registro.tipo(), EstadoRegistroAeat.INCORRECTO, 1100, larga));
 
         despachador.despachar();
 
@@ -383,8 +411,14 @@ class DespachadorLotesTest {
 
         CyclicBarrier salida = new CyclicBarrier(2);
         List<Callable<Integer>> tareas = List.of(
-                () -> { salida.await(); return despachador.despachar(); },
-                () -> { salida.await(); return despachador.despachar(); });
+                () -> {
+                    salida.await();
+                    return despachador.despachar();
+                },
+                () -> {
+                    salida.await();
+                    return despachador.despachar();
+                });
 
         List<Future<Integer>> resultados;
         try (ExecutorService hilos = Executors.newFixedThreadPool(2)) {
@@ -402,13 +436,12 @@ class DespachadorLotesTest {
     // --- Apoyo ---
 
     private LineaRespuesta linea(RegistroFacturacion registro, EstadoRegistroAeat estado, Integer codigo) {
-        return new LineaRespuesta(idFacturaDe(registro), registro.tipo(), estado, codigo,
-                codigo == null ? null : "Error " + codigo);
+        return new LineaRespuesta(
+                idFacturaDe(registro), registro.tipo(), estado, codigo, codigo == null ? null : "Error " + codigo);
     }
 
     private static IdFactura idFacturaDe(RegistroFacturacion registro) {
-        return new IdFactura(registro.emisor(), registro.numSerieFactura(),
-                registro.fechaExpedicionFactura());
+        return new IdFactura(registro.emisor(), registro.numSerieFactura(), registro.fechaExpedicionFactura());
     }
 
     private EstadoEnvio estadoDe(RegistroFacturacion registro) {
@@ -421,7 +454,9 @@ class DespachadorLotesTest {
 
     private int esperaConfigurada() {
         return jdbc.sql("select espera_segundos from control_flujo_envio where obligado_id = :o")
-                .param("o", obligado).query(Integer.class).single();
+                .param("o", obligado)
+                .query(Integer.class)
+                .single();
     }
 
     /** Sustituye al cliente real; el transporte lo prueba WireMock. */
@@ -482,8 +517,8 @@ class DespachadorLotesTest {
                 }
 
                 @Override
-                public synchronized void responder(EstadoEnvioAeat nuevoEstado, Duration nuevaEspera,
-                                                   LineaRespuesta... nuevasLineas) {
+                public synchronized void responder(
+                        EstadoEnvioAeat nuevoEstado, Duration nuevaEspera, LineaRespuesta... nuevasLineas) {
                     fallo = null;
                     estado = nuevoEstado;
                     espera = nuevaEspera;
@@ -502,8 +537,7 @@ class DespachadorLotesTest {
                 }
 
                 @Override
-                public synchronized RespuestaRemision remitir(ObligadoTributario obligado,
-                                                              List<String> registros) {
+                public synchronized RespuestaRemision remitir(ObligadoTributario obligado, List<String> registros) {
                     if (falloDeLaPrimeraLlamada != null) {
                         RuntimeException unaVez = falloDeLaPrimeraLlamada;
                         falloDeLaPrimeraLlamada = null;

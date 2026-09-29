@@ -1,5 +1,8 @@
 package dev.lacre.remision.internal.adaptador;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.remision.EnvioRechazadoException;
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.EstadoEnvioAeat;
@@ -9,13 +12,9 @@ import dev.lacre.remision.RemisionFallidaException;
 import dev.lacre.remision.RespuestaIlegibleException;
 import dev.lacre.remision.RespuestaRemision;
 import dev.lacre.verifactu.registro.TipoRegistro;
-import org.junit.jupiter.api.Test;
-
 import java.time.Duration;
 import java.time.LocalDate;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
 
 /**
  * Lectura de la respuesta de la AEAT sobre documentos con la forma de
@@ -73,8 +72,7 @@ class LectorRespuestaAeatTest {
 
     @Test
     void unEnvioCorrectoSeLeeEntero() {
-        RespuestaRemision respuesta = LectorRespuestaAeat.leer(
-                respuesta("Correcto", linea("FA/1", "Correcto", "")));
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Correcto", linea("FA/1", "Correcto", "")));
 
         assertThat(respuesta.estado()).isEqualTo(EstadoEnvioAeat.CORRECTO);
         assertThat(respuesta.csv()).isEqualTo("A-CSV-DE-PRUEBA");
@@ -89,8 +87,11 @@ class LectorRespuestaAeatTest {
 
     @Test
     void aceptadoConErroresConservaElCodigoQueHaySubsanar() {
-        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Correcto",
-                linea("FA/1", "AceptadoConErrores",
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta(
+                "Correcto",
+                linea(
+                        "FA/1",
+                        "AceptadoConErrores",
                         "<tikR:CodigoErrorRegistro>2000</tikR:CodigoErrorRegistro>"
                                 + "<tikR:DescripcionErrorRegistro>Huella incorrecta</tikR:DescripcionErrorRegistro>")));
 
@@ -103,10 +104,14 @@ class LectorRespuestaAeatTest {
 
     @Test
     void unRegistroRechazadoSeLeeComoRechazado() {
-        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Incorrecto",
-                linea("FA/1", "Incorrecto",
-                        "<tikR:CodigoErrorRegistro>1130</tikR:CodigoErrorRegistro>"
-                                + "<tikR:DescripcionErrorRegistro>Caracteres no permitidos</tikR:DescripcionErrorRegistro>")));
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(
+                respuesta(
+                        "Incorrecto",
+                        linea(
+                                "FA/1",
+                                "Incorrecto",
+                                "<tikR:CodigoErrorRegistro>1130</tikR:CodigoErrorRegistro>"
+                                        + "<tikR:DescripcionErrorRegistro>Caracteres no permitidos</tikR:DescripcionErrorRegistro>")));
 
         assertThat(respuesta.estado()).isEqualTo(EstadoEnvioAeat.INCORRECTO);
         assertThat(respuesta.lineas()).singleElement().satisfies(linea -> {
@@ -118,8 +123,11 @@ class LectorRespuestaAeatTest {
     /** Un {@code Incorrecto} con código 3000 es un duplicado, no un rechazo. */
     @Test
     void unRechazoPorDuplicadoNoEsUnRechazo() {
-        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Incorrecto",
-                linea("FA/1", "Incorrecto",
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta(
+                "Incorrecto",
+                linea(
+                        "FA/1",
+                        "Incorrecto",
                         "<tikR:CodigoErrorRegistro>3000</tikR:CodigoErrorRegistro>"
                                 + "<tikR:DescripcionErrorRegistro>Registro duplicado.</tikR:DescripcionErrorRegistro>"
                                 + "<tikR:RegistroDuplicado>"
@@ -135,8 +143,11 @@ class LectorRespuestaAeatTest {
     /** {@code RegistroDuplicado} trae el código del registro original, no el de la línea. */
     @Test
     void elCodigoDelRegistroOriginalNoSustituyeAlDeLaLinea() {
-        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Incorrecto",
-                linea("FA/1", "Incorrecto",
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta(
+                "Incorrecto",
+                linea(
+                        "FA/1",
+                        "Incorrecto",
                         "<tikR:CodigoErrorRegistro>3000</tikR:CodigoErrorRegistro>"
                                 + "<tikR:DescripcionErrorRegistro>Registro de facturación duplicado.</tikR:DescripcionErrorRegistro>"
                                 + "<tikR:RegistroDuplicado>"
@@ -158,33 +169,33 @@ class LectorRespuestaAeatTest {
     /** Tres líneas de las que solo la de en medio trae error. */
     @Test
     void separaBienLasLineasAunqueSoloAlgunasTraiganError() {
-        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("ParcialmenteCorrecto",
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta(
+                "ParcialmenteCorrecto",
                 linea("FA/1", "Correcto", "")
-                        + linea("FA/2", "Incorrecto",
-                        "<tikR:CodigoErrorRegistro>1130</tikR:CodigoErrorRegistro>")
+                        + linea("FA/2", "Incorrecto", "<tikR:CodigoErrorRegistro>1130</tikR:CodigoErrorRegistro>")
                         + linea("FA/3", "Correcto", "")));
 
         assertThat(respuesta.estado()).isEqualTo(EstadoEnvioAeat.PARCIALMENTE_CORRECTO);
-        assertThat(respuesta.lineas()).extracting(linea -> linea.idFactura().numSerieFactura())
+        assertThat(respuesta.lineas())
+                .extracting(linea -> linea.idFactura().numSerieFactura())
                 .containsExactly("FA/1", "FA/2", "FA/3");
-        assertThat(respuesta.lineas()).extracting(LineaRespuesta::codigoError)
-                .containsExactly(null, 1130, null);
+        assertThat(respuesta.lineas()).extracting(LineaRespuesta::codigoError).containsExactly(null, 1130, null);
     }
 
     @Test
     void distingueElTipoDeOperacionDeCadaLinea() {
-        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Correcto",
-                linea("FA/1", "Alta", "Correcto", "")
-                        + linea("FA/1", "Anulacion", "Correcto", "")));
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta(
+                "Correcto", linea("FA/1", "Alta", "Correcto", "") + linea("FA/1", "Anulacion", "Correcto", "")));
 
-        assertThat(respuesta.lineas()).extracting(LineaRespuesta::tipo)
+        assertThat(respuesta.lineas())
+                .extracting(LineaRespuesta::tipo)
                 .containsExactly(TipoRegistro.ALTA, TipoRegistro.ANULACION);
     }
 
     @Test
     void unTipoDeOperacionDesconocidoHaceIlegibleLaRespuesta() {
-        assertThatThrownBy(() -> LectorRespuestaAeat.leer(respuesta("Correcto",
-                linea("FA/1", "Rectificacion", "Correcto", ""))))
+        assertThatThrownBy(() ->
+                        LectorRespuestaAeat.leer(respuesta("Correcto", linea("FA/1", "Rectificacion", "Correcto", ""))))
                 .isInstanceOf(RespuestaIlegibleException.class)
                 .hasMessageContaining("Rectificacion");
     }
@@ -242,14 +253,13 @@ class LectorRespuestaAeatTest {
     /** Un rechazo del envío hereda de {@code RemisionFallidaException}: el lote queda pendiente. */
     @Test
     void unRechazoDelEnvioSeTrataComoFalloDeRemision() {
-        assertThat(new EnvioRechazadoException(4104, "lo que sea"))
-                .isInstanceOf(RemisionFallidaException.class);
+        assertThat(new EnvioRechazadoException(4104, "lo que sea")).isInstanceOf(RemisionFallidaException.class);
     }
 
     @Test
     void sinEstadoDeEnvioLaRespuestaEsIlegible() {
         assertThatThrownBy(() -> LectorRespuestaAeat.leer(
-                "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"/>"))
+                        "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"/>"))
                 .isInstanceOf(RespuestaIlegibleException.class)
                 .hasMessageContaining("EstadoEnvio");
     }

@@ -9,17 +9,16 @@ import dev.lacre.remision.RespuestaRemision;
 import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.TipoRegistro;
-
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 import java.io.StringReader;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 /** Lee con StAX la respuesta de la AEAT, por nombre local y sin validar contra el XSD. */
 final class LectorRespuestaAeat {
@@ -30,8 +29,7 @@ final class LectorRespuestaAeat {
     /** La AEAT antepone el código al texto del Fault: {@code Codigo[4104].Error en la cabecera}. */
     private static final String PREFIJO_DEL_CODIGO = "Codigo[";
 
-    private LectorRespuestaAeat() {
-    }
+    private LectorRespuestaAeat() {}
 
     static RespuestaRemision leer(String xml) {
         EstadoEnvioAeat estado = null;
@@ -63,7 +61,7 @@ final class LectorRespuestaAeat {
                         case "CSV" -> csv = lector.getElementText();
                         case "TiempoEsperaEnvio" -> espera = segundos(lector.getElementText());
                         case "EstadoEnvio" -> estado = EstadoEnvioAeat.desde(lector.getElementText());
-                        default -> { }
+                        default -> {}
                     }
                     continue;
                 }
@@ -71,16 +69,16 @@ final class LectorRespuestaAeat {
                     case "IDEmisorFactura" -> enCurso.emisor = new Nif(lector.getElementText());
                     case "NumSerieFactura" -> enCurso.numSerie = lector.getElementText();
                     case "FechaExpedicionFactura" ->
-                            enCurso.fecha = LocalDate.parse(lector.getElementText().trim(), FECHA);
+                        enCurso.fecha = LocalDate.parse(lector.getElementText().trim(), FECHA);
                     case "TipoOperacion" -> enCurso.tipo = tipoDeOperacion(lector.getElementText());
-                    case "EstadoRegistro" ->
-                            enCurso.estado = EstadoRegistroAeat.desde(lector.getElementText());
+                    case "EstadoRegistro" -> enCurso.estado = EstadoRegistroAeat.desde(lector.getElementText());
                     case "CodigoErrorRegistro" ->
-                            enCurso.codigoError = Integer.valueOf(lector.getElementText().trim());
+                        enCurso.codigoError =
+                                Integer.valueOf(lector.getElementText().trim());
                     case "DescripcionErrorRegistro" -> enCurso.descripcionError = lector.getElementText();
                     // Describe el registro original, con su propio CodigoErrorRegistro.
                     case "RegistroDuplicado" -> saltar(lector);
-                    default -> { }
+                    default -> {}
                 }
             }
             if (enCurso != null) {
@@ -108,7 +106,8 @@ final class LectorRespuestaAeat {
             String digitos = cierre < 0 ? "" : texto.substring(PREFIJO_DEL_CODIGO.length(), cierre);
             if (digitos.chars().allMatch(Character::isDigit) && !digitos.isEmpty()) {
                 String resto = texto.substring(cierre + 1);
-                return new EnvioRechazadoException(Integer.valueOf(digitos),
+                return new EnvioRechazadoException(
+                        Integer.valueOf(digitos),
                         resto.startsWith(".") ? resto.substring(1).trim() : resto.trim());
             }
         }
@@ -122,7 +121,7 @@ final class LectorRespuestaAeat {
             switch (lector.next()) {
                 case XMLStreamConstants.START_ELEMENT -> profundidad++;
                 case XMLStreamConstants.END_ELEMENT -> profundidad--;
-                default -> { }
+                default -> {}
             }
         }
     }
@@ -160,8 +159,8 @@ final class LectorRespuestaAeat {
         private String descripcionError;
 
         LineaRespuesta aLinea() {
-            return new LineaRespuesta(new IdFactura(emisor, numSerie, fecha), tipo, estado,
-                    codigoError, descripcionError);
+            return new LineaRespuesta(
+                    new IdFactura(emisor, numSerie, fecha), tipo, estado, codigoError, descripcionError);
         }
     }
 }

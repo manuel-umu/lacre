@@ -16,30 +16,28 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
 
-	static final String CLAVE_APLICACION = "clave-de-pruebas-del-rol-de-aplicacion";
+    static final String CLAVE_APLICACION = "clave-de-pruebas-del-rol-de-aplicacion";
 
-	@Bean
-	PostgreSQLContainer postgresContainer() {
-		return new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
-	}
+    @Bean
+    PostgreSQLContainer postgresContainer() {
+        return new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
+    }
 
-	@Bean
-	DynamicPropertyRegistrar conexionesComoEnUnDespliegue(PostgreSQLContainer postgres) {
-		return propiedades -> {
-			propiedades.add("spring.datasource.url", postgres::getJdbcUrl);
-			propiedades.add("spring.datasource.username", () -> "lacre_app");
-			propiedades.add("spring.datasource.password", () -> CLAVE_APLICACION);
-			propiedades.add("spring.flyway.user", postgres::getUsername);
-			propiedades.add("spring.flyway.password", postgres::getPassword);
-			propiedades.add("spring.flyway.placeholders.clave_rol_aplicacion",
-					() -> CLAVE_APLICACION);
-		};
-	}
+    @Bean
+    DynamicPropertyRegistrar conexionesComoEnUnDespliegue(PostgreSQLContainer postgres) {
+        return propiedades -> {
+            propiedades.add("spring.datasource.url", postgres::getJdbcUrl);
+            propiedades.add("spring.datasource.username", () -> "lacre_app");
+            propiedades.add("spring.datasource.password", () -> CLAVE_APLICACION);
+            propiedades.add("spring.flyway.user", postgres::getUsername);
+            propiedades.add("spring.flyway.password", postgres::getPassword);
+            propiedades.add("spring.flyway.placeholders.clave_rol_aplicacion", () -> CLAVE_APLICACION);
+        };
+    }
 
-	/** Conexión como propietario, para los tests que se saltan a propósito las defensas. */
-	public static JdbcClient comoPropietario(PostgreSQLContainer postgres) {
-		return JdbcClient.create(new SimpleDriverDataSource(new Driver(),
-				postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
-	}
-
+    /** Conexión como propietario, para los tests que se saltan a propósito las defensas. */
+    public static JdbcClient comoPropietario(PostgreSQLContainer postgres) {
+        return JdbcClient.create(new SimpleDriverDataSource(
+                new Driver(), postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
+    }
 }

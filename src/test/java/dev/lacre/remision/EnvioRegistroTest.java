@@ -1,19 +1,18 @@
 package dev.lacre.remision;
 
-import dev.lacre.shared.ValorInvalidoException;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.MethodSource;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import dev.lacre.shared.ValorInvalidoException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /** Máquina de estados del outbox: de {@code PENDIENTE} se sale una vez y no se vuelve. */
 class EnvioRegistroTest {
@@ -21,8 +20,7 @@ class EnvioRegistroTest {
     private static final UUID ID = UUID.fromString("00000000-0000-0000-0000-0000000000e1");
     private static final UUID REGISTRO = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
     private static final UUID OBLIGADO = UUID.fromString("00000000-0000-0000-0000-0000000000b1");
-    private static final OffsetDateTime CREADO =
-            OffsetDateTime.of(2024, 1, 1, 19, 20, 30, 0, ZoneOffset.ofHours(1));
+    private static final OffsetDateTime CREADO = OffsetDateTime.of(2024, 1, 1, 19, 20, 30, 0, ZoneOffset.ofHours(1));
     private static final OffsetDateTime RESPUESTA = CREADO.plusMinutes(2);
 
     private static EnvioRegistro pendiente() {
@@ -89,8 +87,7 @@ class EnvioRegistroTest {
         EnvioRegistro envio = pendiente().otroIntentoFallido(null, enorme);
 
         assertThat(envio.intentos()).isEqualTo(1);
-        assertThat(envio.descripcionError())
-                .hasSize(EnvioRegistro.MAXIMO_LONGITUD_DESCRIPCION_ERROR);
+        assertThat(envio.descripcionError()).hasSize(EnvioRegistro.MAXIMO_LONGITUD_DESCRIPCION_ERROR);
     }
 
     /** El 3000 no es un fallo: significa que el registro ya estaba presentado. */
@@ -133,15 +130,15 @@ class EnvioRegistroTest {
 
     @Test
     void unEnvioTerminadoSinFechaDeRespuestaNoSePuedeConstruir() {
-        assertThatThrownBy(() -> new EnvioRegistro(
-                ID, REGISTRO, OBLIGADO, EstadoEnvio.ACEPTADO, CREADO, null, null, null, 0, 0))
+        assertThatThrownBy(() ->
+                        new EnvioRegistro(ID, REGISTRO, OBLIGADO, EstadoEnvio.ACEPTADO, CREADO, null, null, null, 0, 0))
                 .isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test
     void unEnvioPendienteConFechaDeRespuestaTampoco() {
         assertThatThrownBy(() -> new EnvioRegistro(
-                ID, REGISTRO, OBLIGADO, EstadoEnvio.PENDIENTE, CREADO, RESPUESTA, null, null, 0, 0))
+                        ID, REGISTRO, OBLIGADO, EstadoEnvio.PENDIENTE, CREADO, RESPUESTA, null, null, 0, 0))
                 .isInstanceOf(ValorInvalidoException.class);
     }
 

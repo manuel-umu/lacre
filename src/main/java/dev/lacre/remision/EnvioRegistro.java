@@ -2,12 +2,11 @@ package dev.lacre.remision;
 
 import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.relational.core.mapping.Table;
-
-import java.time.OffsetDateTime;
-import java.util.UUID;
 
 /**
  * Fila del outbox: un registro de facturación pendiente de remitir o ya remitido. El estado no
@@ -35,26 +34,23 @@ public record EnvioRegistro(
 
     public EnvioRegistro {
         if (id == null || registroId == null || obligadoId == null) {
-            throw new ValorInvalidoException(
-                    "El envío necesita identificador, registro y obligado");
+            throw new ValorInvalidoException("El envío necesita identificador, registro y obligado");
         }
         if (estado == null || creadoEn == null) {
             throw new ValorInvalidoException("El envío necesita estado y fecha de creación");
         }
         if (estado.esTerminal() == (enviadoEn == null)) {
             throw new ValorInvalidoException(
-                    "Un envío tiene fecha de respuesta si y solo si ha terminado, y este está en "
-                            + estado + " con enviadoEn = " + enviadoEn);
+                    "Un envío tiene fecha de respuesta si y solo si ha terminado, y este está en " + estado
+                            + " con enviadoEn = " + enviadoEn);
         }
-        descripcionError = Textos.opcional(
-                descripcionError, MAXIMO_LONGITUD_DESCRIPCION_ERROR, "La descripción del error");
+        descripcionError =
+                Textos.opcional(descripcionError, MAXIMO_LONGITUD_DESCRIPCION_ERROR, "La descripción del error");
     }
 
     /** Alta en el outbox: pendiente de despachar. */
-    public static EnvioRegistro pendiente(UUID id, UUID registroId, UUID obligadoId,
-                                          OffsetDateTime creadoEn) {
-        return new EnvioRegistro(id, registroId, obligadoId, EstadoEnvio.PENDIENTE, creadoEn,
-                null, null, null, 0, 0);
+    public static EnvioRegistro pendiente(UUID id, UUID registroId, UUID obligadoId, OffsetDateTime creadoEn) {
+        return new EnvioRegistro(id, registroId, obligadoId, EstadoEnvio.PENDIENTE, creadoEn, null, null, null, 0, 0);
     }
 
     /** La AEAT lo aceptó sin reparos. */
@@ -74,8 +70,7 @@ public record EnvioRegistro(
 
     /** La AEAT respondió que ya estaba presentado (código 3000). */
     public EnvioRegistro duplicado(OffsetDateTime cuando, String descripcion) {
-        return resuelto(EstadoEnvio.DUPLICADO, cuando,
-                EstadoEnvio.CODIGO_REGISTRO_DUPLICADO, descripcion);
+        return resuelto(EstadoEnvio.DUPLICADO, cuando, EstadoEnvio.CODIGO_REGISTRO_DUPLICADO, descripcion);
     }
 
     /**
@@ -90,8 +85,17 @@ public record EnvioRegistro(
         if (estado.esTerminal()) {
             throw new EnvioYaResueltoException(id, estado, estado);
         }
-        return new EnvioRegistro(id, registroId, obligadoId, estado, creadoEn, null, codigo,
-                recortada(descripcion), intentos + 1, version);
+        return new EnvioRegistro(
+                id,
+                registroId,
+                obligadoId,
+                estado,
+                creadoEn,
+                null,
+                codigo,
+                recortada(descripcion),
+                intentos + 1,
+                version);
     }
 
     private static String recortada(String texto) {
@@ -100,8 +104,7 @@ public record EnvioRegistro(
                 : texto.substring(0, MAXIMO_LONGITUD_DESCRIPCION_ERROR);
     }
 
-    private EnvioRegistro resuelto(EstadoEnvio desenlace, OffsetDateTime cuando,
-                                   Integer codigo, String descripcion) {
+    private EnvioRegistro resuelto(EstadoEnvio desenlace, OffsetDateTime cuando, Integer codigo, String descripcion) {
         if (estado.esTerminal()) {
             throw new EnvioYaResueltoException(id, estado, desenlace);
         }
@@ -109,10 +112,9 @@ public record EnvioRegistro(
             throw new ValorInvalidoException("Hace falta saber cuándo respondió la AEAT");
         }
         if (cuando.isBefore(creadoEn)) {
-            throw new ValorInvalidoException(
-                    "La AEAT no puede haber respondido antes de que el envío existiera");
+            throw new ValorInvalidoException("La AEAT no puede haber respondido antes de que el envío existiera");
         }
-        return new EnvioRegistro(id, registroId, obligadoId, desenlace, creadoEn, cuando,
-                codigo, descripcion, intentos, version);
+        return new EnvioRegistro(
+                id, registroId, obligadoId, desenlace, creadoEn, cuando, codigo, descripcion, intentos, version);
     }
 }

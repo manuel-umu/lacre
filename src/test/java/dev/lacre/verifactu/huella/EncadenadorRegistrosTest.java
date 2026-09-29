@@ -1,19 +1,18 @@
 package dev.lacre.verifactu.huella;
 
-import dev.lacre.verifactu.registro.RegistroAnterior;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.internal.CanonicalizadorAeat;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
+import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.Registros;
 import dev.lacre.verifactu.registro.TipoFactura;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -22,9 +21,9 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 class EncadenadorRegistrosTest {
 
@@ -33,17 +32,16 @@ class EncadenadorRegistrosTest {
     private static final Instant CASO_1 = Instant.parse("2024-01-01T18:20:30Z");
     private static final Instant CASO_2 = Instant.parse("2024-01-01T18:20:35Z");
 
-    private static final Huella HUELLA_CASO_1 = new Huella(
-            "3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60");
-    private static final Huella HUELLA_CASO_2 = new Huella(
-            "F7B94CFD8924EDFF273501B01EE5153E4CE8F259766F88CF6ACB8935802A2B97");
+    private static final Huella HUELLA_CASO_1 =
+            new Huella("3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60");
+    private static final Huella HUELLA_CASO_2 =
+            new Huella("F7B94CFD8924EDFF273501B01EE5153E4CE8F259766F88CF6ACB8935802A2B97");
 
     // --- Conformidad con los ejemplos oficiales de la AEAT ---
 
     @Test
     void reproduceLaHuellaDelPrimerRegistroDelEjemploOficial() {
-        RegistroEncadenado registro = encadenador(CASO_1)
-                .encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
+        RegistroEncadenado registro = encadenador(CASO_1).encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
 
         assertThat(registro.huella()).isEqualTo(HUELLA_CASO_1);
     }
@@ -58,8 +56,7 @@ class EncadenadorRegistrosTest {
 
     @Test
     void dosRegistrosSeguidosFormanLaCadenaDelDocumento() {
-        RegistroEncadenado primero = encadenador(CASO_1)
-                .encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
+        RegistroEncadenado primero = encadenador(CASO_1).encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
         RegistroEncadenado segundo = encadenador(CASO_2)
                 .encadenar(datos("12345679/G34"), Optional.of(Registros.anterior(primero.huella())), MADRID);
 
@@ -71,8 +68,14 @@ class EncadenadorRegistrosTest {
     // --- Sensibilidad de la huella ---
 
     enum CampoDeLaHuella {
-        EMISOR, NUM_SERIE, FECHA_EXPEDICION, TIPO_FACTURA,
-        CUOTA_TOTAL, IMPORTE_TOTAL, HUELLA_ANTERIOR, FECHA_HORA_HUSO
+        EMISOR,
+        NUM_SERIE,
+        FECHA_EXPEDICION,
+        TIPO_FACTURA,
+        CUOTA_TOTAL,
+        IMPORTE_TOTAL,
+        HUELLA_ANTERIOR,
+        FECHA_HORA_HUSO
     }
 
     @ParameterizedTest
@@ -117,7 +120,7 @@ class EncadenadorRegistrosTest {
     @Test
     void fechaElRegistroConElRelojInyectadoYAlSegundo() {
         RegistroEncadenado registro = new EncadenadorRegistros(
-                Clock.fixed(CASO_1.plusMillis(750), ZoneOffset.UTC), new CanonicalizadorAeat())
+                        Clock.fixed(CASO_1.plusMillis(750), ZoneOffset.UTC), new CanonicalizadorAeat())
                 .encadenar(datos("12345678/G33"), Optional.empty(), MADRID);
 
         assertThat(registro.fechaHoraHusoGenRegistro().toString()).isEqualTo("2024-01-01T19:20:30+01:00");
@@ -128,13 +131,12 @@ class EncadenadorRegistrosTest {
     void elCanonicalizadorRecibeLosCamposDeLaHuellaElEnlaceYLaFechaHora() {
         List<Object[]> invocaciones = new ArrayList<>();
         Canonicalizador espia = (datos, huellaAnterior, fechaHora) -> {
-            invocaciones.add(new Object[]{datos, huellaAnterior, fechaHora});
+            invocaciones.add(new Object[] {datos, huellaAnterior, fechaHora});
             return "irrelevante";
         };
         DatosRegistroAlta datos = datos("12345678/G33");
 
-        new EncadenadorRegistros(Clock.fixed(CASO_1, ZoneOffset.UTC), espia)
-                .encadenar(datos, Optional.empty(), MADRID);
+        new EncadenadorRegistros(Clock.fixed(CASO_1, ZoneOffset.UTC), espia).encadenar(datos, Optional.empty(), MADRID);
 
         assertThat(invocaciones).singleElement().satisfies(argumentos -> {
             assertThat(argumentos[0]).isEqualTo(datos.camposDeHuella());

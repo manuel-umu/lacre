@@ -13,10 +13,6 @@ import dev.lacre.verifactu.registro.DatosRegistro;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.DatosRegistroAnulacion;
 import dev.lacre.verifactu.registro.SistemaInformatico;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -29,6 +25,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Caso de uso de emisión: añade un registro a la cadena una sola vez por clave de idempotencia,
@@ -44,8 +43,13 @@ class Emisiones {
     private final Clock reloj;
     private final PropiedadesQr qr;
 
-    Emisiones(EmisorDeRegistros emisor, SistemaInformatico sistemaInformatico, Obligados obligados,
-              JdbcClient jdbc, Clock reloj, PropiedadesQr qr) {
+    Emisiones(
+            EmisorDeRegistros emisor,
+            SistemaInformatico sistemaInformatico,
+            Obligados obligados,
+            JdbcClient jdbc,
+            Clock reloj,
+            PropiedadesQr qr) {
         this.emisor = emisor;
         this.sistemaInformatico = sistemaInformatico;
         this.obligados = obligados;
@@ -71,8 +75,8 @@ class Emisiones {
 
         RegistroEmitido emitido = emisor.emitir(obligado.id(), datos);
         anotar(obligado.id(), clave, huellaPeticion, emitido, urlQr);
-        return new RespuestaRegistro(emitido.id(), emitido.posicion(), emitido.huella().valor(),
-                urlQr, avisosDe(emitido.avisos()));
+        return new RespuestaRegistro(
+                emitido.id(), emitido.posicion(), emitido.huella().valor(), urlQr, avisosDe(emitido.avisos()));
     }
 
     /** El QR identifica una factura, y una anulación no es una factura que se imprima. */
@@ -86,8 +90,7 @@ class Emisiones {
     /** El obligado es el emisor de la factura; no se pide aparte. */
     private ObligadoTributario obligadoDe(PeticionRegistro peticion) {
         Nif emisorFactura = new Nif(peticion.factura().idEmisorFactura());
-        return obligados.findByNif(emisorFactura)
-                .orElseThrow(() -> new ObligadoDesconocidoException(emisorFactura));
+        return obligados.findByNif(emisorFactura).orElseThrow(() -> new ObligadoDesconocidoException(emisorFactura));
     }
 
     private void serializarLaClave(UUID obligadoId, String clave) {
@@ -115,8 +118,7 @@ class Emisiones {
                 .optional();
     }
 
-    private void anotar(UUID obligadoId, String clave, String huellaPeticion,
-                        RegistroEmitido emitido, String urlQr) {
+    private void anotar(UUID obligadoId, String clave, String huellaPeticion, RegistroEmitido emitido, String urlQr) {
         jdbc.sql("""
                 insert into peticion_idempotente
                     (obligado_id, clave, huella_peticion, registro_id, posicion, huella, url_qr,
@@ -142,12 +144,14 @@ class Emisiones {
 
     /** Los avisos se anotan por su código, separados por comas; nulo si no hubo ninguno. */
     private static String codificar(Set<AnomaliaPrevia> anomalias) {
-        return anomalias.isEmpty() ? null
+        return anomalias.isEmpty()
+                ? null
                 : anomalias.stream().map(AnomaliaPrevia::name).collect(Collectors.joining(","));
     }
 
     private static List<Aviso> descodificar(String codigos) {
-        return codigos == null ? List.of()
+        return codigos == null
+                ? List.of()
                 : Arrays.stream(codigos.split(","))
                         .map(codigo -> Aviso.de(AnomaliaPrevia.valueOf(codigo)))
                         .toList();
@@ -159,7 +163,8 @@ class Emisiones {
      */
     private static String huellaDe(PeticionRegistro peticion) {
         IdFacturaDto id = peticion.factura();
-        return sha256(String.join("|",
+        return sha256(String.join(
+                "|",
                 String.valueOf(id.idEmisorFactura()),
                 String.valueOf(id.numSerieFactura()),
                 String.valueOf(id.fechaExpedicionFactura()),
@@ -168,8 +173,7 @@ class Emisiones {
 
     private static String sha256(String texto) {
         try {
-            byte[] resumen = MessageDigest.getInstance("SHA-256")
-                    .digest(texto.getBytes(StandardCharsets.UTF_8));
+            byte[] resumen = MessageDigest.getInstance("SHA-256").digest(texto.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().withUpperCase().formatHex(resumen);
         } catch (NoSuchAlgorithmException imposible) {
             throw new IllegalStateException("SHA-256 es obligatorio en toda JVM", imposible);
@@ -177,15 +181,14 @@ class Emisiones {
     }
 
     /** Respuesta guardada para una clave de idempotencia. */
-    private record Anotacion(UUID registroId, long posicion, String huella, String urlQr,
-                             String huellaPeticion, String avisos) {
+    private record Anotacion(
+            UUID registroId, long posicion, String huella, String urlQr, String huellaPeticion, String avisos) {
 
         RespuestaRegistro comoRespuestaSiCoincide(String clave, String huellaPeticion) {
             if (!this.huellaPeticion.equals(huellaPeticion)) {
                 throw new ClaveIdempotenciaReutilizadaException(clave);
             }
-            return new RespuestaRegistro(registroId, posicion, huella, urlQr,
-                    descodificar(avisos));
+            return new RespuestaRegistro(registroId, posicion, huella, urlQr, descodificar(avisos));
         }
     }
 }

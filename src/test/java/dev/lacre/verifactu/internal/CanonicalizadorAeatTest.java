@@ -1,22 +1,16 @@
 package dev.lacre.verifactu.internal;
 
-import dev.lacre.verifactu.registro.RegistroAnterior;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Importe;
-import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
-import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
 import dev.lacre.verifactu.registro.Registros;
-import dev.lacre.verifactu.registro.TipoFactura;
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 /**
  * Cadenas canónicas de los ejemplos oficiales de la AEAT, literales: si un cambio los rompe, el
@@ -26,8 +20,8 @@ class CanonicalizadorAeatTest {
 
     private static final CanonicalizadorAeat CANONICALIZADOR = new CanonicalizadorAeat();
 
-    private static final Huella HUELLA_CASO_1 = new Huella(
-            "3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60");
+    private static final Huella HUELLA_CASO_1 =
+            new Huella("3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60");
 
     @Test
     void caso1PrimerRegistroDeLaCadena() {
@@ -36,14 +30,15 @@ class CanonicalizadorAeatTest {
                 Optional.empty(),
                 OffsetDateTime.parse("2024-01-01T19:20:30+01:00"));
 
-        assertThat(cadena).isEqualTo("IDEmisorFactura=89890001K"
-                + "&NumSerieFactura=12345678/G33"
-                + "&FechaExpedicionFactura=01-01-2024"
-                + "&TipoFactura=F1"
-                + "&CuotaTotal=12.35"
-                + "&ImporteTotal=123.45"
-                + "&Huella="
-                + "&FechaHoraHusoGenRegistro=2024-01-01T19:20:30+01:00");
+        assertThat(cadena)
+                .isEqualTo("IDEmisorFactura=89890001K"
+                        + "&NumSerieFactura=12345678/G33"
+                        + "&FechaExpedicionFactura=01-01-2024"
+                        + "&TipoFactura=F1"
+                        + "&CuotaTotal=12.35"
+                        + "&ImporteTotal=123.45"
+                        + "&Huella="
+                        + "&FechaHoraHusoGenRegistro=2024-01-01T19:20:30+01:00");
     }
 
     @Test
@@ -53,14 +48,15 @@ class CanonicalizadorAeatTest {
                 Optional.of(Registros.anterior(HUELLA_CASO_1)),
                 OffsetDateTime.parse("2024-01-01T19:20:35+01:00"));
 
-        assertThat(cadena).isEqualTo("IDEmisorFactura=89890001K"
-                + "&NumSerieFactura=12345679/G34"
-                + "&FechaExpedicionFactura=01-01-2024"
-                + "&TipoFactura=F1"
-                + "&CuotaTotal=12.35"
-                + "&ImporteTotal=123.45"
-                + "&Huella=3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60"
-                + "&FechaHoraHusoGenRegistro=2024-01-01T19:20:35+01:00");
+        assertThat(cadena)
+                .isEqualTo("IDEmisorFactura=89890001K"
+                        + "&NumSerieFactura=12345679/G34"
+                        + "&FechaExpedicionFactura=01-01-2024"
+                        + "&TipoFactura=F1"
+                        + "&CuotaTotal=12.35"
+                        + "&ImporteTotal=123.45"
+                        + "&Huella=3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60"
+                        + "&FechaHoraHusoGenRegistro=2024-01-01T19:20:35+01:00");
     }
 
     @Test

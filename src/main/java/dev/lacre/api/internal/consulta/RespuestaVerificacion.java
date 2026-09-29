@@ -1,7 +1,6 @@
 package dev.lacre.api.internal.consulta;
 
 import dev.lacre.verifactu.consulta.VerificacionDeCadena;
-
 import java.util.List;
 
 /**
@@ -13,8 +12,7 @@ import java.util.List;
 public record RespuestaVerificacion(
         String nifObligado, long registros, boolean intacta, String alcance, List<Rotura> roturas) {
 
-    public record Rotura(long posicion, String motivo) {
-    }
+    public record Rotura(long posicion, String motivo) {}
 
     static RespuestaVerificacion de(String nif, VerificacionDeCadena verificacion) {
         return new RespuestaVerificacion(
@@ -23,7 +21,8 @@ public record RespuestaVerificacion(
                 verificacion.intacta(),
                 verificacion.alcance().name(),
                 verificacion.roturas().stream()
-                        .map(rotura -> new Rotura(rotura.posicion(), rotura.motivo().name()))
+                        .map(rotura ->
+                                new Rotura(rotura.posicion(), rotura.motivo().name()))
                         .toList());
     }
 }

@@ -2,13 +2,12 @@ package dev.lacre.remision.internal.adaptador;
 
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.verifactu.emision.RegistrosRechazados;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
 
 /** Registros rechazados por la AEAT, según el desenlace de su envío en el outbox. */
 @Component

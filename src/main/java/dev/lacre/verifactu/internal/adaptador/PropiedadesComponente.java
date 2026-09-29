@@ -18,5 +18,4 @@ public record PropiedadesComponente(
         String version,
         String numeroInstalacion,
         boolean multiObligado,
-        boolean sirveAVariosObligados) {
-}
+        boolean sirveAVariosObligados) {}

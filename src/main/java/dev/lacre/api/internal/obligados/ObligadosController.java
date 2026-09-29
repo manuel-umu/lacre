@@ -22,11 +22,9 @@ class ObligadosController {
     }
 
     @PutMapping("/v1/obligados/{nif}")
-    ResponseEntity<RespuestaObligado> alta(@PathVariable String nif,
-                                           @Valid @RequestBody PeticionObligado peticion) {
+    ResponseEntity<RespuestaObligado> alta(@PathVariable String nif, @Valid @RequestBody PeticionObligado peticion) {
         AltasDeObligados.Alta alta = altas.darDeAlta(nif, peticion);
-        return ResponseEntity
-                .status(alta.creado() ? HttpStatus.CREATED : HttpStatus.OK)
+        return ResponseEntity.status(alta.creado() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(RespuestaObligado.de(alta.obligado()));
     }
 }

@@ -1,7 +1,6 @@
 package dev.lacre.remision;
 
 import dev.lacre.shared.ValorInvalidoException;
-
 import java.time.Duration;
 import java.util.List;
 
@@ -11,8 +10,8 @@ import java.util.List;
  * @param tiempoEspera espera obligatoria antes del siguiente envío, según el control de flujo
  * @param csv          código seguro de verificación; ausente si el envío se rechazó
  */
-public record RespuestaRemision(EstadoEnvioAeat estado, Duration tiempoEspera, String csv,
-                                List<LineaRespuesta> lineas) {
+public record RespuestaRemision(
+        EstadoEnvioAeat estado, Duration tiempoEspera, String csv, List<LineaRespuesta> lineas) {
 
     public RespuestaRemision {
         if (estado == null) {

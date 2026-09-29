@@ -1,12 +1,11 @@
 package dev.lacre.remision.internal.adaptador;
 
 import dev.lacre.identidad.ObligadoTributario;
-
+import java.io.StringWriter;
+import java.util.List;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
-import java.io.StringWriter;
-import java.util.List;
 
 /**
  * Envuelve los registros ya serializados en el mensaje SOAP {@code RegFactuSistemaFacturacion}.
@@ -24,8 +23,7 @@ final class EscritorLote {
     /** Tope que impone la AEAT por envío. */
     static final int MAXIMO_REGISTROS_POR_ENVIO = 1000;
 
-    private EscritorLote() {
-    }
+    private EscritorLote() {}
 
     static String envolver(ObligadoTributario obligado, List<String> registros) {
         if (registros.isEmpty()) {
@@ -37,8 +35,11 @@ final class EscritorLote {
         }
 
         StringBuilder mensaje = new StringBuilder(1024 + registros.size() * 4096);
-        mensaje.append("<soapenv:Envelope xmlns:soapenv=\"").append(NS_SOAP)
-                .append("\" xmlns:sfLR=\"").append(NS_LR).append("\">")
+        mensaje.append("<soapenv:Envelope xmlns:soapenv=\"")
+                .append(NS_SOAP)
+                .append("\" xmlns:sfLR=\"")
+                .append(NS_LR)
+                .append("\">")
                 .append("<soapenv:Header/><soapenv:Body>")
                 .append("<sfLR:RegFactuSistemaFacturacion>")
                 .append(cabecera(obligado));
@@ -76,8 +77,7 @@ final class EscritorLote {
         return destino.toString();
     }
 
-    private static void escribir(XMLStreamWriter xml, String elemento, String valor)
-            throws XMLStreamException {
+    private static void escribir(XMLStreamWriter xml, String elemento, String valor) throws XMLStreamException {
         xml.writeStartElement(NS_SF, elemento);
         xml.writeCharacters(valor);
         xml.writeEndElement();

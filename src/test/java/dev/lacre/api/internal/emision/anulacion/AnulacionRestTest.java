@@ -1,11 +1,17 @@
 package dev.lacre.api.internal.emision.anulacion;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import dev.lacre.TestcontainersConfiguration;
 import dev.lacre.api.internal.ApiDePrueba;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
-import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.Envios;
+import dev.lacre.remision.EstadoEnvio;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,13 +22,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
-
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * La anulación por HTTP: anular añade un eslabón a la cadena, y el tipo de petición entra en la
@@ -69,7 +68,8 @@ class AnulacionRestTest {
         mvc.perform(peticion("/alta", "alta-2", alta("FA/2"))).andExpect(status().isCreated());
 
         MvcResult primera = mvc.perform(peticion("/anulacion", "anul-2", anulacion("FA/2")))
-                .andExpect(status().isCreated()).andReturn();
+                .andExpect(status().isCreated())
+                .andReturn();
         MvcResult segunda = mvc.perform(peticion("/anulacion", "anul-2", anulacion("FA/2")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.posicion").value(2))
@@ -91,8 +91,8 @@ class AnulacionRestTest {
     void unaAnulacionSinRegistroPrevioDeUnaFacturaQueExisteSeRechaza() throws Exception {
         mvc.perform(peticion("/alta", "alta-5", alta("FA/5"))).andExpect(status().isCreated());
 
-        String sinRegistroPrevio = anulacion("FA/5").replace(
-                "\"idFacturaAnulada\"", "\"sinRegistroPrevio\": true, \"idFacturaAnulada\"");
+        String sinRegistroPrevio =
+                anulacion("FA/5").replace("\"idFacturaAnulada\"", "\"sinRegistroPrevio\": true, \"idFacturaAnulada\"");
 
         mvc.perform(peticion("/anulacion", "anul-5", sinRegistroPrevio))
                 .andExpect(status().isBadRequest())
@@ -105,8 +105,7 @@ class AnulacionRestTest {
                 { "generadoPor": "E" }
                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errores[*].campo")
-                        .value(org.hamcrest.Matchers.hasItem("idFacturaAnulada")));
+                .andExpect(jsonPath("$.errores[*].campo").value(org.hamcrest.Matchers.hasItem("idFacturaAnulada")));
     }
 
     private RequestBuilder peticion(String ruta, String clave, String cuerpo) {
@@ -118,8 +117,8 @@ class AnulacionRestTest {
     }
 
     private static UUID registroId(MvcResult respuesta) throws Exception {
-        return UUID.fromString(com.jayway.jsonpath.JsonPath.read(
-                respuesta.getResponse().getContentAsString(), "$.registroId"));
+        return UUID.fromString(
+                com.jayway.jsonpath.JsonPath.read(respuesta.getResponse().getContentAsString(), "$.registroId"));
     }
 
     private String anulacion(String numSerie) {

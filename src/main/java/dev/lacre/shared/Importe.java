@@ -26,9 +26,8 @@ public record Importe(BigDecimal valor) implements Comparable<Importe> {
         }
         valor = valor.setScale(ESCALA, REDONDEO);
         if (valor.abs().compareTo(LIMITE) >= 0) {
-            throw new ValorInvalidoException(
-                    "El importe excede los " + MAXIMO_DIGITOS_ENTEROS + " dígitos enteros que admite la AEAT: "
-                            + valor.toPlainString());
+            throw new ValorInvalidoException("El importe excede los " + MAXIMO_DIGITOS_ENTEROS
+                    + " dígitos enteros que admite la AEAT: " + valor.toPlainString());
         }
     }
 

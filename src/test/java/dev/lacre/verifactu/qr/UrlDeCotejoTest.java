@@ -1,15 +1,14 @@
 package dev.lacre.verifactu.qr;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.Registros;
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 /**
  * La URL del código QR, contra el ejemplo del documento oficial de especificaciones del QR. El
@@ -24,8 +23,9 @@ class UrlDeCotejoTest {
     void reproduceElEjemploDelDocumentoOficial() {
         String url = UrlDeCotejo.de(PRUEBAS, alta("12345678&G33", "241.40"));
 
-        assertThat(url).isEqualTo("https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR"
-                + "?nif=89890001K&numserie=12345678%26G33&fecha=01-01-2024&importe=241.40");
+        assertThat(url)
+                .isEqualTo("https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR"
+                        + "?nif=89890001K&numserie=12345678%26G33&fecha=01-01-2024&importe=241.40");
     }
 
     @Test
@@ -38,8 +38,7 @@ class UrlDeCotejoTest {
     /** El espacio se codifica como {@code +}, que es lo que hace el ejemplo de la AEAT. */
     @Test
     void elEspacioDelNumeroDeSerieSeCodifica() {
-        assertThat(UrlDeCotejo.de(PRUEBAS, alta("12345678 / G33", "123.45")))
-                .contains("numserie=12345678+%2F+G33");
+        assertThat(UrlDeCotejo.de(PRUEBAS, alta("12345678 / G33", "123.45"))).contains("numserie=12345678+%2F+G33");
     }
 
     /** La coma como separador decimal es el error 2005 de la AEAT. */

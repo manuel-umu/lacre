@@ -11,13 +11,16 @@ import dev.lacre.verifactu.registro.TipoRegistro;
  * @param tipo        del bloque {@code Operacion/TipoOperacion} de la respuesta
  * @param codigoError código del catálogo de la AEAT, nulo si no hubo error
  */
-public record LineaRespuesta(IdFactura idFactura, TipoRegistro tipo, EstadoRegistroAeat estado,
-                             Integer codigoError, String descripcionError) {
+public record LineaRespuesta(
+        IdFactura idFactura,
+        TipoRegistro tipo,
+        EstadoRegistroAeat estado,
+        Integer codigoError,
+        String descripcionError) {
 
     public LineaRespuesta {
         if (idFactura == null || estado == null || tipo == null) {
-            throw new ValorInvalidoException(
-                    "La respuesta identifica la factura, el tipo de operación y su estado");
+            throw new ValorInvalidoException("La respuesta identifica la factura, el tipo de operación y su estado");
         }
     }
 

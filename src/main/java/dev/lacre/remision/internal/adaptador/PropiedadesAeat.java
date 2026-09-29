@@ -1,8 +1,7 @@
 package dev.lacre.remision.internal.adaptador;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.time.Duration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Endpoint de la AEAT y tiempo máximo de espera de la conexión.

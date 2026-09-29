@@ -29,10 +29,9 @@ class CadenaController {
     @GetMapping("/{nif}/cadena")
     RespuestaVerificacion cadena(@PathVariable String nif) {
         Nif delObligado = new Nif(nif);
-        ObligadoTributario obligado = obligados.findByNif(delObligado)
-                .orElseThrow(() -> new ObligadoDesconocidoException(delObligado));
+        ObligadoTributario obligado =
+                obligados.findByNif(delObligado).orElseThrow(() -> new ObligadoDesconocidoException(delObligado));
 
-        return RespuestaVerificacion.de(
-                obligado.nif().valor(), registros.verificarCadenaDe(obligado.id()));
+        return RespuestaVerificacion.de(obligado.nif().valor(), registros.verificarCadenaDe(obligado.id()));
     }
 }

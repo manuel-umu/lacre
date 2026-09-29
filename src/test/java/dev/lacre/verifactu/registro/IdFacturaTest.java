@@ -1,15 +1,14 @@
 package dev.lacre.verifactu.registro;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.shared.Nif;
 import dev.lacre.shared.ValorInvalidoException;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.time.LocalDate;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Caracteres admitidos en {@code NumSerieFactura}, que el XSD no restringe y la AEAT sí. */
 class IdFacturaTest {

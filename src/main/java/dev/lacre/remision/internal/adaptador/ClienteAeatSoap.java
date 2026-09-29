@@ -7,11 +7,6 @@ import dev.lacre.remision.ClienteAeat;
 import dev.lacre.remision.RemisionFallidaException;
 import dev.lacre.remision.RespuestaIlegibleException;
 import dev.lacre.remision.RespuestaRemision;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -21,6 +16,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.List;
+import javax.net.ssl.SSLContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * Cliente del servicio web de la AEAT: SOAP 1.1 {@code document}/{@code literal} sobre HTTPS con
@@ -69,22 +68,27 @@ class ClienteAeatSoap implements ClienteAeat {
 
         if (respuesta.statusCode() != 200) {
             // Cuerpo y cabeceras van a DEBUG, no al mensaje: pueden traer datos del obligado.
-            log.debug("La AEAT respondió HTTP {} con cabeceras {} y cuerpo: {}",
-                    respuesta.statusCode(), respuesta.headers().map(), respuesta.body());
+            log.debug(
+                    "La AEAT respondió HTTP {} con cabeceras {} y cuerpo: {}",
+                    respuesta.statusCode(),
+                    respuesta.headers().map(),
+                    respuesta.body());
             throw new RemisionFallidaException(
                     "la AEAT respondió HTTP " + respuesta.statusCode() + ", no un mensaje SOAP");
         }
 
         try {
             RespuestaRemision leida = LectorRespuestaAeat.leer(respuesta.body());
-            log.info("Lote de {} registros remitido por {}: envío {}, esperar {} s antes del siguiente",
-                    registros.size(), obligado.nif().valor(), leida.estado(),
+            log.info(
+                    "Lote de {} registros remitido por {}: envío {}, esperar {} s antes del siguiente",
+                    registros.size(),
+                    obligado.nif().valor(),
+                    leida.estado(),
                     leida.tiempoEspera().toSeconds());
             return leida;
         } catch (RespuestaIlegibleException e) {
             // El cuerpo va a DEBUG, no al mensaje: puede traer datos del obligado.
-            log.debug("Respuesta no interpretable de la AEAT (HTTP {}): {}",
-                    respuesta.statusCode(), respuesta.body());
+            log.debug("Respuesta no interpretable de la AEAT (HTTP {}): {}", respuesta.statusCode(), respuesta.body());
             throw new RemisionFallidaException("la respuesta no se pudo interpretar", e);
         }
     }

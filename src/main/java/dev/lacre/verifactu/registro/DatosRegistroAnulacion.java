@@ -20,7 +20,8 @@ public record DatosRegistroAnulacion(
         boolean rechazoPrevio,
         GeneradoPor generadoPor,
         PersonaFisicaJuridica generador,
-        SistemaInformatico sistemaInformatico) implements DatosRegistro {
+        SistemaInformatico sistemaInformatico)
+        implements DatosRegistro {
 
     public static final int MAXIMO_LONGITUD_REF_EXTERNA = 60;
 
@@ -37,9 +38,10 @@ public record DatosRegistroAnulacion(
         if (sistemaInformatico == null) {
             throw new ValorInvalidoException("El sistema informático es obligatorio");
         }
-        ReglaAeatIncumplidaException.exigir((generadoPor == null) == (generador == null), "1224",
-                "Quién genera la anulación y el generador se informan juntos o no se informa "
-                        + "ninguno");
+        ReglaAeatIncumplidaException.exigir(
+                (generadoPor == null) == (generador == null),
+                "1224",
+                "Quién genera la anulación y el generador se informan juntos o no se informa " + "ninguno");
         if (generador != null) {
             generador.exigirComoGenerador(generadoPor);
         }

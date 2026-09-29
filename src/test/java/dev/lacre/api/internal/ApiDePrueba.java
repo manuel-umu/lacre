@@ -11,8 +11,7 @@ public final class ApiDePrueba {
 
     public static final String CLAVE = "clave-de-pruebas-de-lacre-no-es-un-secreto";
 
-    private ApiDePrueba() {
-    }
+    private ApiDePrueba() {}
 
     public static RequestPostProcessor autenticada() {
         return peticion -> {

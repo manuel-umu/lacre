@@ -9,8 +9,7 @@ import org.springframework.modulith.Modulithic;
 @SpringBootApplication
 public class LacreApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(LacreApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(LacreApplication.class, args);
+    }
 }

@@ -2,7 +2,6 @@ package dev.lacre.api.internal.obligados;
 
 import dev.lacre.shared.ValorInvalidoException;
 import jakarta.validation.constraints.NotBlank;
-
 import java.time.DateTimeException;
 import java.time.ZoneId;
 
@@ -12,7 +11,8 @@ import java.time.ZoneId;
  *
  * @param zonaHoraria identificador IANA, como {@code Europe/Madrid} o {@code Atlantic/Canary}
  */
-public record PeticionObligado(@NotBlank String nombreRazon, @NotBlank String zonaHoraria) {
+public record PeticionObligado(
+        @NotBlank String nombreRazon, @NotBlank String zonaHoraria) {
 
     /**
      * Solo zonas con reglas propias: un desfase fijo como {@code +01:00} o {@code UTC} no tiene

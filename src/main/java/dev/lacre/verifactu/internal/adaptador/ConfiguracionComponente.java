@@ -6,11 +6,10 @@ import dev.lacre.verifactu.huella.EncadenadorRegistros;
 import dev.lacre.verifactu.internal.CanonicalizadorAeat;
 import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
 import dev.lacre.verifactu.registro.SistemaInformatico;
+import java.time.Clock;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.time.Clock;
 
 /** Cableado con Spring del núcleo de {@code verifactu}. */
 @Configuration(proxyBeanMethods = false)

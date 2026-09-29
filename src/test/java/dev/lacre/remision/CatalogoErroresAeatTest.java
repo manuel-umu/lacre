@@ -1,10 +1,10 @@
 package dev.lacre.remision;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.lacre.remision.CatalogoErroresAeat.Clasificacion;
 import dev.lacre.remision.CatalogoErroresAeat.ErrorAeat;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * El catálogo oficial, tal y como se lee del fichero de la AEAT. Los recuentos son la guardia:

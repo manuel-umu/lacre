@@ -3,8 +3,7 @@ package dev.lacre.shared;
 /** Validación y recorte de los campos de texto con longitud máxima. */
 public final class Textos {
 
-    private Textos() {
-    }
+    private Textos() {}
 
     /** Exige un texto no vacío que no supere el máximo, y lo devuelve recortado. */
     public static String obligatorio(String valor, int maximo, String campo) {

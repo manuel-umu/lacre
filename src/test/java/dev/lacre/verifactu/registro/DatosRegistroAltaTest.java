@@ -1,5 +1,9 @@
 package dev.lacre.verifactu.registro;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
 import dev.lacre.shared.Porcentaje;
@@ -11,19 +15,14 @@ import dev.lacre.verifactu.desglose.Desglose;
 import dev.lacre.verifactu.desglose.DetalleDesglose;
 import dev.lacre.verifactu.desglose.Impuesto;
 import dev.lacre.verifactu.desglose.OperacionExenta;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.IntStream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DatosRegistroAltaTest {
 
@@ -42,18 +41,14 @@ class DatosRegistroAltaTest {
 
     @Test
     void exigeLosCamposObligatorios() {
-        assertThatThrownBy(() -> Registros.alta().idFactura(null).build())
-                .isInstanceOf(ValorInvalidoException.class);
+        assertThatThrownBy(() -> Registros.alta().idFactura(null).build()).isInstanceOf(ValorInvalidoException.class);
         assertThatThrownBy(() -> Registros.alta().nombreRazonEmisor("  ").build())
                 .isInstanceOf(ValorInvalidoException.class);
-        assertThatThrownBy(() -> Registros.alta().tipoFactura(null).build())
-                .isInstanceOf(ValorInvalidoException.class);
+        assertThatThrownBy(() -> Registros.alta().tipoFactura(null).build()).isInstanceOf(ValorInvalidoException.class);
         assertThatThrownBy(() -> Registros.alta().descripcionOperacion(null).build())
                 .isInstanceOf(ValorInvalidoException.class);
-        assertThatThrownBy(() -> Registros.alta().desglose(null).build())
-                .isInstanceOf(ValorInvalidoException.class);
-        assertThatThrownBy(() -> Registros.alta().cuotaTotal(null).build())
-                .isInstanceOf(ValorInvalidoException.class);
+        assertThatThrownBy(() -> Registros.alta().desglose(null).build()).isInstanceOf(ValorInvalidoException.class);
+        assertThatThrownBy(() -> Registros.alta().cuotaTotal(null).build()).isInstanceOf(ValorInvalidoException.class);
         assertThatThrownBy(() -> Registros.alta().importeTotal(null).build())
                 .isInstanceOf(ValorInvalidoException.class);
         assertThatThrownBy(() -> Registros.alta().sistemaInformatico(null).build())
@@ -62,12 +57,17 @@ class DatosRegistroAltaTest {
 
     @Test
     void respetaLosLimitesDeLongitudDelXsd() {
-        assertThatThrownBy(() -> Registros.alta().nombreRazonEmisor("X".repeat(121)).build())
-                .isInstanceOf(ValorInvalidoException.class).hasMessageContaining("120");
-        assertThatThrownBy(() -> Registros.alta().descripcionOperacion("X".repeat(501)).build())
-                .isInstanceOf(ValorInvalidoException.class).hasMessageContaining("500");
+        assertThatThrownBy(() ->
+                        Registros.alta().nombreRazonEmisor("X".repeat(121)).build())
+                .isInstanceOf(ValorInvalidoException.class)
+                .hasMessageContaining("120");
+        assertThatThrownBy(() ->
+                        Registros.alta().descripcionOperacion("X".repeat(501)).build())
+                .isInstanceOf(ValorInvalidoException.class)
+                .hasMessageContaining("500");
         assertThatThrownBy(() -> Registros.alta().refExterna("X".repeat(61)).build())
-                .isInstanceOf(ValorInvalidoException.class).hasMessageContaining("60");
+                .isInstanceOf(ValorInvalidoException.class)
+                .hasMessageContaining("60");
     }
 
     @Test
@@ -82,7 +82,8 @@ class DatosRegistroAltaTest {
     void soloUnaRectificativaPuedeReferenciarFacturasRectificadas(String tipo) {
         DatosRegistroAlta datos = Registros.alta()
                 .tipoFactura(TipoFactura.valueOf(tipo))
-                .destinatarios(tipo.equals("R5") ? List.of() : Registros.alta().build().destinatarios())
+                .destinatarios(
+                        tipo.equals("R5") ? List.of() : Registros.alta().build().destinatarios())
                 .tipoRectificativa(ClaveTipoRectificativa.I)
                 .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
                 .build();
@@ -96,9 +97,9 @@ class DatosRegistroAltaTest {
     @ValueSource(strings = {"R1", "R2", "R3", "R4", "R5"})
     void unaRectificativaSinTipoDeRectificativaNoVale(String tipo) {
         assertThatThrownBy(() -> Registros.alta()
-                .tipoFactura(TipoFactura.valueOf(tipo))
-                .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
-                .build())
+                        .tipoFactura(TipoFactura.valueOf(tipo))
+                        .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
+                        .build())
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("sustitución");
     }
@@ -106,37 +107,50 @@ class DatosRegistroAltaTest {
     @Test
     void unaFacturaQueNoEsRectificativaNoPuedeLlevarTipoDeRectificativa() {
         assertThatThrownBy(() -> Registros.alta()
-                .tipoFactura(TipoFactura.F1)
-                .tipoRectificativa(ClaveTipoRectificativa.S)
-                .build())
+                        .tipoFactura(TipoFactura.F1)
+                        .tipoRectificativa(ClaveTipoRectificativa.S)
+                        .build())
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("rectificativa");
     }
 
     @ParameterizedTest
-    @EnumSource(value = RechazoPrevio.class, names = {"S", "X"})
+    @EnumSource(
+            value = RechazoPrevio.class,
+            names = {"S", "X"})
     void elRechazoPrevioSoloCabeEnUnaSubsanacion(RechazoPrevio rechazo) {
-        assertThatThrownBy(() -> Registros.alta().subsanacion(false).rechazoPrevio(rechazo).build())
+        assertThatThrownBy(() -> Registros.alta()
+                        .subsanacion(false)
+                        .rechazoPrevio(rechazo)
+                        .build())
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("subsanación");
 
-        assertThat(Registros.alta().subsanacion(true).rechazoPrevio(rechazo).build().rechazoPrevio())
+        assertThat(Registros.alta()
+                        .subsanacion(true)
+                        .rechazoPrevio(rechazo)
+                        .build()
+                        .rechazoPrevio())
                 .isEqualTo(rechazo);
     }
 
     @Test
     void unaFacturaQueNoEsSubsanacionSiPuedeDecirQueNoHuboRechazoPrevio() {
-        assertThat(Registros.alta().subsanacion(false).rechazoPrevio(RechazoPrevio.N).build()
-                .rechazoPrevio()).isEqualTo(RechazoPrevio.N);
+        assertThat(Registros.alta()
+                        .subsanacion(false)
+                        .rechazoPrevio(RechazoPrevio.N)
+                        .build()
+                        .rechazoPrevio())
+                .isEqualTo(RechazoPrevio.N);
         assertThat(Registros.alta().subsanacion(false).build().rechazoPrevio()).isNull();
     }
 
     @Test
     void unaFacturaNoRectificativaNoPuedeReferenciarFacturasRectificadas() {
         assertThatThrownBy(() -> Registros.alta()
-                .tipoFactura(TipoFactura.F1)
-                .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
-                .build())
+                        .tipoFactura(TipoFactura.F1)
+                        .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
+                        .build())
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("rectificativa");
     }
@@ -144,14 +158,16 @@ class DatosRegistroAltaTest {
     @Test
     void soloUnaF3PuedeReferenciarFacturasSustituidas() {
         assertThat(Registros.alta()
-                .tipoFactura(TipoFactura.F3)
-                .facturasSustituidas(List.of(Registros.idFactura("FA/SIMPLIFICADA")))
-                .build().facturasSustituidas()).hasSize(1);
+                        .tipoFactura(TipoFactura.F3)
+                        .facturasSustituidas(List.of(Registros.idFactura("FA/SIMPLIFICADA")))
+                        .build()
+                        .facturasSustituidas())
+                .hasSize(1);
 
         assertThatThrownBy(() -> Registros.alta()
-                .tipoFactura(TipoFactura.F2)
-                .facturasSustituidas(List.of(Registros.idFactura("FA/SIMPLIFICADA")))
-                .build())
+                        .tipoFactura(TipoFactura.F2)
+                        .facturasSustituidas(List.of(Registros.idFactura("FA/SIMPLIFICADA")))
+                        .build())
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("F3");
     }
@@ -165,15 +181,16 @@ class DatosRegistroAltaTest {
         mutable.clear();
 
         assertThat(datos.destinatarios()).hasSize(1);
-        assertThatThrownBy(() -> datos.destinatarios().add(null))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> datos.destinatarios().add(null)).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
     void admiteHastaMilDestinatariosYNiUnoMas() {
-        assertThat(Registros.alta().destinatarios(destinatarios(1000)).build().destinatarios()).hasSize(1000);
+        assertThat(Registros.alta().destinatarios(destinatarios(1000)).build().destinatarios())
+                .hasSize(1000);
 
-        assertThatThrownBy(() -> Registros.alta().destinatarios(destinatarios(1001)).build())
+        assertThatThrownBy(() ->
+                        Registros.alta().destinatarios(destinatarios(1001)).build())
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("1000");
     }
@@ -181,9 +198,11 @@ class DatosRegistroAltaTest {
     @Test
     void unaFacturaSimplificadaPuedeNoLlevarDestinatarios() {
         assertThat(Registros.alta()
-                .tipoFactura(TipoFactura.F2)
-                .destinatarios(List.of())
-                .build().destinatarios()).isEmpty();
+                        .tipoFactura(TipoFactura.F2)
+                        .destinatarios(List.of())
+                        .build()
+                        .destinatarios())
+                .isEmpty();
     }
 
     // --- Cuadre de totales con el desglose ---
@@ -199,22 +218,29 @@ class DatosRegistroAltaTest {
 
     @Test
     void admiteUnaDesviacionDeHastaDiezEurosEnCadaSentido() {
-        assertThat(Registros.alta().importeTotal(Importe.de("133.45")).build().cuadraElImporteTotal()).isTrue();
-        assertThat(Registros.alta().importeTotal(Importe.de("113.45")).build().cuadraElImporteTotal()).isTrue();
-        assertThat(Registros.alta().cuotaTotal(Importe.de("22.35")).build().cuadraLaCuotaTotal()).isTrue();
+        assertThat(Registros.alta().importeTotal(Importe.de("133.45")).build().cuadraElImporteTotal())
+                .isTrue();
+        assertThat(Registros.alta().importeTotal(Importe.de("113.45")).build().cuadraElImporteTotal())
+                .isTrue();
+        assertThat(Registros.alta().cuotaTotal(Importe.de("22.35")).build().cuadraLaCuotaTotal())
+                .isTrue();
     }
 
     @Test
     void noCuadraCuandoLaDesviacionSuperaElMargen() {
-        assertThat(Registros.alta().importeTotal(Importe.de("133.46")).build().cuadraElImporteTotal()).isFalse();
-        assertThat(Registros.alta().importeTotal(Importe.de("113.44")).build().cuadraElImporteTotal()).isFalse();
-        assertThat(Registros.alta().cuotaTotal(Importe.de("22.36")).build().cuadraLaCuotaTotal()).isFalse();
+        assertThat(Registros.alta().importeTotal(Importe.de("133.46")).build().cuadraElImporteTotal())
+                .isFalse();
+        assertThat(Registros.alta().importeTotal(Importe.de("113.44")).build().cuadraElImporteTotal())
+                .isFalse();
+        assertThat(Registros.alta().cuotaTotal(Importe.de("22.36")).build().cuadraLaCuotaTotal())
+                .isFalse();
     }
 
     /** Un descuadre no impide construir el registro: la AEAT lo acepta con errores. */
     @Test
     void unDescuadreNoImpideConstruirElRegistro() {
-        DatosRegistroAlta descuadrado = Registros.alta().importeTotal(Importe.de("999.99")).build();
+        DatosRegistroAlta descuadrado =
+                Registros.alta().importeTotal(Importe.de("999.99")).build();
 
         assertThat(descuadrado.cuadraElImporteTotal()).isFalse();
         assertThat(descuadrado.importeTotal()).isEqualTo(Importe.de("999.99"));
@@ -250,16 +276,34 @@ class DatosRegistroAltaTest {
         ClaveRegimen clave = new ClaveRegimen(claveRegimen);
         Importe base = Importe.de("111.10");
         return switch (claveRegimen) {
-            case "02", "04" -> new DetalleDesglose(Impuesto.IVA, clave, OperacionExenta.E2,
-                    null, base, null, null, null, null);
-            case "06" -> new DetalleDesglose(Impuesto.IVA, clave, CalificacionOperacion.S1,
-                    Porcentaje.de("10"), base, base, Importe.de("12.35"), null, null);
-            case "08" -> new DetalleDesglose(Impuesto.IVA, clave, CalificacionOperacion.N2,
-                    null, base, null, null, null, null);
-            case "10" -> new DetalleDesglose(Impuesto.IVA, clave, CalificacionOperacion.N1,
-                    null, base, null, null, null, null);
-            default -> new DetalleDesglose(Impuesto.IVA, clave, CalificacionOperacion.S1,
-                    Porcentaje.de("10"), base, null, Importe.de("12.35"), null, null);
+            case "02", "04" ->
+                new DetalleDesglose(Impuesto.IVA, clave, OperacionExenta.E2, null, base, null, null, null, null);
+            case "06" ->
+                new DetalleDesglose(
+                        Impuesto.IVA,
+                        clave,
+                        CalificacionOperacion.S1,
+                        Porcentaje.de("10"),
+                        base,
+                        base,
+                        Importe.de("12.35"),
+                        null,
+                        null);
+            case "08" ->
+                new DetalleDesglose(Impuesto.IVA, clave, CalificacionOperacion.N2, null, base, null, null, null, null);
+            case "10" ->
+                new DetalleDesglose(Impuesto.IVA, clave, CalificacionOperacion.N1, null, base, null, null, null, null);
+            default ->
+                new DetalleDesglose(
+                        Impuesto.IVA,
+                        clave,
+                        CalificacionOperacion.S1,
+                        Porcentaje.de("10"),
+                        base,
+                        null,
+                        Importe.de("12.35"),
+                        null,
+                        null);
         };
     }
 
@@ -267,8 +311,10 @@ class DatosRegistroAltaTest {
 
     @Test
     void unaCuotaQueNoSaleDeLaBaseYElTipoNoSeConstruye() {
-        assertThatThrownBy(() -> Registros.alta().desglose(cuotaDelVeintiunoMal()).build())
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+        assertThatThrownBy(
+                        () -> Registros.alta().desglose(cuotaDelVeintiunoMal()).build())
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo("1142"));
     }
 
@@ -276,14 +322,18 @@ class DatosRegistroAltaTest {
     @ParameterizedTest
     @CsvSource({"R1, I", "R4, I", "R2, S", "R3, S"})
     void lasRectificativasExentasDelContrasteAdmitenCualquierCuota(String tipo, String clave) {
-        assertThatCode(() -> rectificativa(tipo, clave).desglose(cuotaDelVeintiunoMal()).build())
+        assertThatCode(() -> rectificativa(tipo, clave)
+                        .desglose(cuotaDelVeintiunoMal())
+                        .build())
                 .doesNotThrowAnyException();
     }
 
     @ParameterizedTest
     @CsvSource({"R1, S", "R4, S"})
     void lasDemasRectificativasSiContrastanLaCuota(String tipo, String clave) {
-        assertThatThrownBy(() -> rectificativa(tipo, clave).desglose(cuotaDelVeintiunoMal()).build())
+        assertThatThrownBy(() -> rectificativa(tipo, clave)
+                        .desglose(cuotaDelVeintiunoMal())
+                        .build())
                 .isInstanceOf(ReglaAeatIncumplidaException.class);
     }
 
@@ -293,44 +343,62 @@ class DatosRegistroAltaTest {
         return Registros.alta()
                 .tipoFactura(TipoFactura.valueOf(tipo))
                 .tipoRectificativa(porSustitucion)
-                .importeRectificacion(porSustitucion == ClaveTipoRectificativa.S
-                        ? new ImporteRectificacion(Importe.de("100.00"), Importe.de("21.00"), null)
-                        : null);
+                .importeRectificacion(
+                        porSustitucion == ClaveTipoRectificativa.S
+                                ? new ImporteRectificacion(Importe.de("100.00"), Importe.de("21.00"), null)
+                                : null);
     }
 
     @Test
     void lasReglasDeLaAeatQueYaSeValidabanLlevanSuCodigo() {
         assertThatThrownBy(() -> Registros.alta().tipoFactura(TipoFactura.R1).build())
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo("1114"));
         assertThatThrownBy(() -> Registros.alta()
-                .tipoRectificativa(ClaveTipoRectificativa.S).build())
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                        .tipoRectificativa(ClaveTipoRectificativa.S)
+                        .build())
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo("1115"));
         assertThatThrownBy(() -> Registros.alta()
-                .facturasRectificadas(List.of(Registros.idFactura("FA/1"))).build())
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                        .facturasRectificadas(List.of(Registros.idFactura("FA/1")))
+                        .build())
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo("1117"));
         assertThatThrownBy(() -> Registros.alta()
-                .facturasSustituidas(List.of(Registros.idFactura("FA/1"))).build())
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                        .facturasSustituidas(List.of(Registros.idFactura("FA/1")))
+                        .build())
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo("1116"));
         assertThatThrownBy(() -> Registros.alta().rechazoPrevio(RechazoPrevio.S).build())
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo("1161"));
         assertThatThrownBy(() -> Registros.alta().rechazoPrevio(RechazoPrevio.X).build())
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo("1153"));
         assertThatThrownBy(() -> Registros.idFactura("FA<1"))
-                .isInstanceOfSatisfying(ReglaAeatIncumplidaException.class,
+                .isInstanceOfSatisfying(
+                        ReglaAeatIncumplidaException.class,
                         e -> assertThat(e.codigoAeat()).isEqualTo("1130"));
     }
 
     /** Base 111,10 al 21 % con cuota 12,35: casi once euros por debajo de lo que corresponde. */
     private static Desglose cuotaDelVeintiunoMal() {
-        return Desglose.de(new DetalleDesglose(Impuesto.IVA, new ClaveRegimen("01"),
-                CalificacionOperacion.S1, Porcentaje.de("21"), Importe.de("111.10"),
-                null, Importe.de("12.35"), null, null));
+        return Desglose.de(new DetalleDesglose(
+                Impuesto.IVA,
+                new ClaveRegimen("01"),
+                CalificacionOperacion.S1,
+                Porcentaje.de("21"),
+                Importe.de("111.10"),
+                null,
+                Importe.de("12.35"),
+                null,
+                null));
     }
 
     private static List<PersonaFisicaJuridica> destinatarios(int cuantos) {

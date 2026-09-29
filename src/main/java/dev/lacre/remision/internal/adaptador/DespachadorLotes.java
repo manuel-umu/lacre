@@ -14,11 +14,6 @@ import dev.lacre.verifactu.consulta.RegistroRemitible;
 import dev.lacre.verifactu.consulta.RegistrosRemitibles;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.TipoRegistro;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -29,6 +24,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Lee el outbox y remite lotes a la AEAT respetando el control de flujo. El turno se reserva y
@@ -48,9 +47,15 @@ public class DespachadorLotes {
     private final Clock reloj;
     private final TransactionTemplate transaccion;
 
-    DespachadorLotes(ControlDeFlujo controlDeFlujo, ColaDeEnvios cola, Envios envios,
-                     Obligados obligados, RegistrosRemitibles registros, ClienteAeat aeat,
-                     Clock reloj, TransactionTemplate transaccion) {
+    DespachadorLotes(
+            ControlDeFlujo controlDeFlujo,
+            ColaDeEnvios cola,
+            Envios envios,
+            Obligados obligados,
+            RegistrosRemitibles registros,
+            ClienteAeat aeat,
+            Clock reloj,
+            TransactionTemplate transaccion) {
         this.controlDeFlujo = controlDeFlujo;
         this.cola = cola;
         this.envios = envios;
@@ -91,12 +96,15 @@ public class DespachadorLotes {
         }
 
         List<EnvioRegistro> reservadas = cola.cargar(reservados);
-        List<RegistroRemitible> todos = registros.de(
-                reservadas.stream().map(EnvioRegistro::registroId).toList());
+        List<RegistroRemitible> todos =
+                registros.de(reservadas.stream().map(EnvioRegistro::registroId).toList());
         if (todos.size() != reservadas.size()) {
             // No debería pasar: hay clave ajena. No se remite un lote a medias.
-            log.error("El obligado {} tiene {} envíos pendientes pero solo {} registros guardados",
-                    obligadoId, reservadas.size(), todos.size());
+            log.error(
+                    "El obligado {} tiene {} envíos pendientes pero solo {} registros guardados",
+                    obligadoId,
+                    reservadas.size(),
+                    todos.size());
             return false;
         }
         int corte = hastaLaPrimeraFacturaRepetida(todos);
@@ -115,7 +123,8 @@ public class DespachadorLotes {
         }
 
         try {
-            RespuestaRemision respuesta = aeat.remitir(obligado.get(),
+            RespuestaRemision respuesta = aeat.remitir(
+                    obligado.get(),
                     remitibles.stream().map(RegistroRemitible::xml).toList());
             controlDeFlujo.actualizarEspera(obligadoId, respuesta.tiempoEspera());
             aplicar(respuesta, lote, remitibles);
@@ -124,13 +133,19 @@ public class DespachadorLotes {
             // No se sabe si la AEAT lo registró: el lote sigue PENDIENTE. Si había entrado, el
             // reintento devolverá el código 3000 y se resolverá como DUPLICADO.
             cola.sumarIntento(lote, codigoDe(e), e.getMessage());
-            log.warn("No se pudo remitir el lote de {} registros del obligado {}: {}",
-                    lote.size(), obligadoId, e.getMessage());
+            log.warn(
+                    "No se pudo remitir el lote de {} registros del obligado {}: {}",
+                    lote.size(),
+                    obligadoId,
+                    e.getMessage());
             return false;
         } catch (CertificadoNoDisponibleException e) {
             cola.sumarIntento(lote, null, e.getMessage());
-            log.error("El obligado {} tiene {} envíos pendientes que no se pueden remitir: {}",
-                    obligadoId, lote.size(), e.getMessage());
+            log.error(
+                    "El obligado {} tiene {} envíos pendientes que no se pueden remitir: {}",
+                    obligadoId,
+                    lote.size(),
+                    e.getMessage());
             return false;
         }
     }
@@ -139,8 +154,7 @@ public class DespachadorLotes {
      * Empareja cada línea de respuesta con su envío por factura y tipo de operación. Lo que no
      * se empareja sigue pendiente y suma un intento.
      */
-    private void aplicar(RespuestaRemision respuesta, List<EnvioRegistro> lote,
-                         List<RegistroRemitible> remitibles) {
+    private void aplicar(RespuestaRemision respuesta, List<EnvioRegistro> lote, List<RegistroRemitible> remitibles) {
         Map<Clave, LineaRespuesta> porClave = new HashMap<>();
         for (LineaRespuesta linea : respuesta.lineas()) {
             porClave.put(new Clave(linea.idFactura(), linea.tipo()), linea);
@@ -160,11 +174,13 @@ public class DespachadorLotes {
 
         envios.saveAll(resueltos);
         if (!sinRespuesta.isEmpty()) {
-            cola.sumarIntento(sinRespuesta, null,
-                    "La AEAT respondió al lote sin decir nada de este registro");
-            log.error("La AEAT no devolvió línea para {} de los {} registros remitidos por el "
+            cola.sumarIntento(sinRespuesta, null, "La AEAT respondió al lote sin decir nada de este registro");
+            log.error(
+                    "La AEAT no devolvió línea para {} de los {} registros remitidos por el "
                             + "obligado {}; siguen pendientes",
-                    sinRespuesta.size(), lote.size(), lote.getFirst().obligadoId());
+                    sinRespuesta.size(),
+                    lote.size(),
+                    lote.getFirst().obligadoId());
         }
     }
 
@@ -192,8 +208,8 @@ public class DespachadorLotes {
         OffsetDateTime cuando = OffsetDateTime.now(reloj);
         return switch (linea.desenlace()) {
             case ACEPTADO -> envio.aceptado(cuando);
-            case ACEPTADO_CON_ERRORES -> envio.aceptadoConErrores(
-                    cuando, linea.codigoError(), linea.descripcionError());
+            case ACEPTADO_CON_ERRORES ->
+                envio.aceptadoConErrores(cuando, linea.codigoError(), linea.descripcionError());
             case RECHAZADO -> envio.rechazado(cuando, linea.codigoError(), linea.descripcionError());
             case DUPLICADO -> envio.duplicado(cuando, linea.descripcionError());
             case PENDIENTE -> envio;
@@ -201,6 +217,5 @@ public class DespachadorLotes {
     }
 
     /** Identifica un registro dentro de un lote. */
-    private record Clave(IdFactura idFactura, TipoRegistro tipo) {
-    }
+    private record Clave(IdFactura idFactura, TipoRegistro tipo) {}
 }

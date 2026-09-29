@@ -1,7 +1,6 @@
 package dev.lacre.verifactu.internal;
 
 import dev.lacre.shared.Huella;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -13,8 +12,7 @@ public final class CalculadorHuella {
 
     private static final String ALGORITMO = "SHA-256";
 
-    private CalculadorHuella() {
-    }
+    private CalculadorHuella() {}
 
     public static Huella calcular(String cadenaCanonica) {
         Objects.requireNonNull(cadenaCanonica, "cadenaCanonica");

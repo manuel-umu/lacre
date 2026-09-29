@@ -1,12 +1,12 @@
 package dev.lacre.api.internal.autenticacion;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Validación de la clave de la API, sin Spring. */
 class PropiedadesApiTest {
@@ -39,8 +39,8 @@ class PropiedadesApiTest {
                 .withUserConfiguration(HabilitaLasPropiedades.class)
                 .withPropertyValues("lacre.api.clave=")
                 // Se comprueba la traza entera: Spring envuelve el fallo de enlace.
-                .run(contexto -> assertThat(contexto).hasFailed()
-                        .getFailure().hasStackTraceContaining("LACRE_API_CLAVE"));
+                .run(contexto ->
+                        assertThat(contexto).hasFailed().getFailure().hasStackTraceContaining("LACRE_API_CLAVE"));
     }
 
     @Test
@@ -53,8 +53,7 @@ class PropiedadesApiTest {
 
     @Configuration(proxyBeanMethods = false)
     @EnableConfigurationProperties(PropiedadesApi.class)
-    static class HabilitaLasPropiedades {
-    }
+    static class HabilitaLasPropiedades {}
 
     @Test
     void laClaveSeRecortaPorLosExtremos() {

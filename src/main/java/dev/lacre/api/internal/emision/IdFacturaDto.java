@@ -4,7 +4,6 @@ import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.registro.IdFactura;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
 import java.time.LocalDate;
 
 /** Identificación de una factura en la API, con los nombres de la AEAT en camelCase. */

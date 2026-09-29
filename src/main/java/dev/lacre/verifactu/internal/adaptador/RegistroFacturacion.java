@@ -5,13 +5,12 @@ import dev.lacre.shared.Nif;
 import dev.lacre.shared.ValorInvalidoException;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.TipoRegistro;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.domain.Persistable;
-import org.springframework.data.relational.core.mapping.Table;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Table;
 
 /**
  * Fila de la cadena de registros de un obligado: identidad, posición y XML serializado.
@@ -34,7 +33,8 @@ public record RegistroFacturacion(
         Huella huellaAnterior,
         OffsetDateTime fechaHoraHusoGenRegistro,
         int husoOffsetSegundos,
-        String xml) implements Persistable<UUID> {
+        String xml)
+        implements Persistable<UUID> {
 
     public RegistroFacturacion {
         if (fechaHoraHusoGenRegistro != null
@@ -48,8 +48,8 @@ public record RegistroFacturacion(
     }
 
     /** Construye el asiento a partir del registro ya encadenado. */
-    public static RegistroFacturacion de(UUID id, UUID obligadoId, long posicion,
-                                         RegistroEncadenado registro, String xml) {
+    public static RegistroFacturacion de(
+            UUID id, UUID obligadoId, long posicion, RegistroEncadenado registro, String xml) {
         OffsetDateTime fechaHora = registro.fechaHoraHusoGenRegistro();
         return new RegistroFacturacion(
                 id,
@@ -68,8 +68,7 @@ public record RegistroFacturacion(
 
     /** Fecha y hora con el huso original con el que se calculó la huella. */
     public OffsetDateTime fechaHoraConSuHusoOriginal() {
-        return fechaHoraHusoGenRegistro.toInstant()
-                .atOffset(java.time.ZoneOffset.ofTotalSeconds(husoOffsetSegundos));
+        return fechaHoraHusoGenRegistro.toInstant().atOffset(java.time.ZoneOffset.ofTotalSeconds(husoOffsetSegundos));
     }
 
     /** {@code Persistable} exige un getter al estilo JavaBean. */

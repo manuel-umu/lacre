@@ -1,5 +1,9 @@
 package dev.lacre.api.internal;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import dev.lacre.TestcontainersConfiguration;
 import dev.lacre.api.internal.consulta.EstadoDelRegistro;
 import dev.lacre.api.internal.consulta.RespuestaVerificacion;
@@ -10,6 +14,15 @@ import dev.lacre.api.internal.emision.alta.PeticionAlta;
 import dev.lacre.api.internal.emision.anulacion.PeticionAnulacion;
 import dev.lacre.api.internal.obligados.PeticionObligado;
 import dev.lacre.api.internal.obligados.RespuestaObligado;
+import java.io.InputStream;
+import java.lang.reflect.RecordComponent;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,20 +36,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.yaml.snakeyaml.Yaml;
-
-import java.io.InputStream;
-import java.lang.reflect.RecordComponent;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * El contrato publicado en {@code openapi.yaml} contra el código que lo sirve. Una
@@ -61,8 +60,7 @@ class ContratoOpenApiTest {
 
     @BeforeAll
     static void leerElContrato() {
-        try (InputStream fichero = ContratoOpenApiTest.class
-                .getResourceAsStream("/static/openapi.yaml")) {
+        try (InputStream fichero = ContratoOpenApiTest.class.getResourceAsStream("/static/openapi.yaml")) {
             contrato = new Yaml().load(fichero);
         } catch (Exception e) {
             throw new IllegalStateException("No se pudo leer /static/openapi.yaml", e);
@@ -72,8 +70,7 @@ class ContratoOpenApiTest {
     /** Ni un endpoint documentado que no exista, ni uno expuesto que nadie documentó. */
     @Test
     void lasOperacionesDocumentadasSonExactamenteLasQueLaApiExpone() {
-        assertThat(operacionesDocumentadas())
-                .containsExactlyInAnyOrderElementsOf(operacionesMapeadas());
+        assertThat(operacionesDocumentadas()).containsExactlyInAnyOrderElementsOf(operacionesMapeadas());
     }
 
     /**
@@ -83,8 +80,7 @@ class ContratoOpenApiTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("esquemasYSusRecords")
     void cadaEsquemaTieneLosCamposDeSuRecord(String esquema, Class<?> record) {
-        assertThat(propiedadesDe(esquema))
-                .containsExactlyInAnyOrderElementsOf(componentesDe(record));
+        assertThat(propiedadesDe(esquema)).containsExactlyInAnyOrderElementsOf(componentesDe(record));
     }
 
     /** Como la sonda de salud: el contrato se lee antes de tener credencial. */
@@ -95,8 +91,7 @@ class ContratoOpenApiTest {
 
     @Test
     void elContratoDeclaraLaClaveDeApiComoSeguridadPorDefecto() {
-        assertThat(contrato).extractingByKey("security")
-                .isEqualTo(List.of(Map.of("claveDeApi", List.of())));
+        assertThat(contrato).extractingByKey("security").isEqualTo(List.of(Map.of("claveDeApi", List.of())));
     }
 
     static Stream<Arguments> esquemasYSusRecords() {
@@ -120,8 +115,7 @@ class ContratoOpenApiTest {
 
     @SuppressWarnings("unchecked")
     private Set<String> operacionesDocumentadas() {
-        Map<String, Map<String, Object>> rutas =
-                (Map<String, Map<String, Object>>) contrato.get("paths");
+        Map<String, Map<String, Object>> rutas = (Map<String, Map<String, Object>>) contrato.get("paths");
 
         return rutas.entrySet().stream()
                 .flatMap(ruta -> ruta.getValue().keySet().stream()
@@ -142,11 +136,13 @@ class ContratoOpenApiTest {
 
     @SuppressWarnings("unchecked")
     private Set<String> propiedadesDe(String esquema) {
-        Map<String, Object> esquemas = (Map<String, Object>)
-                ((Map<String, Object>) contrato.get("components")).get("schemas");
+        Map<String, Object> esquemas =
+                (Map<String, Object>) ((Map<String, Object>) contrato.get("components")).get("schemas");
         Map<String, Object> definicion = (Map<String, Object>) esquemas.get(esquema);
 
-        assertThat(definicion).as("el esquema %s no está en el contrato", esquema).isNotNull();
+        assertThat(definicion)
+                .as("el esquema %s no está en el contrato", esquema)
+                .isNotNull();
         return ((Map<String, Object>) definicion.get("properties")).keySet();
     }
 

@@ -1,14 +1,14 @@
 package dev.lacre.verifactu.registro;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.shared.IdOtro;
 import dev.lacre.shared.IdentificadorFiscal;
 import dev.lacre.shared.Nif;
 import dev.lacre.shared.TipoIdentificacion;
 import dev.lacre.shared.ValorInvalidoException;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PersonaFisicaJuridicaTest {
 
@@ -38,8 +38,7 @@ class PersonaFisicaJuridicaTest {
     void exigeNombreEIdentificador() {
         assertThatThrownBy(() -> new PersonaFisicaJuridica(" ", new Nif("12345678Z")))
                 .isInstanceOf(ValorInvalidoException.class);
-        assertThatThrownBy(() -> new PersonaFisicaJuridica("Cliente", null))
-                .isInstanceOf(ValorInvalidoException.class);
+        assertThatThrownBy(() -> new PersonaFisicaJuridica("Cliente", null)).isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test

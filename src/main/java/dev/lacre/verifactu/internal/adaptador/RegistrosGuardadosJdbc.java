@@ -1,5 +1,8 @@
 package dev.lacre.verifactu.internal.adaptador;
 
+import static dev.lacre.verifactu.consulta.VerificacionDeCadena.Rotura;
+import static dev.lacre.verifactu.consulta.VerificacionDeCadena.Rotura.Motivo;
+
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.consulta.RegistroGuardado;
@@ -11,11 +14,6 @@ import dev.lacre.verifactu.internal.xml.RegistroIlegibleException;
 import dev.lacre.verifactu.internal.xml.RegistroLeido;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.TipoRegistro;
-import org.springframework.jdbc.core.RowCallbackHandler;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -23,9 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import static dev.lacre.verifactu.consulta.VerificacionDeCadena.Rotura;
-import static dev.lacre.verifactu.consulta.VerificacionDeCadena.Rotura.Motivo;
+import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Lado de lectura de los registros guardados, con SQL explícito. */
 @Component
@@ -57,14 +56,14 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
                         rs.getObject("obligado_id", UUID.class),
                         rs.getLong("posicion"),
                         TipoRegistro.valueOf(rs.getString("tipo")),
-                        new IdFactura(new Nif(rs.getString("emisor")),
+                        new IdFactura(
+                                new Nif(rs.getString("emisor")),
                                 rs.getString("num_serie_factura"),
                                 rs.getObject("fecha_expedicion_factura", LocalDate.class)),
                         new Huella(rs.getString("huella")),
                         huellaOpcional(rs.getString("huella_anterior")),
                         rs.getObject("fecha_hora_huso_gen_registro", OffsetDateTime.class)
-                                .withOffsetSameInstant(ZoneOffset.ofTotalSeconds(
-                                        rs.getInt("huso_offset_segundos")))))
+                                .withOffsetSameInstant(ZoneOffset.ofTotalSeconds(rs.getInt("huso_offset_segundos")))))
                 .optional();
     }
 
@@ -90,8 +89,8 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
                         huellaOpcional(fila.getString("huella_anterior")),
                         fila.getString("xml"))));
 
-        return new VerificacionDeCadena(obligadoId, recorrido.registros, recorrido.roturas,
-                VerificacionDeCadena.Alcance.HUELLAS);
+        return new VerificacionDeCadena(
+                obligadoId, recorrido.registros, recorrido.roturas, VerificacionDeCadena.Alcance.HUELLAS);
     }
 
     /** Estado de un recorrido: las roturas encontradas y el último eslabón visto. */
@@ -147,6 +146,5 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
         return valor == null ? null : new Huella(valor);
     }
 
-    private record Eslabon(long posicion, Huella huella, Huella huellaAnterior, String xml) {
-    }
+    private record Eslabon(long posicion, Huella huella, Huella huellaAnterior, String xml) {}
 }

@@ -17,8 +17,7 @@ public record Huella(String valor) {
         }
         valor = valor.toUpperCase(Locale.ROOT);
         if (!HEXADECIMAL_DE_64.matcher(valor).matches()) {
-            throw new ValorInvalidoException(
-                    "La huella debe ser 64 caracteres hexadecimales: " + valor);
+            throw new ValorInvalidoException("La huella debe ser 64 caracteres hexadecimales: " + valor);
         }
     }
 }

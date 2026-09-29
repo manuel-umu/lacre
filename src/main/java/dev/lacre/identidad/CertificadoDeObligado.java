@@ -1,13 +1,13 @@
 package dev.lacre.identidad;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Objects;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 
 /**
  * Certificado electrónico con el que un obligado se autentica ante la AEAT. La contraseña no se
@@ -34,8 +34,7 @@ public final class CertificadoDeObligado {
         Objects.requireNonNull(contrasena, "contrasena");
         try {
             for (String alias : Collections.list(almacen.aliases())) {
-                if (almacen.isKeyEntry(alias)
-                        && almacen.getCertificate(alias) instanceof X509Certificate x509) {
+                if (almacen.isKeyEntry(alias) && almacen.getCertificate(alias) instanceof X509Certificate x509) {
                     return new CertificadoDeObligado(almacen, contrasena.clone(), x509);
                 }
             }
@@ -48,8 +47,7 @@ public final class CertificadoDeObligado {
     /** Gestores de clave para el TLS mutuo. */
     public KeyManager[] gestoresDeClave() {
         try {
-            KeyManagerFactory factoria =
-                    KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            KeyManagerFactory factoria = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             factoria.init(almacen, contrasena);
             return factoria.getKeyManagers();
         } catch (GeneralSecurityException e) {

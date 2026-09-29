@@ -9,8 +9,8 @@ public class EnvioRechazadoException extends RemisionFallidaException {
     private final Integer codigo;
 
     public EnvioRechazadoException(Integer codigo, String descripcion) {
-        super("la AEAT rechazó el envío completo"
-                + (codigo == null ? "" : " con el código " + codigo) + ": " + descripcion);
+        super("la AEAT rechazó el envío completo" + (codigo == null ? "" : " con el código " + codigo) + ": "
+                + descripcion);
         this.codigo = codigo;
     }
 

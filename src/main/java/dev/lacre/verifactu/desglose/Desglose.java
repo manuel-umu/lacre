@@ -2,7 +2,6 @@ package dev.lacre.verifactu.desglose;
 
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.ValorInvalidoException;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -16,9 +15,8 @@ public record Desglose(List<DetalleDesglose> detalles) {
             throw new ValorInvalidoException("El desglose debe tener al menos una línea de detalle");
         }
         if (detalles.size() > MAXIMO_DETALLES) {
-            throw new ValorInvalidoException(
-                    "El desglose admite como máximo " + MAXIMO_DETALLES + " líneas de detalle, y tiene "
-                            + detalles.size());
+            throw new ValorInvalidoException("El desglose admite como máximo " + MAXIMO_DETALLES
+                    + " líneas de detalle, y tiene " + detalles.size());
         }
         // List.of lanza NullPointerException en contains(null).
         if (detalles.stream().anyMatch(Objects::isNull)) {
@@ -43,9 +41,7 @@ public record Desglose(List<DetalleDesglose> detalles) {
      * Es el valor con el que la AEAT contrasta {@code CuotaTotal}.
      */
     public Importe totalCuotas() {
-        return detalles.stream()
-                .map(DetalleDesglose::cuotas)
-                .reduce(Importe.CERO, Importe::sumar);
+        return detalles.stream().map(DetalleDesglose::cuotas).reduce(Importe.CERO, Importe::sumar);
     }
 
     /**

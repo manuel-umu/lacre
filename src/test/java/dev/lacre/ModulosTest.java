@@ -1,9 +1,9 @@
 package dev.lacre;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /** Fronteras entre módulos según Spring Modulith. */
 class ModulosTest {
@@ -28,8 +28,10 @@ class ModulosTest {
      */
     @Test
     void elPaqueteRaizDeVerifactuNoPublicaNadaPorDescuido() {
-        var sinNombre = modulos.getModuleByName("verifactu").orElseThrow()
-                .getNamedInterfaces().getUnnamedInterface();
+        var sinNombre = modulos.getModuleByName("verifactu")
+                .orElseThrow()
+                .getNamedInterfaces()
+                .getUnnamedInterface();
 
         assertThat(sinNombre).isEmpty();
     }
@@ -40,8 +42,7 @@ class ModulosTest {
     }
 
     private java.util.List<String> interfacesPublicadasDeVerifactu() {
-        return modulos.getModuleByName("verifactu").orElseThrow()
-                .getNamedInterfaces().stream()
+        return modulos.getModuleByName("verifactu").orElseThrow().getNamedInterfaces().stream()
                 .map(nombrada -> nombrada.getName())
                 .toList();
     }

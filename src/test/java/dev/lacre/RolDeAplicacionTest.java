@@ -1,8 +1,21 @@
 package dev.lacre;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import dev.lacre.api.internal.ApiDePrueba;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.identidad.ObligadosDePrueba;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,20 +34,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Capa 1 de la defensa append-only: la aplicación se conecta como {@code lacre_app} y Flyway
@@ -60,8 +59,7 @@ class RolDeAplicacionTest {
             "peticion_idempotente", Set.of("SELECT", "INSERT"));
 
     @Container
-    static final PostgreSQLContainer POSTGRES =
-            new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
+    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
 
     @DynamicPropertySource
     static void conexionesComoEnUnDespliegue(DynamicPropertyRegistry propiedades) {
@@ -84,8 +82,7 @@ class RolDeAplicacionTest {
 
     @Test
     void laAplicacionSeConectaComoElRolRestringido() {
-        assertThat(jdbc.sql("select current_user").query(String.class).single())
-                .isEqualTo("lacre_app");
+        assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo("lacre_app");
     }
 
     /** Obligado, registro, envío e idempotencia: todo lo que escribe un alta, con estos permisos. */
@@ -107,10 +104,12 @@ class RolDeAplicacionTest {
      * {@code 23001} y no {@code 42501}.
      */
     @ParameterizedTest
-    @ValueSource(strings = {
-            "update registro_facturacion set xml = xml",
-            "delete from registro_facturacion",
-            "truncate registro_facturacion"})
+    @ValueSource(
+            strings = {
+                "update registro_facturacion set xml = xml",
+                "delete from registro_facturacion",
+                "truncate registro_facturacion"
+            })
     void modificarUnRegistroLoParaElPermisoAntesQueElTrigger(String sentencia) {
         assertThatThrownBy(() -> jdbc.sql(sentencia).update())
                 .isInstanceOf(DataAccessException.class)
@@ -124,10 +123,9 @@ class RolDeAplicacionTest {
                 select table_name, privilege_type
                 from information_schema.role_table_grants
                 where grantee = 'lacre_app' and table_schema = 'public'
-                """)
-                .query((RowCallbackHandler) fila -> concedidos
-                        .computeIfAbsent(fila.getString("table_name"), tabla -> new TreeSet<>())
-                        .add(fila.getString("privilege_type")));
+                """).query((RowCallbackHandler) fila -> concedidos
+                .computeIfAbsent(fila.getString("table_name"), tabla -> new TreeSet<>())
+                .add(fila.getString("privilege_type")));
 
         assertThat(concedidos).isEqualTo(PERMISOS);
     }
@@ -138,8 +136,7 @@ class RolDeAplicacionTest {
         assertThat(jdbc.sql("""
                         select tablename from pg_tables
                         where schemaname = 'public' and tablename <> 'flyway_schema_history'
-                        """).query(String.class).list())
-                .containsExactlyInAnyOrderElementsOf(PERMISOS.keySet());
+                        """).query(String.class).list()).containsExactlyInAnyOrderElementsOf(PERMISOS.keySet());
     }
 
     /** Rotar la clave es cambiar la configuración y volver a migrar, sin tocar el historial. */
@@ -149,12 +146,11 @@ class RolDeAplicacionTest {
         try {
             migrarConClave(nueva);
 
-            try (Connection conexion = DriverManager.getConnection(
-                    POSTGRES.getJdbcUrl(), "lacre_app", nueva)) {
+            try (Connection conexion = DriverManager.getConnection(POSTGRES.getJdbcUrl(), "lacre_app", nueva)) {
                 assertThat(conexion.isValid(1)).isTrue();
             }
-            assertThatThrownBy(() -> DriverManager.getConnection(
-                    POSTGRES.getJdbcUrl(), "lacre_app", CLAVE_APLICACION).close())
+            assertThatThrownBy(() -> DriverManager.getConnection(POSTGRES.getJdbcUrl(), "lacre_app", CLAVE_APLICACION)
+                            .close())
                     .isInstanceOf(SQLException.class);
         } finally {
             migrarConClave(CLAVE_APLICACION);
@@ -168,8 +164,7 @@ class RolDeAplicacionTest {
         try {
             migrarConClave(conComillas);
 
-            try (Connection conexion = DriverManager.getConnection(
-                    POSTGRES.getJdbcUrl(), "lacre_app", conComillas)) {
+            try (Connection conexion = DriverManager.getConnection(POSTGRES.getJdbcUrl(), "lacre_app", conComillas)) {
                 assertThat(conexion.isValid(1)).isTrue();
             }
         } finally {

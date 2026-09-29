@@ -1,8 +1,24 @@
 package dev.lacre.api.internal.obligados;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import dev.lacre.TestcontainersConfiguration;
 import dev.lacre.api.internal.ApiDePrueba;
 import dev.lacre.identidad.ObligadosDePrueba;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -15,23 +31,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.stream.IntStream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * El alta de obligados por HTTP, contra Postgres: que un obligado recién dado de alta ya puede
@@ -86,19 +85,20 @@ class ObligadosRestTest {
     void cambiarLaZonaNoReescribeElHusoDeLosRegistrosAnteriores() throws Exception {
         String nif = ObligadosDePrueba.siguienteNif().valor();
         mvc.perform(alta(nif, "Europe/Madrid")).andExpect(status().isCreated());
-        UUID anterior = registroId(mvc.perform(factura(nif, "FA/1", "cambio-de-zona-1"))
-                .andReturn());
+        UUID anterior =
+                registroId(mvc.perform(factura(nif, "FA/1", "cambio-de-zona-1")).andReturn());
         OffsetDateTime husoAnterior = husoDe(anterior);
 
         mvc.perform(alta(nif, "Atlantic/Canary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.zonaHoraria").value("Atlantic/Canary"));
-        UUID posterior = registroId(mvc.perform(factura(nif, "FA/2", "cambio-de-zona-2"))
-                .andReturn());
+        UUID posterior =
+                registroId(mvc.perform(factura(nif, "FA/2", "cambio-de-zona-2")).andReturn());
 
         assertThat(husoDe(anterior)).isEqualTo(husoAnterior);
         assertThat(husoAnterior.getOffset().getTotalSeconds()
-                - husoDe(posterior).getOffset().getTotalSeconds()).isEqualTo(3600);
+                        - husoDe(posterior).getOffset().getTotalSeconds())
+                .isEqualTo(3600);
     }
 
     @Test
@@ -126,8 +126,7 @@ class ObligadosRestTest {
                                 { "zonaHoraria": "Europe/Madrid" }
                                 """))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errores[*].campo").value(
-                        org.hamcrest.Matchers.hasItem("nombreRazon")));
+                .andExpect(jsonPath("$.errores[*].campo").value(org.hamcrest.Matchers.hasItem("nombreRazon")));
     }
 
     /**
@@ -179,8 +178,7 @@ class ObligadosRestTest {
     }
 
     private OffsetDateTime husoDe(UUID registro) throws Exception {
-        MvcResult respuesta = mvc.perform(get("/v1/registros/{id}", registro)
-                        .with(ApiDePrueba.autenticada()))
+        MvcResult respuesta = mvc.perform(get("/v1/registros/{id}", registro).with(ApiDePrueba.autenticada()))
                 .andExpect(status().isOk())
                 .andReturn();
         return OffsetDateTime.parse(com.jayway.jsonpath.JsonPath.read(
@@ -189,8 +187,8 @@ class ObligadosRestTest {
 
     private static UUID registroId(MvcResult respuesta) throws Exception {
         assertThat(respuesta.getResponse().getStatus()).isEqualTo(201);
-        return UUID.fromString(com.jayway.jsonpath.JsonPath.read(
-                respuesta.getResponse().getContentAsString(), "$.registroId"));
+        return UUID.fromString(
+                com.jayway.jsonpath.JsonPath.read(respuesta.getResponse().getContentAsString(), "$.registroId"));
     }
 
     private static RequestBuilder factura(String nif, String numSerie, String clave) {

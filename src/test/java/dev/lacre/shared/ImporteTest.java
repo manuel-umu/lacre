@@ -1,11 +1,10 @@
 package dev.lacre.shared;
 
-import org.junit.jupiter.api.Test;
-
-import java.math.BigDecimal;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.math.BigDecimal;
+import org.junit.jupiter.api.Test;
 
 class ImporteTest {
 
@@ -55,14 +54,12 @@ class ImporteTest {
         assertThatThrownBy(() -> Importe.de("1000000000000.00"))
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("12 dígitos enteros");
-        assertThatThrownBy(() -> Importe.de("-1000000000000.00"))
-                .isInstanceOf(ValorInvalidoException.class);
+        assertThatThrownBy(() -> Importe.de("-1000000000000.00")).isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test
     void elRedondeoNoPuedeColarUnImporteFueraDeLimite() {
-        assertThatThrownBy(() -> Importe.de("999999999999.995"))
-                .isInstanceOf(ValorInvalidoException.class);
+        assertThatThrownBy(() -> Importe.de("999999999999.995")).isInstanceOf(ValorInvalidoException.class);
     }
 
     @Test

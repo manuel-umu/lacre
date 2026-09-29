@@ -2,7 +2,6 @@ package dev.lacre.verifactu.huella;
 
 import dev.lacre.verifactu.registro.CamposDeHuella;
 import dev.lacre.verifactu.registro.RegistroAnterior;
-
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
@@ -12,6 +11,8 @@ import java.util.Optional;
  */
 public interface Canonicalizador {
 
-    String canonicalizar(CamposDeHuella campos, Optional<RegistroAnterior> registroAnterior,
-                         OffsetDateTime fechaHoraHusoGenRegistro);
+    String canonicalizar(
+            CamposDeHuella campos,
+            Optional<RegistroAnterior> registroAnterior,
+            OffsetDateTime fechaHoraHusoGenRegistro);
 }

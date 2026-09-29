@@ -24,8 +24,7 @@ public final class CatalogoErroresAeat {
 
     private static final Map<Integer, ErrorAeat> POR_CODIGO = cargar();
 
-    private CatalogoErroresAeat() {
-    }
+    private CatalogoErroresAeat() {}
 
     /** Vacío si el código no está en el catálogo: la AEAT puede añadir códigos sin avisar. */
     public static Optional<ErrorAeat> de(Integer codigo) {
@@ -53,8 +52,7 @@ public final class CatalogoErroresAeat {
         ADMISIBLE
     }
 
-    public record ErrorAeat(int codigo, Clasificacion clasificacion, String descripcion) {
-    }
+    public record ErrorAeat(int codigo, Clasificacion clasificacion, String descripcion) {}
 
     /**
      * Las tres listas del fichero van separadas por una línea de asteriscos, y llegan en el
@@ -71,8 +69,7 @@ public final class CatalogoErroresAeat {
                 throw new IllegalStateException("Falta el catálogo de errores en " + RECURSO);
             }
             // El fichero oficial viene en ISO-8859-1, y se guarda tal cual.
-            BufferedReader lineas = new BufferedReader(
-                    new InputStreamReader(fichero, StandardCharsets.ISO_8859_1));
+            BufferedReader lineas = new BufferedReader(new InputStreamReader(fichero, StandardCharsets.ISO_8859_1));
 
             for (String linea = lineas.readLine(); linea != null; linea = lineas.readLine()) {
                 if (linea.startsWith("*")) {
@@ -88,7 +85,8 @@ public final class CatalogoErroresAeat {
                             "El catálogo de errores tiene más listas de las esperadas: " + linea);
                 }
                 int codigo = Integer.parseInt(entrada.group(1));
-                catalogo.put(codigo,
+                catalogo.put(
+                        codigo,
                         new ErrorAeat(codigo, listas[lista], entrada.group(2).trim()));
             }
         } catch (IOException e) {

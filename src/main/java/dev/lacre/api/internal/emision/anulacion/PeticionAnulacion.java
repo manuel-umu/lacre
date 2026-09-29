@@ -21,7 +21,8 @@ public record PeticionAnulacion(
         Boolean sinRegistroPrevio,
         Boolean rechazoPrevio,
         GeneradoPor generadoPor,
-        @Valid PersonaDto generador) implements PeticionRegistro {
+        @Valid PersonaDto generador)
+        implements PeticionRegistro {
 
     @Override
     public IdFacturaDto factura() {

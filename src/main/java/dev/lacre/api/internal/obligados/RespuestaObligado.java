@@ -6,7 +6,9 @@ import dev.lacre.identidad.ObligadoTributario;
 public record RespuestaObligado(String nif, String nombreRazon, String zonaHoraria) {
 
     static RespuestaObligado de(ObligadoTributario obligado) {
-        return new RespuestaObligado(obligado.nif().valor(), obligado.nombreRazon(),
+        return new RespuestaObligado(
+                obligado.nif().valor(),
+                obligado.nombreRazon(),
                 obligado.zonaHoraria().getId());
     }
 }

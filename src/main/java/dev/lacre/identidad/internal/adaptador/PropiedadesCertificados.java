@@ -1,8 +1,7 @@
 package dev.lacre.identidad.internal.adaptador;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.Map;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Ubicación y contraseñas de los certificados de los obligados: un PKCS#12 por obligado,

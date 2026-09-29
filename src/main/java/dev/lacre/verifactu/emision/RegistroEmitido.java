@@ -1,7 +1,6 @@
 package dev.lacre.verifactu.emision;
 
 import dev.lacre.shared.Huella;
-
 import java.util.Set;
 import java.util.UUID;
 

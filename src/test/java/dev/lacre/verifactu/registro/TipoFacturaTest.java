@@ -1,8 +1,8 @@
 package dev.lacre.verifactu.registro;
 
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
 
 /**
  * Fija el catálogo L2 contra renombrados: el nombre de cada constante es el código que viaja en

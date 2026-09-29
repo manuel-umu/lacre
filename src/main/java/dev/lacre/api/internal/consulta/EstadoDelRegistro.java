@@ -4,7 +4,6 @@ import dev.lacre.remision.CatalogoErroresAeat;
 import dev.lacre.remision.CatalogoErroresAeat.ErrorAeat;
 import dev.lacre.remision.EnvioRegistro;
 import dev.lacre.verifactu.consulta.RegistroGuardado;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -38,8 +37,13 @@ public record EstadoDelRegistro(
      * @param clasificacionError qué consecuencia tuvo ese código; nula si no está en el catálogo
      * @param intentos           veces que se intentó sin obtener respuesta interpretable
      */
-    public record Remision(String estado, OffsetDateTime enviadoEn, Integer codigoError,
-                           String clasificacionError, String descripcionError, int intentos) {
+    public record Remision(
+            String estado,
+            OffsetDateTime enviadoEn,
+            Integer codigoError,
+            String clasificacionError,
+            String descripcionError,
+            int intentos) {
 
         static Remision de(EnvioRegistro envio) {
             Optional<ErrorAeat> error = CatalogoErroresAeat.de(envio.codigoError());
@@ -70,7 +74,9 @@ public record EstadoDelRegistro(
                 registro.idFactura().numSerieFactura(),
                 registro.idFactura().fechaExpedicion(),
                 registro.huella().valor(),
-                registro.huellaAnterior() == null ? null : registro.huellaAnterior().valor(),
+                registro.huellaAnterior() == null
+                        ? null
+                        : registro.huellaAnterior().valor(),
                 registro.fechaHoraHusoGenRegistro(),
                 envio == null ? null : Remision.de(envio));
     }

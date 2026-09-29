@@ -15,8 +15,7 @@ import tools.jackson.databind.ObjectMapper;
 class ConfiguracionApi {
 
     @Bean
-    FilterRegistrationBean<FiltroDeClaveDeApi> filtroDeClaveDeApi(PropiedadesApi propiedades,
-                                                                 ObjectMapper json) {
+    FilterRegistrationBean<FiltroDeClaveDeApi> filtroDeClaveDeApi(PropiedadesApi propiedades, ObjectMapper json) {
         FilterRegistrationBean<FiltroDeClaveDeApi> registro = new FilterRegistrationBean<>();
         registro.setFilter(new FiltroDeClaveDeApi(propiedades, json));
         registro.addUrlPatterns("/v1/*");

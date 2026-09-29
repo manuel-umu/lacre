@@ -1,7 +1,6 @@
 package dev.lacre.identidad;
 
 import dev.lacre.shared.Nif;
-
 import java.util.UUID;
 
 /** Se ha pedido operar por cuenta de un obligado que no está dado de alta. */

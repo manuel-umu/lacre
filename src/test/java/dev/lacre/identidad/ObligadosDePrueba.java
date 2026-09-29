@@ -1,7 +1,6 @@
 package dev.lacre.identidad;
 
 import dev.lacre.shared.Nif;
-
 import java.time.ZoneId;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,8 +16,7 @@ public final class ObligadosDePrueba {
 
     private static final AtomicInteger SECUENCIA = new AtomicInteger();
 
-    private ObligadosDePrueba() {
-    }
+    private ObligadosDePrueba() {}
 
     public static UUID nuevo(Obligados obligados) {
         return nuevo(obligados, MADRID);

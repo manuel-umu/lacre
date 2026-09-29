@@ -12,12 +12,11 @@ public sealed interface CamposDeHuella {
     IdFactura idFactura();
 
     /** Alta: identificación, tipo de factura, cuota total e importe total. */
-    record Alta(IdFactura idFactura, TipoFactura tipoFactura, Importe cuotaTotal,
-                Importe importeTotal) implements CamposDeHuella {
+    record Alta(IdFactura idFactura, TipoFactura tipoFactura, Importe cuotaTotal, Importe importeTotal)
+            implements CamposDeHuella {
 
         public Alta {
-            if (idFactura == null || tipoFactura == null || cuotaTotal == null
-                    || importeTotal == null) {
+            if (idFactura == null || tipoFactura == null || cuotaTotal == null || importeTotal == null) {
                 throw new ValorInvalidoException("La huella de un alta necesita identificación, "
                         + "tipo de factura, cuota total e importe total");
             }
@@ -29,8 +28,7 @@ public sealed interface CamposDeHuella {
 
         public Anulacion {
             if (idFactura == null) {
-                throw new ValorInvalidoException(
-                        "La huella de una anulación necesita la identificación de la factura");
+                throw new ValorInvalidoException("La huella de una anulación necesita la identificación de la factura");
             }
         }
     }

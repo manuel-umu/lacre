@@ -9,6 +9,7 @@ import dev.lacre.verifactu.emision.AnomaliaPrevia;
 import dev.lacre.verifactu.emision.EmisorDeRegistros;
 import dev.lacre.verifactu.emision.RegistroEmitido;
 import dev.lacre.verifactu.emision.RegistrosRechazados;
+import dev.lacre.verifactu.evento.RegistroCreado;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
 import dev.lacre.verifactu.internal.FechasAeat;
 import dev.lacre.verifactu.internal.OperativaAeat;
@@ -17,15 +18,7 @@ import dev.lacre.verifactu.registro.DatosRegistro;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.RegistroAnterior;
-import dev.lacre.verifactu.evento.RegistroCreado;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -36,6 +29,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Caso de uso de emisión: añade registros a la cadena de un obligado, en orden y sin
@@ -59,10 +58,15 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
     private final Clock reloj;
     private final RegistrosRechazados rechazados;
 
-    CadenaDeRegistros(JdbcClient jdbc, RegistroRepository repositorio, Obligados obligados,
-                      EncadenadorRegistros encadenador, Supplier<UUID> generadorDeIdentificadores,
-                      ApplicationEventPublisher eventos, Clock reloj,
-                      RegistrosRechazados rechazados) {
+    CadenaDeRegistros(
+            JdbcClient jdbc,
+            RegistroRepository repositorio,
+            Obligados obligados,
+            EncadenadorRegistros encadenador,
+            Supplier<UUID> generadorDeIdentificadores,
+            ApplicationEventPublisher eventos,
+            Clock reloj,
+            RegistrosRechazados rechazados) {
         this.jdbc = jdbc;
         this.repositorio = repositorio;
         this.obligados = obligados;
@@ -79,8 +83,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
     public RegistroEmitido emitir(UUID obligadoId, DatosRegistro datos) {
         Asiento asiento = escribir(obligadoId, datos);
         RegistroFacturacion guardado = asiento.registro();
-        return new RegistroEmitido(
-                guardado.id(), guardado.posicion(), guardado.huella(), asiento.avisos());
+        return new RegistroEmitido(guardado.id(), guardado.posicion(), guardado.huella(), asiento.avisos());
     }
 
     @Transactional
@@ -89,8 +92,8 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
     }
 
     private Asiento escribir(UUID obligadoId, DatosRegistro datos) {
-        ObligadoTributario obligado = obligados.findById(obligadoId)
-                .orElseThrow(() -> new ObligadoDesconocidoException(obligadoId));
+        ObligadoTributario obligado =
+                obligados.findById(obligadoId).orElseThrow(() -> new ObligadoDesconocidoException(obligadoId));
 
         serializarLaCadenaDe(obligadoId);
 
@@ -103,12 +106,15 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         Optional<Enlace> ultimo = cola.stream().findFirst();
         Set<AnomaliaPrevia> avisos = comprobacionPreviaDelArticulo7i(obligadoId, cola);
 
-        RegistroEncadenado encadenado = encadenador.encadenar(
-                datos, ultimo.map(Enlace::comoAnterior), obligado.zonaHoraria());
+        RegistroEncadenado encadenado =
+                encadenador.encadenar(datos, ultimo.map(Enlace::comoAnterior), obligado.zonaHoraria());
         long posicion = ultimo.map(enlace -> enlace.posicion() + 1).orElse(1L);
 
         RegistroFacturacion guardado = repositorio.save(RegistroFacturacion.de(
-                generadorDeIdentificadores.get(), obligadoId, posicion, encadenado,
+                generadorDeIdentificadores.get(),
+                obligadoId,
+                posicion,
+                encadenado,
                 EscritorRegistro.escribir(encadenado)));
 
         // Oyentes síncronos: corren antes de que confirme esta transacción.
@@ -127,14 +133,16 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         Enlace ultimo = cola.getFirst();
         Enlace penultimo = cola.size() > 1 ? cola.get(1) : null;
 
-        Set<AnomaliaPrevia> anomalias =
-                ComprobacionPrevia.comprobar(ultimo, penultimo, OffsetDateTime.now(reloj));
+        Set<AnomaliaPrevia> anomalias = ComprobacionPrevia.comprobar(ultimo, penultimo, OffsetDateTime.now(reloj));
 
         if (!anomalias.isEmpty()) {
-            log.error("Comprobación previa del art. 7.i: la cadena del obligado {} presenta {} "
+            log.error(
+                    "Comprobación previa del art. 7.i: la cadena del obligado {} presenta {} "
                             + "en su registro de posición {}. Se emite igualmente, porque la "
                             + "facturación no debe interrumpirse.",
-                    obligadoId, anomalias, ultimo.posicion());
+                    obligadoId,
+                    anomalias,
+                    ultimo.posicion());
         }
         return anomalias;
     }
@@ -186,9 +194,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
                         new Huella(rs.getString("huella")),
                         huellaOpcional(rs.getString("huella_anterior")),
                         rs.getObject("fecha_hora_huso_gen_registro", OffsetDateTime.class)
-                                .withOffsetSameInstant(
-                                        ZoneOffset.ofTotalSeconds(
-                                                rs.getInt("huso_offset_segundos"))),
+                                .withOffsetSameInstant(ZoneOffset.ofTotalSeconds(rs.getInt("huso_offset_segundos"))),
                         rs.getString("xml")))
                 .list();
     }
@@ -198,8 +204,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
     }
 
     /** Registro recién escrito y las anomalías que la comprobación previa encontró antes. */
-    private record Asiento(RegistroFacturacion registro, Set<AnomaliaPrevia> avisos) {
-    }
+    private record Asiento(RegistroFacturacion registro, Set<AnomaliaPrevia> avisos) {}
 
     /**
      * Registro guardado visto desde la cadena.
@@ -208,8 +213,15 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
      * @param fechaHora con el huso original con el que se calculó la huella
      * @param xml el registro tal y como se guardó
      */
-    record Enlace(long posicion, Nif emisor, String numSerieFactura, LocalDate fechaExpedicion,
-                  Huella huella, Huella huellaAnterior, OffsetDateTime fechaHora, String xml) {
+    record Enlace(
+            long posicion,
+            Nif emisor,
+            String numSerieFactura,
+            LocalDate fechaExpedicion,
+            Huella huella,
+            Huella huellaAnterior,
+            OffsetDateTime fechaHora,
+            String xml) {
 
         IdFactura idFactura() {
             return new IdFactura(emisor, numSerieFactura, fechaExpedicion);

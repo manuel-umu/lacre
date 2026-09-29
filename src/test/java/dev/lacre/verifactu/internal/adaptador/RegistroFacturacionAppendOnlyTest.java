@@ -1,6 +1,11 @@
 package dev.lacre.verifactu.internal.adaptador;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.lacre.TestcontainersConfiguration;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,20 +15,13 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 /** Las tres capas de defensa de {@code registro_facturacion}, contra Postgres real. */
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
 class RegistroFacturacionAppendOnlyTest {
 
     private static final UUID OBLIGADO = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
-    private static final String HUELLA =
-            "3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60";
+    private static final String HUELLA = "3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60";
 
     @Autowired
     private PostgreSQLContainer postgres;
@@ -55,8 +53,8 @@ class RegistroFacturacionAppendOnlyTest {
     @Test
     void unUpdateRevienta() {
         assertThatThrownBy(() -> jdbc.sql("update registro_facturacion set xml = 'manipulado' where id = :id")
-                .param("id", registro)
-                .update())
+                        .param("id", registro)
+                        .update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("solo inserción");
     }
@@ -64,16 +62,16 @@ class RegistroFacturacionAppendOnlyTest {
     @Test
     void unUpdateQueNoAfectaANingunaFilaTambienRevienta() {
         assertThatThrownBy(() -> jdbc.sql("update registro_facturacion set xml = 'x' where id = :id")
-                .param("id", UUID.randomUUID())
-                .update())
+                        .param("id", UUID.randomUUID())
+                        .update())
                 .isInstanceOf(DataAccessException.class);
     }
 
     @Test
     void unDeleteRevienta() {
         assertThatThrownBy(() -> jdbc.sql("delete from registro_facturacion where id = :id")
-                .param("id", registro)
-                .update())
+                        .param("id", registro)
+                        .update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("solo inserción");
     }
@@ -89,7 +87,8 @@ class RegistroFacturacionAppendOnlyTest {
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("foreign key");
 
-        assertThatThrownBy(() -> jdbc.sql("truncate registro_facturacion, envio_registro, peticion_idempotente").update())
+        assertThatThrownBy(() -> jdbc.sql("truncate registro_facturacion, envio_registro, peticion_idempotente")
+                        .update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("solo inserción");
     }
@@ -98,13 +97,16 @@ class RegistroFacturacionAppendOnlyTest {
     void elRegistroSigueIntactoDespuesDeIntentarlo() {
         try {
             jdbc.sql("update registro_facturacion set huella = 'x' where id = :id")
-                    .param("id", registro).update();
+                    .param("id", registro)
+                    .update();
         } catch (DataAccessException esperado) {
             // El trigger ha hecho su trabajo.
         }
 
         String huella = jdbc.sql("select huella from registro_facturacion where id = :id")
-                .param("id", registro).query(String.class).single();
+                .param("id", registro)
+                .query(String.class)
+                .single();
 
         assertThat(huella).isEqualTo(HUELLA);
     }
@@ -123,11 +125,15 @@ class RegistroFacturacionAppendOnlyTest {
 
     @Test
     void insertarSiSeSigueDejando() {
-        long antes = jdbc.sql("select count(*) from registro_facturacion").query(Long.class).single();
+        long antes = jdbc.sql("select count(*) from registro_facturacion")
+                .query(Long.class)
+                .single();
 
         insertar(siguientePosicion(), HUELLA);
 
-        assertThat(jdbc.sql("select count(*) from registro_facturacion").query(Long.class).single())
+        assertThat(jdbc.sql("select count(*) from registro_facturacion")
+                        .query(Long.class)
+                        .single())
                 .isEqualTo(antes + 1);
     }
 

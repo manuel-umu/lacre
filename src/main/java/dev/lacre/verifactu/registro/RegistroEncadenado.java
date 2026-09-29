@@ -1,7 +1,6 @@
 package dev.lacre.verifactu.registro;
 
 import dev.lacre.shared.Huella;
-
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;

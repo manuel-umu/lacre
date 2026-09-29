@@ -6,5 +6,4 @@ import org.springframework.context.annotation.Configuration;
 /** Configuración del módulo {@code identidad}. */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(PropiedadesCertificados.class)
-class ConfiguracionIdentidad {
-}
+class ConfiguracionIdentidad {}

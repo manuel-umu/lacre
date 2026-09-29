@@ -4,7 +4,6 @@ import dev.lacre.shared.ValorInvalidoException;
 
 /** Desenlace de un registro concreto, {@code EstadoRegistroType} del XSD de respuesta. */
 public enum EstadoRegistroAeat {
-
     CORRECTO("Correcto"),
     ACEPTADO_CON_ERRORES("AceptadoConErrores"),
     INCORRECTO("Incorrecto");

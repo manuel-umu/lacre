@@ -1,5 +1,7 @@
 package dev.lacre.verifactu.internal;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.lacre.shared.Huella;
 import net.jqwik.api.Assume;
 import net.jqwik.api.ForAll;
@@ -7,8 +9,6 @@ import net.jqwik.api.Property;
 import net.jqwik.api.constraints.CharRange;
 import net.jqwik.api.constraints.IntRange;
 import net.jqwik.api.constraints.StringLength;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Los caracteres generados se limitan al rango anterior a los sustitutos (U+D800–U+DFFF): un
@@ -42,8 +42,7 @@ class CalculadorHuellaProperties {
 
     @Property
     void cadenasDistintasProducenHuellasDistintas(
-            @ForAll @CharRange(from = ' ', to = '퟿') String una,
-            @ForAll @CharRange(from = ' ', to = '퟿') String otra) {
+            @ForAll @CharRange(from = ' ', to = '퟿') String una, @ForAll @CharRange(from = ' ', to = '퟿') String otra) {
 
         Assume.that(!una.equals(otra));
         assertThat(CalculadorHuella.calcular(una)).isNotEqualTo(CalculadorHuella.calcular(otra));

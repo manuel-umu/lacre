@@ -1,16 +1,15 @@
 package dev.lacre.remision.internal.adaptador;
 
 import dev.lacre.remision.EnvioRegistro;
-import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.Envios;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
-
+import dev.lacre.remision.EstadoEnvio;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
 
 /** Lado de lectura del outbox: qué toca remitir y de quién. */
 @Component
@@ -29,10 +28,7 @@ class ColaDeEnvios {
         return jdbc.sql("""
                 select count(*) from envio_registro
                 where obligado_id = :obligado and estado = 'PENDIENTE'
-                """)
-                .param("obligado", obligadoId)
-                .query(Long.class)
-                .single();
+                """).param("obligado", obligadoId).query(Long.class).single();
     }
 
     /**

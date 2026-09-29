@@ -1,17 +1,16 @@
 package dev.lacre.verifactu.internal;
 
-import org.w3c.dom.ls.LSInput;
-import org.w3c.dom.ls.LSResourceResolver;
-import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import java.io.InputStream;
 import java.io.Reader;
 import java.net.URL;
 import java.util.Map;
+import javax.xml.XMLConstants;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import org.w3c.dom.ls.LSInput;
+import org.w3c.dom.ls.LSResourceResolver;
+import org.xml.sax.SAXException;
 
 /**
  * Compila los esquemas oficiales de la AEAT resolviendo todo desde el classpath.
@@ -35,8 +34,7 @@ public final class EsquemasAeat {
 
     private static final String LIMITE_OCURRENCIAS = "jdk.xml.maxOccurLimit";
 
-    private EsquemasAeat() {
-    }
+    private EsquemasAeat() {}
 
     /** Esquema de alta y anulación, el que valida los registros que remitimos. */
     public static Schema suministroLr() {
@@ -50,8 +48,7 @@ public final class EsquemasAeat {
             // RespuestaConsultaLR.xsd declara maxOccurs="10000" y la JDK corta en 5.000.
             factory.setProperty(LIMITE_OCURRENCIAS, "20000");
         } catch (SAXException e) {
-            throw new IllegalStateException(
-                    "Esta JVM no admite la propiedad " + LIMITE_OCURRENCIAS, e);
+            throw new IllegalStateException("Esta JVM no admite la propiedad " + LIMITE_OCURRENCIAS, e);
         }
         try {
             // Sin ACCESS_EXTERNAL_SCHEMA: se aplica antes del resolutor y descartaría el import
@@ -77,8 +74,8 @@ public final class EsquemasAeat {
     private static final class ResolutorLocal implements LSResourceResolver {
 
         @Override
-        public LSInput resolveResource(String type, String namespaceURI, String publicId,
-                                       String systemId, String baseURI) {
+        public LSInput resolveResource(
+                String type, String namespaceURI, String publicId, String systemId, String baseURI) {
             if (systemId == null) {
                 throw new IllegalStateException(
                         "El parser pidió un recurso sin systemId (namespace " + namespaceURI + ")");

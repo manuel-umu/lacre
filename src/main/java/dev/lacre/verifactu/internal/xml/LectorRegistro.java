@@ -9,11 +9,6 @@ import dev.lacre.verifactu.registro.CamposDeHuella;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.TipoFactura;
-
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 import java.io.StringReader;
 import java.time.DateTimeException;
 import java.time.OffsetDateTime;
@@ -23,6 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 /**
  * Lee de un fragmento {@code RegistroAlta} o {@code RegistroAnulacion} lo que hace falta para
@@ -51,8 +50,7 @@ public final class LectorRegistro {
             "FechaHoraHusoGenRegistro",
             "Huella");
 
-    private LectorRegistro() {
-    }
+    private LectorRegistro() {}
 
     /** @throws RegistroIlegibleException si no es XML, no es un registro o le falta un campo */
     public static RegistroLeido leer(String xml) {
@@ -63,8 +61,7 @@ public final class LectorRegistro {
             } finally {
                 lector.close();
             }
-        } catch (XMLStreamException | DateTimeException | IllegalArgumentException
-                 | ValorInvalidoException e) {
+        } catch (XMLStreamException | DateTimeException | IllegalArgumentException | ValorInvalidoException e) {
             throw new RegistroIlegibleException(e.getMessage(), e);
         }
     }
@@ -93,27 +90,25 @@ public final class LectorRegistro {
         }
 
         CamposDeHuella campos = switch (raiz) {
-            case "RegistroAlta" -> new CamposDeHuella.Alta(
-                    idFactura(valores, "IDFactura/", ""),
-                    TipoFactura.valueOf(obligatorio(valores, "TipoFactura")),
-                    Importe.de(obligatorio(valores, "CuotaTotal")),
-                    Importe.de(obligatorio(valores, "ImporteTotal")));
-            case "RegistroAnulacion" -> new CamposDeHuella.Anulacion(
-                    idFactura(valores, "IDFactura/", "Anulada"));
-            case null, default -> throw new RegistroIlegibleException(
-                    "no es un registro de alta ni de anulación, sino " + raiz);
+            case "RegistroAlta" ->
+                new CamposDeHuella.Alta(
+                        idFactura(valores, "IDFactura/", ""),
+                        TipoFactura.valueOf(obligatorio(valores, "TipoFactura")),
+                        Importe.de(obligatorio(valores, "CuotaTotal")),
+                        Importe.de(obligatorio(valores, "ImporteTotal")));
+            case "RegistroAnulacion" -> new CamposDeHuella.Anulacion(idFactura(valores, "IDFactura/", "Anulada"));
+            case null, default ->
+                throw new RegistroIlegibleException("no es un registro de alta ni de anulación, sino " + raiz);
         };
 
         Optional<RegistroAnterior> anterior = valores.containsKey(ANTERIOR + "Huella")
-                ? Optional.of(new RegistroAnterior(idFactura(valores, ANTERIOR, ""),
-                        new Huella(valores.get(ANTERIOR + "Huella"))))
+                ? Optional.of(new RegistroAnterior(
+                        idFactura(valores, ANTERIOR, ""), new Huella(valores.get(ANTERIOR + "Huella"))))
                 : Optional.empty();
 
-        OffsetDateTime fechaHora = FormatosAeat.leerFechaHoraHuso(
-                obligatorio(valores, "FechaHoraHusoGenRegistro"));
+        OffsetDateTime fechaHora = FormatosAeat.leerFechaHoraHuso(obligatorio(valores, "FechaHoraHusoGenRegistro"));
 
-        return new RegistroLeido(campos, anterior, fechaHora,
-                new Huella(obligatorio(valores, "Huella")));
+        return new RegistroLeido(campos, anterior, fechaHora, new Huella(obligatorio(valores, "Huella")));
     }
 
     /** Los campos de la anulación llevan el sufijo {@code Anulada}; los del anterior, no. */
@@ -121,8 +116,7 @@ public final class LectorRegistro {
         return new IdFactura(
                 new Nif(obligatorio(valores, prefijo + "IDEmisorFactura" + sufijo)),
                 obligatorio(valores, prefijo + "NumSerieFactura" + sufijo),
-                FormatosAeat.leerFecha(
-                        obligatorio(valores, prefijo + "FechaExpedicionFactura" + sufijo)));
+                FormatosAeat.leerFecha(obligatorio(valores, prefijo + "FechaExpedicionFactura" + sufijo)));
     }
 
     private static String obligatorio(Map<String, String> valores, String camino) {

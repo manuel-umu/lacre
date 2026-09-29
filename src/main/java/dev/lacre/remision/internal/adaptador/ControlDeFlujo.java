@@ -1,14 +1,13 @@
 package dev.lacre.remision.internal.adaptador;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Control de flujo del art. 16.2 de la OM HAC/1177/2024, por obligado: el siguiente envío sale
@@ -30,9 +29,7 @@ class ControlDeFlujo {
                 select distinct obligado_id from envio_registro
                 where estado = 'PENDIENTE'
                 order by obligado_id
-                """)
-                .query(UUID.class)
-                .list();
+                """).query(UUID.class).list();
     }
 
     /**
