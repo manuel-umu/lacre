@@ -2,6 +2,8 @@
 
 <p align="center"><img src="docs/logo.svg" alt="lacre" width="320"></p>
 
+<p align="center"><a href="https://github.com/manuel-umu/lacre/actions/workflows/ci.yml"><img src="https://github.com/manuel-umu/lacre/actions/workflows/ci.yml/badge.svg" alt="CI"></a></p>
+
 Componente de facturación Veri\*Factu. Genera los registros de facturación que exige el Real
 Decreto 1007/2023 y la Orden HAC/1177/2024, los encadena con su huella y los remite a la AEAT.
 
