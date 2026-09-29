@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -25,12 +26,16 @@ class RegistroFacturacionAppendOnlyTest {
             "3C464DAF61ACB827C65FDA19F352A4E3BDC2C640E9E9FC4CC058073F38F12F60";
 
     @Autowired
+    private PostgreSQLContainer postgres;
+
+    /** Como propietario: estos tests se saltan a propósito las defensas del registro. */
     private JdbcClient jdbc;
 
     private UUID registro;
 
     @BeforeEach
     void insertarUnRegistro() {
+        jdbc = TestcontainersConfiguration.comoPropietario(postgres);
         jdbc.sql("""
                 insert into obligado (id, nif, nombre_razon, zona_horaria)
                 values (:id, :nif, :nombre, :zona)

@@ -58,7 +58,7 @@ Se usa Spring Data JDBC sin JPA. Los repositorios solo sirven para cargar y guar
 
 **La tabla `registro_facturacion` es de solo inserción**, con tres capas de seguridad:
 
-1. Permisos: la aplicación se conecta con el rol `lacre_app`, que solo tiene `SELECT` e `INSERT` (Explicado en [README.md](../README.md)).
+1. Permisos: la aplicación se conecta con el rol `lacre_app`, que solo tiene `SELECT` e `INSERT` (Explicado en [README.md](../README.md)). Si se configura con un usuario que puede modificar la tabla, como el propietario, la aplicación no arranca.
 2. Un trigger: `BEFORE UPDATE OR DELETE OR TRUNCATE`, que lanza una excepción.
 3. Una restricción `UNIQUE (obligado_id, posicion)`: que impide bifurcar la cadena aunque falle el cerrojo.
 

@@ -38,8 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Capa 1 de la defensa append-only: la aplicación se conecta como {@code lacre_app} y Flyway
- * como propietario, cableado como en un despliegue. Usa su propio contenedor porque el resto de
- * los tests se conectan como propietario para poder probar el trigger.
+ * como propietario, cableado como en un despliegue. Usa su propio contenedor porque rota la
+ * clave del rol.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

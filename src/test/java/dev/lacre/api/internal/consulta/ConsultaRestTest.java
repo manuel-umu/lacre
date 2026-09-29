@@ -21,6 +21,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -54,6 +55,9 @@ class ConsultaRestTest {
     private Obligados obligados;
 
     @Autowired
+    private PostgreSQLContainer postgres;
+
+    /** Como propietario: estos tests se saltan a propósito las defensas del registro. */
     private JdbcClient jdbc;
 
     @Autowired
@@ -67,6 +71,7 @@ class ConsultaRestTest {
 
     @BeforeEach
     void darDeAltaUnObligado() {
+        jdbc = TestcontainersConfiguration.comoPropietario(postgres);
         obligadoId = ObligadosDePrueba.nuevo(obligados);
         nifDelObligado = obligados.findById(obligadoId).orElseThrow().nif().valor();
     }

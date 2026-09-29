@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -64,6 +65,9 @@ class DespachadorLotesTest {
     private Obligados obligados;
 
     @Autowired
+    private PostgreSQLContainer postgres;
+
+    /** Como propietario: estos tests se saltan a propósito las defensas del registro. */
     private JdbcClient jdbc;
 
     @Autowired
@@ -77,6 +81,7 @@ class DespachadorLotesTest {
      */
     @BeforeEach
     void preparar() {
+        jdbc = TestcontainersConfiguration.comoPropietario(postgres);
         aeat.reiniciar();
         jdbc.sql("delete from envio_registro").update();
         jdbc.sql("delete from control_flujo_envio").update();
