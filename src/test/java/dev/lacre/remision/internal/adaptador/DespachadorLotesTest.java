@@ -181,7 +181,7 @@ class DespachadorLotesTest {
 
     /**
      * El alta y la anulación de la misma factura comparten {@code IDFactura}; se emparejan por
-     * tipo de operación.
+     * tipo de operación, y salen en lotes distintos. La AEAT devuelve aquí las dos líneas cada vez.
      */
     @Test
     void distingueElAltaDeLaAnulacionDeLaMismaFactura() {
@@ -200,7 +200,47 @@ class DespachadorLotesTest {
         despachador.despachar();
 
         assertThat(estadoDe(alta)).isEqualTo(EstadoEnvio.ACEPTADO);
+        assertThat(estadoDe(anulacion)).isEqualTo(EstadoEnvio.PENDIENTE);
+
+        jdbc.sql("update control_flujo_envio set ultimo_envio = ultimo_envio - interval '61 seconds'")
+                .update();
+        despachador.despachar();
+
+        assertThat(estadoDe(alta)).isEqualTo(EstadoEnvio.ACEPTADO);
         assertThat(estadoDe(anulacion)).isEqualTo(EstadoEnvio.RECHAZADO);
+    }
+
+    /** Una subsanación no viaja en el mismo envío que el registro que subsana, ni lo que va detrás. */
+    @Test
+    void unaSegundaVezLaMismaFacturaEsperaAlLoteSiguiente() {
+        RegistroFacturacion alta = emitir("FA/1");
+        RegistroFacturacion otra = emitir("FA/2");
+        RegistroFacturacion subsanacion = cadena.anadir(obligado, Registros.emitible()
+                .idFactura(Registros.idFacturaEmitible("FA/1")).subsanacion(true).build());
+        RegistroFacturacion detras = emitir("FA/3");
+        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
+                linea(alta, EstadoRegistroAeat.CORRECTO, null),
+                linea(otra, EstadoRegistroAeat.CORRECTO, null));
+
+        despachador.despachar();
+
+        assertThat(aeat.registrosDelUltimoLote()).isEqualTo(2);
+        assertThat(estadoDe(alta)).isEqualTo(EstadoEnvio.ACEPTADO);
+        assertThat(estadoDe(subsanacion)).isEqualTo(EstadoEnvio.PENDIENTE);
+        assertThat(estadoDe(detras)).isEqualTo(EstadoEnvio.PENDIENTE);
+        assertThat(intentosDe(subsanacion)).isZero();
+
+        jdbc.sql("update control_flujo_envio set ultimo_envio = ultimo_envio - interval '61 seconds'")
+                .update();
+        aeat.responder(EstadoEnvioAeat.CORRECTO, Duration.ofSeconds(60),
+                linea(subsanacion, EstadoRegistroAeat.CORRECTO, null),
+                linea(detras, EstadoRegistroAeat.CORRECTO, null));
+
+        despachador.despachar();
+
+        assertThat(aeat.registrosDelUltimoLote()).isEqualTo(2);
+        assertThat(estadoDe(subsanacion)).isEqualTo(EstadoEnvio.ACEPTADO);
+        assertThat(estadoDe(detras)).isEqualTo(EstadoEnvio.ACEPTADO);
     }
 
     @Test
@@ -392,6 +432,8 @@ class DespachadorLotesTest {
         void responder(EstadoEnvioAeat estado, Duration espera, LineaRespuesta... lineas);
 
         int lotesRemitidos();
+
+        int registrosDelUltimoLote();
     }
 
     @TestConfiguration(proxyBeanMethods = false)
@@ -407,6 +449,7 @@ class DespachadorLotesTest {
                 private RemisionFallidaException fallo;
                 private RuntimeException falloDeLaPrimeraLlamada;
                 private int lotes;
+                private int registrosDelUltimoLote;
 
                 @Override
                 public synchronized void reiniciar() {
@@ -414,6 +457,7 @@ class DespachadorLotesTest {
                     fallo = null;
                     falloDeLaPrimeraLlamada = null;
                     lotes = 0;
+                    registrosDelUltimoLote = 0;
                     espera = Duration.ofSeconds(60);
                 }
 
@@ -448,6 +492,11 @@ class DespachadorLotesTest {
                 }
 
                 @Override
+                public synchronized int registrosDelUltimoLote() {
+                    return registrosDelUltimoLote;
+                }
+
+                @Override
                 public synchronized RespuestaRemision remitir(ObligadoTributario obligado,
                                                               List<String> registros) {
                     if (falloDeLaPrimeraLlamada != null) {
@@ -459,6 +508,7 @@ class DespachadorLotesTest {
                         throw fallo;
                     }
                     lotes++;
+                    registrosDelUltimoLote = registros.size();
                     return new RespuestaRemision(estado, espera, "CSV-" + lotes, List.copyOf(lineas));
                 }
             };

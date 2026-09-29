@@ -18,8 +18,10 @@ import dev.lacre.verifactu.internal.CanonicalizadorAeat;
 import dev.lacre.verifactu.internal.xml.EscritorRegistro;
 import dev.lacre.verifactu.registro.DatosRegistro;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
+import dev.lacre.verifactu.registro.DatosRegistroAnulacion;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
+import dev.lacre.verifactu.registro.RechazoPrevio;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.SistemaInformatico;
@@ -134,7 +136,50 @@ class PortalDePruebasTest {
         informar("DESCUADRE CON UNA LÍNEA EN CLAVE 03", respuesta);
     }
 
+    // --- 3. Operativas de subsanación y anulación ---
+
+    /**
+     * Recorre las operativas de alta y anulación del anexo de validaciones con una misma factura,
+     * para leer el código que devuelve la AEAT en cada caso admitido o erróneo. Cada registro va
+     * solo y enlazado con el anterior, para que un 2007 no tape el error que se busca.
+     */
+    @Test
+    void lasOperativasDeSubsanacionYAnulacionDevuelvenSuCodigo() {
+        String factura = numeroDeSerie("SUBS");
+        Cadena cadena = new Cadena();
+
+        cadena.remitir("1. ALTA", altaQueCuadra(factura).build());
+        cadena.remitir("2. OTRA ALTA DE LA MISMA FACTURA, ERROR 2 DEL ANEXO",
+                altaQueCuadra(factura).descripcionOperacion("Otra descripción").build());
+        cadena.remitir("3. SUBSANACIÓN, OK 4",
+                altaQueCuadra(factura).subsanacion(true).descripcionOperacion("Subsanada").build());
+        cadena.remitir("4. ALTA POR RECHAZO DE UNA FACTURA QUE EXISTE, ERROR 2",
+                altaQueCuadra(factura).subsanacion(true).rechazoPrevio(RechazoPrevio.X).build());
+        cadena.remitir("5. SUBSANACIÓN DE UNA FACTURA QUE NO EXISTE, ERROR 3",
+                altaQueCuadra(numeroDeSerie("SIN-ALTA")).subsanacion(true).build());
+        cadena.remitir("6. ANULACIÓN DE UNA FACTURA QUE NO EXISTE, ERROR 6",
+                anulacion(numeroDeSerie("SIN-ANULAR"), false));
+        cadena.remitir("7. ANULACIÓN SIN REGISTRO PREVIO DE UNA QUE EXISTE, ERROR 10",
+                anulacion(factura, true));
+        cadena.remitir("8. ANULACIÓN, OK 7", anulacion(factura, false));
+        cadena.remitir("9. SUBSANACIÓN DE LA FACTURA ANULADA, OK 5",
+                altaQueCuadra(factura).subsanacion(true).build());
+    }
+
     // --- Apoyo ---
+
+    /** Encadena cada registro con el último remitido e imprime la respuesta. */
+    private final class Cadena {
+
+        private Optional<RegistroAnterior> anterior = Optional.empty();
+
+        void remitir(String caso, DatosRegistro datos) {
+            RegistroEncadenado encadenado = encadenar(datos, anterior);
+            informar(caso, PortalDePruebasTest.this.remitir(encadenado));
+            anterior = Optional.of(new RegistroAnterior(
+                    datos.camposDeHuella().idFactura(), encadenado.huella()));
+        }
+    }
 
     private RespuestaRemision remitir(DatosRegistro datos) {
         return remitir(encadenar(datos, Optional.empty()));
@@ -150,17 +195,26 @@ class PortalDePruebasTest {
     }
 
     private DatosRegistroAlta alta(String numSerie, Desglose desglose, Importe cuota, Importe total) {
+        return altaQueCuadra(numSerie).desglose(desglose).cuotaTotal(cuota).importeTotal(total)
+                .build();
+    }
+
+    private DatosRegistroAlta.Builder altaQueCuadra(String numSerie) {
         return DatosRegistroAlta.builder()
                 .idFactura(new IdFactura(OBLIGADO_NIF, numSerie, LocalDate.now()))
                 .nombreRazonEmisor(NOMBRE_OBLIGADO)
                 .tipoFactura(TipoFactura.F1)
                 .descripcionOperacion("Prueba de integración de lacre contra el Portal de Pruebas")
                 .destinatarios(List.of(new PersonaFisicaJuridica("Cliente SL", new Nif("A28015865"))))
-                .desglose(desglose)
-                .cuotaTotal(cuota)
-                .importeTotal(total)
-                .sistemaInformatico(sistemaInformatico())
-                .build();
+                .desglose(desgloseQueCuadra())
+                .cuotaTotal(Importe.de("23.33"))
+                .importeTotal(Importe.de("134.43"))
+                .sistemaInformatico(sistemaInformatico());
+    }
+
+    private static DatosRegistroAnulacion anulacion(String numSerie, boolean sinRegistroPrevio) {
+        return new DatosRegistroAnulacion(new IdFactura(OBLIGADO_NIF, numSerie, LocalDate.now()),
+                null, sinRegistroPrevio, false, null, null, sistemaInformatico());
     }
 
     private static Desglose desgloseQueCuadra() {

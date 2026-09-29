@@ -23,9 +23,11 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -87,7 +89,21 @@ public class DespachadorLotes {
         if (reservados.isEmpty()) {
             return false;
         }
-        boolean loteLleno = reservados.size() >= EscritorLote.MAXIMO_REGISTROS_POR_ENVIO;
+
+        List<EnvioRegistro> reservadas = cola.cargar(reservados);
+        List<RegistroRemitible> todos = registros.de(
+                reservadas.stream().map(EnvioRegistro::registroId).toList());
+        if (todos.size() != reservadas.size()) {
+            // No debería pasar: hay clave ajena. No se remite un lote a medias.
+            log.error("El obligado {} tiene {} envíos pendientes pero solo {} registros guardados",
+                    obligadoId, reservadas.size(), todos.size());
+            return false;
+        }
+        int corte = hastaLaPrimeraFacturaRepetida(todos);
+        List<EnvioRegistro> lote = reservadas.subList(0, corte);
+        List<RegistroRemitible> remitibles = todos.subList(0, corte);
+
+        boolean loteLleno = lote.size() >= EscritorLote.MAXIMO_REGISTROS_POR_ENVIO;
         if (!controlDeFlujo.reservarTurno(obligadoId, OffsetDateTime.now(reloj), loteLleno)) {
             return false;
         }
@@ -95,16 +111,6 @@ public class DespachadorLotes {
         Optional<ObligadoTributario> obligado = obligados.findById(obligadoId);
         if (obligado.isEmpty()) {
             log.error("Hay envíos pendientes del obligado {}, que ya no existe", obligadoId);
-            return false;
-        }
-
-        List<EnvioRegistro> lote = cola.cargar(reservados);
-        List<RegistroRemitible> remitibles = registros.de(
-                lote.stream().map(EnvioRegistro::registroId).toList());
-        if (remitibles.size() != lote.size()) {
-            // No debería pasar: hay clave ajena. No se remite un lote a medias.
-            log.error("El obligado {} tiene {} envíos pendientes pero solo {} registros guardados",
-                    obligadoId, lote.size(), remitibles.size());
             return false;
         }
 
@@ -160,6 +166,21 @@ public class DespachadorLotes {
                             + "obligado {}; siguen pendientes",
                     sinRespuesta.size(), lote.size(), lote.getFirst().obligadoId());
         }
+    }
+
+    /**
+     * Cada factura va una sola vez por lote: el orden en que la AEAT procesa las líneas de un envío
+     * no está especificado, y la respuesta se empareja por factura y tipo. Lo que queda fuera sale
+     * en el lote siguiente.
+     */
+    private static int hastaLaPrimeraFacturaRepetida(List<RegistroRemitible> remitibles) {
+        Set<IdFactura> facturas = new HashSet<>();
+        for (int i = 0; i < remitibles.size(); i++) {
+            if (!facturas.add(remitibles.get(i).idFactura())) {
+                return i;
+            }
+        }
+        return remitibles.size();
     }
 
     /** Un rechazo del envío completo llega con código; una caída de red, no. */

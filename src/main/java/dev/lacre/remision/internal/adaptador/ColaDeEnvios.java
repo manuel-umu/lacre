@@ -6,7 +6,10 @@ import dev.lacre.remision.Envios;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /** Lado de lectura del outbox: qué toca remitir y de quién. */
@@ -50,10 +53,11 @@ class ColaDeEnvios {
                 .list();
     }
 
+    /** En el orden en que se piden, que es el de antigüedad con que se reservaron. */
     List<EnvioRegistro> cargar(List<UUID> ids) {
-        List<EnvioRegistro> cargados = new java.util.ArrayList<>();
-        envios.findAllById(ids).forEach(cargados::add);
-        return cargados;
+        Map<UUID, EnvioRegistro> porId = new HashMap<>();
+        envios.findAllById(ids).forEach(envio -> porId.put(envio.id(), envio));
+        return ids.stream().map(porId::get).filter(Objects::nonNull).toList();
     }
 
     /**
