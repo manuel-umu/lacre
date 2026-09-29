@@ -4,7 +4,7 @@ import dev.lacre.verifactu.registro.DatosRegistro;
 import dev.lacre.verifactu.registro.SistemaInformatico;
 
 /**
- * Petición de emisión del ERP: alta de un registro o anulación de una factura. Cada
+ * Petición de emisión: alta de un registro o anulación de una factura. Cada
  * implementación aporta su mapeo al dominio y su discriminante de idempotencia.
  */
 public interface PeticionRegistro {

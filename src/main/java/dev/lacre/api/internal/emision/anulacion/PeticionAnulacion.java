@@ -10,7 +10,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
 /**
- * Anulación de una factura ya expedida, tal y como la pide el ERP. Anular añade un eslabón
+ * Anulación de una factura ya expedida, tal y como la pide el cliente. Anular añade un eslabón
  * nuevo a la cadena; no borra el del alta.
  *
  * @param rechazoPrevio booleano: el esquema solo admite {@code S} o {@code N} en anulaciones

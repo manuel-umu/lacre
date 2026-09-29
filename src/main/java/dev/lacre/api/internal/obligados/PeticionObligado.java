@@ -7,7 +7,7 @@ import java.time.DateTimeException;
 import java.time.ZoneId;
 
 /**
- * Datos de un obligado tal y como los envía el ERP. El NIF no va aquí: identifica el recurso y
+ * Datos de un obligado tal y como los envía el cliente. El NIF no va aquí: identifica el recurso y
  * viaja en la ruta.
  *
  * @param zonaHoraria identificador IANA, como {@code Europe/Madrid} o {@code Atlantic/Canary}

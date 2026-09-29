@@ -21,7 +21,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Alta de un registro de facturación, tal y como la pide el ERP. Es el contrato versionado,
+ * Alta de un registro de facturación, tal y como la pide el cliente. Es el contrato versionado,
  * independiente de {@code DatosRegistroAlta}. No se piden el obligado, que es el emisor de la
  * factura, ni el sistema informático, que lo aporta la configuración. Los indicadores son
  * {@code Boolean}: omitidos valen «N».

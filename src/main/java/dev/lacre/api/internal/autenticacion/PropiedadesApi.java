@@ -3,7 +3,7 @@ package dev.lacre.api.internal.autenticacion;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Clave con la que el ERP se autentica ante la API: una por despliegue, inyectada desde el
+ * Clave con la que el cliente se autentica ante la API: una por despliegue, inyectada desde el
  * entorno y comparada en tiempo constante por {@link FiltroDeClaveDeApi}.
  */
 @ConfigurationProperties("lacre.api")

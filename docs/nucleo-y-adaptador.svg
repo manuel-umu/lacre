@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="690" viewBox="0 0 680 690" role="img" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Núcleo puro y adaptador del módulo verifactu</title>
+  <defs>
+    <marker id="fl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#888780"/>
+    </marker>
+    <style>
+      .t { font-size: 14px; font-weight: 500; }
+      .s { font-size: 12px; }
+      .gris rect { fill: #F1EFE8; stroke: #5F5E5A; }
+      .gris text { fill: #2C2C2A; }
+      .verde rect { fill: #E1F5EE; stroke: #0F6E56; }
+      .verde .t { fill: #085041; }
+      .verde .s { fill: #0F6E56; }
+      .coral rect { fill: #FAECE7; stroke: #993C1D; }
+      .coral .t { fill: #712B13; }
+      .coral .s { fill: #993C1D; }
+      .etq { fill: #444441; }
+    </style>
+  </defs>
+
+  <rect width="680" height="690" fill="#FFFFFF"/>
+
+  <g class="gris"><rect x="270" y="30" width="140" height="44" rx="4"/><text class="t" x="340" y="57" text-anchor="middle">api</text></g>
+  <line x1="300" y1="74" x2="165" y2="156" stroke="#888780" stroke-width="1.5" marker-end="url(#fl)"/>
+  <text class="s etq" x="252" y="90" text-anchor="end">llama a emision</text>
+
+  <rect x="40" y="100" width="600" height="300" rx="12" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text class="t etq" x="620" y="126" text-anchor="end">núcleo puro: sin Spring ni base de datos</text>
+
+  <text class="s etq" x="65" y="150">contratos</text>
+  <g class="verde"><rect x="65" y="158" width="170" height="50" rx="4"/><text class="t" x="150" y="180" text-anchor="middle">emision</text><text class="s" x="150" y="198" text-anchor="middle">puerto de escritura</text></g>
+  <g class="verde"><rect x="255" y="158" width="170" height="50" rx="4"/><text class="t" x="340" y="180" text-anchor="middle">consulta</text><text class="s" x="340" y="198" text-anchor="middle">puertos de lectura</text></g>
+  <g class="verde"><rect x="445" y="158" width="170" height="50" rx="4"/><text class="t" x="530" y="180" text-anchor="middle">evento</text><text class="s" x="530" y="198" text-anchor="middle">RegistroCreado</text></g>
+
+  <text class="s etq" x="65" y="234">modelo</text>
+  <g class="verde"><rect x="65" y="242" width="265" height="50" rx="4"/><text class="t" x="197" y="264" text-anchor="middle">registro</text><text class="s" x="197" y="282" text-anchor="middle">alta, anulación e IdFactura</text></g>
+  <g class="verde"><rect x="350" y="242" width="265" height="50" rx="4"/><text class="t" x="482" y="264" text-anchor="middle">desglose</text><text class="s" x="482" y="282" text-anchor="middle">impuestos y catálogos</text></g>
+
+  <text class="s etq" x="65" y="318">cálculo</text>
+  <g class="verde"><rect x="65" y="326" width="120" height="50" rx="4"/><text class="t" x="125" y="348" text-anchor="middle">huella</text><text class="s" x="125" y="366" text-anchor="middle">encadenador</text></g>
+  <g class="verde"><rect x="205" y="326" width="120" height="50" rx="4"/><text class="t" x="265" y="348" text-anchor="middle">internal</text><text class="s" x="265" y="366" text-anchor="middle">orden y SHA-256</text></g>
+  <g class="verde"><rect x="345" y="326" width="120" height="50" rx="4"/><text class="t" x="405" y="348" text-anchor="middle">internal.xml</text><text class="s" x="405" y="366" text-anchor="middle">XML con StAX</text></g>
+  <g class="verde"><rect x="485" y="326" width="120" height="50" rx="4"/><text class="t" x="545" y="348" text-anchor="middle">qr</text><text class="s" x="545" y="366" text-anchor="middle">URL del código</text></g>
+
+  <line x1="340" y1="440" x2="340" y2="402" stroke="#888780" stroke-width="1.5" marker-end="url(#fl)"/>
+  <text class="s etq" x="352" y="425">implementa los contratos y usa el cálculo</text>
+
+  <rect x="40" y="440" width="600" height="130" rx="12" fill="none" stroke="#D85A30" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text class="t etq" x="620" y="464" text-anchor="end">internal.adaptador: Spring y JDBC</text>
+  <g class="coral"><rect x="65" y="484" width="170" height="56" rx="4"/><text class="t" x="150" y="507" text-anchor="middle">CadenaDeRegistros</text><text class="s" x="150" y="526" text-anchor="middle">cerrojo, INSERT, evento</text></g>
+  <g class="coral"><rect x="255" y="484" width="170" height="56" rx="4"/><text class="t" x="340" y="507" text-anchor="middle">RegistroFacturacion</text><text class="s" x="340" y="526" text-anchor="middle">la fila de la tabla</text></g>
+  <g class="coral"><rect x="445" y="484" width="170" height="56" rx="4"/><text class="t" x="530" y="507" text-anchor="middle">Consultas JDBC</text><text class="s" x="530" y="526" text-anchor="middle">SQL de lectura</text></g>
+
+  <line x1="340" y1="570" x2="340" y2="608" stroke="#888780" stroke-width="1.5" marker-end="url(#fl)"/>
+  <text class="s etq" x="352" y="594">SQL</text>
+  <g class="gris"><rect x="270" y="610" width="140" height="44" rx="4"/><text class="t" x="340" y="637" text-anchor="middle">PostgreSQL</text></g>
+</svg>

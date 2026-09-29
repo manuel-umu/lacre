@@ -3,11 +3,11 @@ openapi: 3.1.0
 info:
   title: lacre
   version: "1"
-  summary: Componente de facturación Veri*Factu para integrar en un ERP.
+  summary: Componente de facturación Veri*Factu.
   description: |
     lacre genera los registros de facturación que exigen el Real Decreto 1007/2023 y la Orden
-    HAC/1177/2024, los encadena con su huella y los remite a la AEAT. El ERP expide la factura;
-    lacre solo registra.
+    HAC/1177/2024, los encadena con su huella y los remite a la AEAT. El sistema de facturación
+    que llama a la API expide la factura; lacre solo registra.
 
     ## Tu primera factura en 15 minutos
 
@@ -78,10 +78,11 @@ info:
 
     ### 4. Imprime el código QR
 
-    El `urlQr` de la respuesta es el contenido del código; dibujarlo es cosa del ERP, porque la
-    norma le exige un tamaño de entre 30x30 y 40x40 milímetros, nivel M de corrección de
-    errores (ISO/IEC 18004:2015), el texto «QR tributario:» encima y «Factura verificable en la
-    sede electrónica de la AEAT» debajo, y ser el primer código QR de la primera página.
+    El `urlQr` de la respuesta es el contenido del código; dibujarlo corresponde a quien maqueta
+    la factura, porque la norma le exige un tamaño de entre 30x30 y 40x40 milímetros, nivel M de
+    corrección de errores (ISO/IEC 18004:2015), el texto «QR tributario:» encima y «Factura
+    verificable en la sede electrónica de la AEAT» debajo, y ser el primer código QR de la
+    primera página.
 
     ### 5. Consulta qué dijo la AEAT
 
@@ -89,7 +90,7 @@ info:
 
     ## Lo que hay que saber antes de integrar
 
-    **La `Idempotency-Key` es obligatoria en los dos `POST`.** Un ERP reintenta —por un timeout,
+    **La `Idempotency-Key` es obligatoria en los dos `POST`.** Un cliente reintenta —por un timeout,
     por un reinicio, por el reintento automático de su cliente HTTP— y un reintento no puede
     generar dos registros. Reintentar con la misma clave y la misma factura devuelve la misma
     respuesta; usarla para **otra** factura devuelve `409`, porque darte el registro de la
@@ -130,7 +131,7 @@ paths:
       summary: Registra el alta de una factura expedida
       description: |
         Añade un eslabón a la cadena del obligado y lo encola para remitirlo a la AEAT, todo en
-        la misma transacción: si algo falla no queda ni registro ni envío, y el ERP recibe un
+        la misma transacción: si algo falla no queda ni registro ni envío, y la respuesta es un
         error. Es preferible no poder facturar a facturar sin registro.
       operationId: altaDeRegistro
       parameters:
@@ -496,9 +497,9 @@ components:
       type: http
       scheme: bearer
       description: |
-        Una clave por despliegue, en `Authorization: Bearer <clave>`. lacre lo despliega el
-        cliente en su propia infraestructura, así que un despliegue es un ERP y el ERP es la
-        frontera de confianza. La clave se configura en `LACRE_API_CLAVE` y sin ella la
+        Una clave por despliegue, en `Authorization: Bearer <clave>`. lacre es autoalojado
+        y cada despliegue sirve a un único sistema de facturación, que es la frontera de
+        confianza. La clave se configura en `LACRE_API_CLAVE` y sin ella la
         aplicación no arranca.
 
   parameters:
@@ -706,7 +707,7 @@ components:
           $ref: '#/components/schemas/IdFacturaDto'
         refExterna:
           type: string
-          description: Referencia libre del ERP; no la usa la AEAT para nada.
+          description: Referencia libre del sistema de facturación; no la usa la AEAT para nada.
           maxLength: 60
         nombreRazonEmisor:
           type: string
