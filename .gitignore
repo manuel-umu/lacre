@@ -38,3 +38,7 @@ docs/certs/
 .jqwik-database
 
 .env
+
+*.p12
+*.pfx
+!/src/test/resources/certificados/*.p12

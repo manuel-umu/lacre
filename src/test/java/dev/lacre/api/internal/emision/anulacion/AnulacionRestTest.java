@@ -88,6 +88,18 @@ class AnulacionRestTest {
     }
 
     @Test
+    void unaAnulacionSinRegistroPrevioDeUnaFacturaQueExisteSeRechaza() throws Exception {
+        mvc.perform(peticion("/alta", "alta-5", alta("FA/5"))).andExpect(status().isCreated());
+
+        String sinRegistroPrevio = anulacion("FA/5").replace(
+                "\"idFacturaAnulada\"", "\"sinRegistroPrevio\": true, \"idFacturaAnulada\"");
+
+        mvc.perform(peticion("/anulacion", "anul-5", sinRegistroPrevio))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.codigoAeat").value("3000"));
+    }
+
+    @Test
     void sinLaFacturaAnuladaNoHayNadaQueAnular() throws Exception {
         mvc.perform(peticion("/anulacion", "anul-4", """
                 { "generadoPor": "E" }

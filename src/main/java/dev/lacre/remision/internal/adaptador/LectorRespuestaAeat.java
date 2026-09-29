@@ -78,6 +78,8 @@ final class LectorRespuestaAeat {
                     case "CodigoErrorRegistro" ->
                             enCurso.codigoError = Integer.valueOf(lector.getElementText().trim());
                     case "DescripcionErrorRegistro" -> enCurso.descripcionError = lector.getElementText();
+                    // Describe el registro original, con su propio CodigoErrorRegistro.
+                    case "RegistroDuplicado" -> saltar(lector);
                     default -> { }
                 }
             }
@@ -111,6 +113,18 @@ final class LectorRespuestaAeat {
             }
         }
         return new EnvioRechazadoException(null, texto);
+    }
+
+    /** Avanza hasta el cierre del elemento en curso, con todo lo que contenga. */
+    private static void saltar(XMLStreamReader lector) throws XMLStreamException {
+        int profundidad = 1;
+        while (profundidad > 0) {
+            switch (lector.next()) {
+                case XMLStreamConstants.START_ELEMENT -> profundidad++;
+                case XMLStreamConstants.END_ELEMENT -> profundidad--;
+                default -> { }
+            }
+        }
     }
 
     /** Entidades externas desactivadas: defensa contra XXE. */

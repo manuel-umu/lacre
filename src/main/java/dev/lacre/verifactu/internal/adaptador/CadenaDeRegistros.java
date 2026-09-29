@@ -8,8 +8,10 @@ import dev.lacre.shared.Nif;
 import dev.lacre.verifactu.emision.AnomaliaPrevia;
 import dev.lacre.verifactu.emision.EmisorDeRegistros;
 import dev.lacre.verifactu.emision.RegistroEmitido;
+import dev.lacre.verifactu.emision.RegistrosRechazados;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
 import dev.lacre.verifactu.internal.FechasAeat;
+import dev.lacre.verifactu.internal.OperativaAeat;
 import dev.lacre.verifactu.internal.xml.EscritorRegistro;
 import dev.lacre.verifactu.registro.DatosRegistro;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
@@ -55,10 +57,12 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
     private final Supplier<UUID> generadorDeIdentificadores;
     private final ApplicationEventPublisher eventos;
     private final Clock reloj;
+    private final RegistrosRechazados rechazados;
 
     CadenaDeRegistros(JdbcClient jdbc, RegistroRepository repositorio, Obligados obligados,
                       EncadenadorRegistros encadenador, Supplier<UUID> generadorDeIdentificadores,
-                      ApplicationEventPublisher eventos, Clock reloj) {
+                      ApplicationEventPublisher eventos, Clock reloj,
+                      RegistrosRechazados rechazados) {
         this.jdbc = jdbc;
         this.repositorio = repositorio;
         this.obligados = obligados;
@@ -66,6 +70,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         this.generadorDeIdentificadores = generadorDeIdentificadores;
         this.eventos = eventos;
         this.reloj = reloj;
+        this.rechazados = rechazados;
     }
 
     /** Puerto publicado; añade el registro y devuelve lo que vio la comprobación previa. */
@@ -92,6 +97,7 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         if (datos instanceof DatosRegistroAlta alta) {
             FechasAeat.exigir(alta, LocalDate.now(reloj.withZone(ZONA_AEAT)));
         }
+        OperativaAeat.exigir(datos, laFacturaYaTieneRegistro(obligadoId, datos.idFactura()));
 
         List<Enlace> cola = losDosUltimosDe(obligadoId);
         Optional<Enlace> ultimo = cola.stream().findFirst();
@@ -131,6 +137,22 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
                     obligadoId, anomalias, ultimo.posicion());
         }
         return anomalias;
+    }
+
+    /** Si la factura tiene en la cadena algún registro que la AEAT no rechazó. */
+    private boolean laFacturaYaTieneRegistro(UUID obligadoId, IdFactura factura) {
+        List<UUID> registros = jdbc.sql("""
+                select id from registro_facturacion
+                where obligado_id = :obligado and emisor = :emisor
+                  and num_serie_factura = :numSerie and fecha_expedicion_factura = :fecha
+                """)
+                .param("obligado", obligadoId)
+                .param("emisor", factura.emisor().valor())
+                .param("numSerie", factura.numSerieFactura())
+                .param("fecha", factura.fechaExpedicion())
+                .query(UUID.class)
+                .list();
+        return !rechazados.entre(registros).containsAll(registros);
     }
 
     /** Cerrojo consultivo por obligado; se libera al terminar la transacción. */

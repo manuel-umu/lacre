@@ -239,6 +239,41 @@ class AltaRestTest {
                 .andExpect(jsonPath("$.codigoAeat").value("1152"));
     }
 
+    @Test
+    void unaSegundaAltaDeLaMismaFacturaSeRechazaComoDuplicada() throws Exception {
+        mvc.perform(alta("dup-1", cuerpo("FA/10", "123.45"))).andExpect(status().isCreated());
+
+        mvc.perform(alta("dup-2", cuerpo("FA/10", "123.45")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.codigoAeat").value("3000"));
+
+        assertThat(jdbc.sql("""
+                        select count(*) from registro_facturacion where obligado_id = :obligado
+                        """).param("obligado", obligadoId).query(Long.class).single()).isEqualTo(1);
+    }
+
+    @Test
+    void unaSubsanacionDeUnaFacturaQueYaExisteSeAdmite() throws Exception {
+        mvc.perform(alta("subs-1", cuerpo("FA/11", "123.45"))).andExpect(status().isCreated());
+
+        mvc.perform(alta("subs-2", subsanacion(cuerpo("FA/11", "123.45"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.posicion").value(2));
+    }
+
+    /** Un alta rechazada no existe en la AEAT, así que puede enviarse otra vez. */
+    @Test
+    void siLaAeatRechazoElAltaSePuedeVolverAEnviar() throws Exception {
+        UUID rechazada = registroId(mvc.perform(alta("rech-1", cuerpo("FA/12", "123.45")))
+                .andExpect(status().isCreated()).andReturn());
+        envios.save(envios.findByRegistroId(rechazada).orElseThrow()
+                .rechazado(OffsetDateTime.now(), 1142, "Cuota incorrecta"));
+
+        mvc.perform(alta("rech-2", cuerpo("FA/12", "123.45")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.posicion").value(2));
+    }
+
     /** Sin validación de la AEAT de por medio, el error no trae código de la AEAT. */
     @Test
     void unErrorDeContratoNoTraeCodigoAeat() throws Exception {
@@ -306,6 +341,11 @@ class AltaRestTest {
     private static UUID registroId(MvcResult respuesta) throws Exception {
         return UUID.fromString(com.jayway.jsonpath.JsonPath.read(
                 respuesta.getResponse().getContentAsString(), "$.registroId"));
+    }
+
+    private static String subsanacion(String cuerpo) {
+        return cuerpo.replace("\"tipoFactura\": \"F1\",",
+                "\"tipoFactura\": \"F1\", \"subsanacion\": true,");
     }
 
     /** Los importes del ejemplo oficial de la huella, 111,10 + 12,35 = 123,45, al 10 %. */

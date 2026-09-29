@@ -132,6 +132,27 @@ class LectorRespuestaAeatTest {
         });
     }
 
+    /** {@code RegistroDuplicado} trae el código del registro original, no el de la línea. */
+    @Test
+    void elCodigoDelRegistroOriginalNoSustituyeAlDeLaLinea() {
+        RespuestaRemision respuesta = LectorRespuestaAeat.leer(respuesta("Incorrecto",
+                linea("FA/1", "Incorrecto",
+                        "<tikR:CodigoErrorRegistro>3000</tikR:CodigoErrorRegistro>"
+                                + "<tikR:DescripcionErrorRegistro>Registro de facturación duplicado.</tikR:DescripcionErrorRegistro>"
+                                + "<tikR:RegistroDuplicado>"
+                                + "<tik:IdPeticionRegistroDuplicado>PET-1</tik:IdPeticionRegistroDuplicado>"
+                                + "<tik:EstadoRegistroDuplicado>AceptadaConErrores</tik:EstadoRegistroDuplicado>"
+                                + "<tik:CodigoErrorRegistro>2007</tik:CodigoErrorRegistro>"
+                                + "<tik:DescripcionErrorRegistro>No debe informarse como primer registro.</tik:DescripcionErrorRegistro>"
+                                + "</tikR:RegistroDuplicado>")));
+
+        assertThat(respuesta.lineas()).singleElement().satisfies(linea -> {
+            assertThat(linea.codigoError()).isEqualTo(3000);
+            assertThat(linea.descripcionError()).isEqualTo("Registro de facturación duplicado.");
+            assertThat(linea.desenlace()).isEqualTo(EstadoEnvio.DUPLICADO);
+        });
+    }
+
     // --- Varias líneas ---
 
     /** Tres líneas de las que solo la de en medio trae error. */

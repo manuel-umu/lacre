@@ -55,7 +55,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * LACRE_PORTAL_PRUEBAS=si \
  * LACRE_CERT_P12=ruta/al/certificado.p12 \
  * LACRE_CERT_PASS=... \
- * LACRE_OBLIGADO_NIF=99999999R  * LACRE_OBLIGADO_NOMBRE="APELLIDOS NOMBRE" \
+ * LACRE_OBLIGADO_NIF=99999999R \
+ * LACRE_OBLIGADO_NOMBRE="APELLIDOS NOMBRE" \
  * ./mvnw test -Dtest=PortalDePruebasTest
  * }</pre>
  * <p>

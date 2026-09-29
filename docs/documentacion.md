@@ -22,11 +22,10 @@ flowchart LR
     API --> REM["remision"]
     VF -. "RegistroCreado" .-> REM
     REM -->|"consulta"| VF
+    REM -->|"RegistrosRechazados"| VF
     REM --> ID
     VFA["verifactu.internal.adaptador"] --> ID
 ```
-
-**`verifactu` no conoce a ningún otro módulo.** Cuando crea un registro publica el evento `RegistroCreado`, el cual es escuchado por `remision`, dentro de la misma transacción.
 
 ## Hexagonal por módulo
 
