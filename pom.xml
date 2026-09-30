@@ -240,6 +240,41 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>1.30.0</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-junit5-plugin</artifactId>
+						<version>1.2.3</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<targetClasses>
+						<param>dev.lacre.shared.*</param>
+						<param>dev.lacre.verifactu.*</param>
+					</targetClasses>
+					<excludedClasses>
+						<param>dev.lacre.verifactu.internal.adaptador.*</param>
+					</excludedClasses>
+					<targetTests>
+						<param>dev.lacre.shared.*</param>
+						<param>dev.lacre.verifactu.*</param>
+					</targetTests>
+					<excludedTestClasses>
+						<param>dev.lacre.verifactu.internal.adaptador.*</param>
+					</excludedTestClasses>
+					<threads>4</threads>
+					<mutationThreshold>88</mutationThreshold>
+					<outputFormats>
+						<param>HTML</param>
+						<param>XML</param>
+					</outputFormats>
+					<timestampedReports>false</timestampedReports>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

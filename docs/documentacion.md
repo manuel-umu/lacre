@@ -120,8 +120,7 @@ Se han utilizado varios tipos de test, dependiendo de **qué** es lo que se esta
   se ejecuta si se activa a mano.
 - API: MockMvc contra PostgreSQL, sin mocks.
 - Arquitectura: ArchUnit y Modulith.
-
-Muchos de estos tests están **comprobados por inversión**: se desactivó el mecanismo que prueban y se comprobó que fallaban.
+- Mutation testing: PIT modifica el código del núcleo (invierte condiciones, cambia valores devueltos…) y comprueba que algún test lo detecta (comprobaciones por inversión)
 
 ## Estructura del repositorio
 
