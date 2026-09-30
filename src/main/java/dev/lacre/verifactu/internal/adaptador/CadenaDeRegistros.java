@@ -11,6 +11,7 @@ import dev.lacre.verifactu.emision.RegistroEmitido;
 import dev.lacre.verifactu.emision.RegistrosRechazados;
 import dev.lacre.verifactu.evento.RegistroCreado;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
+import dev.lacre.verifactu.internal.ClavesDeRegimenIpsi;
 import dev.lacre.verifactu.internal.FechasAeat;
 import dev.lacre.verifactu.internal.OperativaAeat;
 import dev.lacre.verifactu.internal.xml.EscritorRegistro;
@@ -98,7 +99,9 @@ public class CadenaDeRegistros implements EmisorDeRegistros {
         serializarLaCadenaDe(obligadoId);
 
         if (datos instanceof DatosRegistroAlta alta) {
-            FechasAeat.exigir(alta, LocalDate.now(reloj.withZone(ZONA_AEAT)));
+            LocalDate hoy = LocalDate.now(reloj.withZone(ZONA_AEAT));
+            FechasAeat.exigir(alta, hoy);
+            ClavesDeRegimenIpsi.exigir(alta, hoy);
         }
         OperativaAeat.exigir(datos, laFacturaYaTieneRegistro(obligadoId, datos.idFactura()));
 

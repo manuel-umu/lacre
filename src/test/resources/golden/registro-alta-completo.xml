@@ -52,6 +52,7 @@
     </sf:DetalleDesglose>
     <sf:DetalleDesglose>
       <sf:Impuesto>02</sf:Impuesto>
+      <sf:ClaveRegimen>01</sf:ClaveRegimen>
       <sf:CalificacionOperacion>S1</sf:CalificacionOperacion>
       <sf:TipoImpositivo>10.00</sf:TipoImpositivo>
       <sf:BaseImponibleOimporteNoSujeto>50.00</sf:BaseImponibleOimporteNoSujeto>

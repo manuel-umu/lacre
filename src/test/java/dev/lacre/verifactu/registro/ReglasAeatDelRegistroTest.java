@@ -172,9 +172,9 @@ class ReglasAeatDelRegistroTest {
     static Stream<Arguments> altasQueLaAeatAcepta() {
         return Stream.of(
                 arguments(
-                        "solo IPSI, expedida antes de la operación",
+                        "solo otros impuestos, expedida antes de la operación",
                         cambio(b -> b.fechaOperacion(Registros.FECHA_EXPEDICION.plusDays(1))
-                                .desglose(Desglose.de(soloIpsi())))),
+                                .desglose(Desglose.de(soloOtrosImpuestos())))),
                 arguments(
                         "rectificativa por sustitución con importe",
                         cambio(b -> rectificativa(b, TipoFactura.R1, ClaveTipoRectificativa.S))),
@@ -362,9 +362,9 @@ class ReglasAeatDelRegistroTest {
         return conImpuesto(null, linea);
     }
 
-    private static DetalleDesglose soloIpsi() {
+    private static DetalleDesglose soloOtrosImpuestos() {
         return new DetalleDesglose(
-                Impuesto.IPSI,
+                Impuesto.OTROS,
                 null,
                 CalificacionOperacion.S1,
                 Porcentaje.de("10"),

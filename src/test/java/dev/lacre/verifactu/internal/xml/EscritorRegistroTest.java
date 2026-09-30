@@ -295,7 +295,7 @@ class EscritorRegistroTest {
                                 Importe.de("5.78")),
                         new DetalleDesglose(
                                 Impuesto.IPSI,
-                                null,
+                                new ClaveRegimen("01"),
                                 CalificacionOperacion.S1,
                                 Porcentaje.de("10"),
                                 Importe.de("50.00"),

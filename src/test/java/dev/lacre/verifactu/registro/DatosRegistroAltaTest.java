@@ -280,7 +280,7 @@ class DatosRegistroAltaTest {
     void unaLineaSinClaveDeRegimenNoImpideContrastarLosTotales() {
         DatosRegistroAlta datos = Registros.alta()
                 .desglose(Desglose.de(new DetalleDesglose(
-                        Impuesto.IPSI,
+                        Impuesto.OTROS,
                         null,
                         CalificacionOperacion.S1,
                         Porcentaje.de("10"),
