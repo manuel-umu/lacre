@@ -14,6 +14,11 @@ spring:
     placeholders:
       clave_rol_aplicacion: ${LACRE_DB_CLAVE_APLICACION:}
 
+# El identificador de correlación de cada petición, que pone FiltroDeCorrelacion.
+logging:
+  pattern:
+    correlation: "[%X{correlacion:-}] "
+
 lacre:
   # Credencial con la que el cliente llama a la API. UNA por despliegue: cada despliegue
   # sirve a un único sistema de facturación, que es la frontera de confianza.

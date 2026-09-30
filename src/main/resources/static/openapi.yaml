@@ -105,6 +105,10 @@ info:
     **Un `201` no significa que la AEAT lo haya aceptado**, sino que el registro existe y está
     encadenado. La norma exige el registro, no que la AEAT esté disponible.
 
+    **Cada respuesta lleva `X-Request-Id`**, el identificador con el que salen sus trazas en el log.
+    Si la petición trae uno propio de hasta 64 caracteres `A-Z a-z 0-9 . _ -`, se respeta; si no,
+    lacre genera un UUID. Es lo que hay que citar al preguntar por una petición concreta.
+
     **La facturación no se interrumpe.** Un descuadre de totales o una cadena mal encadenada se
     avisan en `avisos`, pero no impiden registrar: la AEAT los trata como errores admisibles.
     Solo se rechaza lo que la AEAT rechazaría al recibirlo.
