@@ -138,7 +138,25 @@ class ReglasAeatDelRegistroTest {
                         "tipo del 5 % fuera de su vigencia",
                         b -> b.idFactura(expedidaEl(LocalDate.of(2025, 2, 1)))
                                 .desglose(Desglose.de(
-                                        linea("01", CalificacionOperacion.S1, "5", "100.00", null, "5.00")))));
+                                        linea("01", CalificacionOperacion.S1, "5", "100.00", null, "5.00")))),
+                alta(
+                        "1194",
+                        "tipo del 5 % fuera de su vigencia sin impuesto, que cuenta como IVA",
+                        b -> b.idFactura(expedidaEl(LocalDate.of(2025, 2, 1)))
+                                .desglose(Desglose.de(sinImpuesto(
+                                        linea("01", CalificacionOperacion.S1, "5", "100.00", null, "5.00"))))),
+                alta(
+                        "1205",
+                        "clave 10 en una F3 con IGIC",
+                        b -> b.tipoFactura(TipoFactura.F3)
+                                .desglose(Desglose.de(conImpuesto(
+                                        Impuesto.IGIC, clave10().detalles().getFirst())))),
+                alta(
+                        "1205",
+                        "clave 10 en una F3 sin impuesto, que cuenta como IVA",
+                        b -> b.tipoFactura(TipoFactura.F3)
+                                .desglose(Desglose.de(
+                                        sinImpuesto(clave10().detalles().getFirst())))));
     }
 
     @ParameterizedTest(name = "{0}: {1}")
@@ -153,6 +171,10 @@ class ReglasAeatDelRegistroTest {
 
     static Stream<Arguments> altasQueLaAeatAcepta() {
         return Stream.of(
+                arguments(
+                        "solo IPSI, expedida antes de la operación",
+                        cambio(b -> b.fechaOperacion(Registros.FECHA_EXPEDICION.plusDays(1))
+                                .desglose(Desglose.de(soloIpsi())))),
                 arguments(
                         "rectificativa por sustitución con importe",
                         cambio(b -> rectificativa(b, TipoFactura.R1, ClaveTipoRectificativa.S))),
@@ -334,6 +356,36 @@ class ReglasAeatDelRegistroTest {
                 cuota == null ? null : Importe.de(cuota),
                 null,
                 null);
+    }
+
+    private static DetalleDesglose sinImpuesto(DetalleDesglose linea) {
+        return conImpuesto(null, linea);
+    }
+
+    private static DetalleDesglose soloIpsi() {
+        return new DetalleDesglose(
+                Impuesto.IPSI,
+                null,
+                CalificacionOperacion.S1,
+                Porcentaje.de("10"),
+                Importe.de("111.10"),
+                null,
+                Importe.de("12.35"),
+                null,
+                null);
+    }
+
+    private static DetalleDesglose conImpuesto(Impuesto impuesto, DetalleDesglose linea) {
+        return new DetalleDesglose(
+                impuesto,
+                linea.claveRegimen(),
+                linea.calificacion(),
+                linea.tipoImpositivo(),
+                linea.baseImponibleOimporteNoSujeto(),
+                linea.baseImponibleACoste(),
+                linea.cuotaRepercutida(),
+                linea.tipoRecargoEquivalencia(),
+                linea.cuotaRecargoEquivalencia());
     }
 
     private static IdFactura expedidaEl(LocalDate fecha) {

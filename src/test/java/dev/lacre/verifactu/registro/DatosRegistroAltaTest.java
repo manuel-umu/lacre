@@ -271,6 +271,24 @@ class DatosRegistroAltaTest {
         assertThat(datos.cuadraElImporteTotal()).isFalse();
     }
 
+    @Test
+    void unaLineaSinClaveDeRegimenNoImpideContrastarLosTotales() {
+        DatosRegistroAlta datos = Registros.alta()
+                .desglose(Desglose.de(new DetalleDesglose(
+                        Impuesto.IPSI,
+                        null,
+                        CalificacionOperacion.S1,
+                        Porcentaje.de("10"),
+                        Importe.de("111.10"),
+                        null,
+                        Importe.de("12.35"),
+                        null,
+                        null)))
+                .build();
+
+        assertThat(datos.seContrastanLosTotales()).isTrue();
+    }
+
     /** Una línea que la AEAT admite con esa clave de régimen. */
     private static DetalleDesglose detalleCon(String claveRegimen) {
         ClaveRegimen clave = new ClaveRegimen(claveRegimen);

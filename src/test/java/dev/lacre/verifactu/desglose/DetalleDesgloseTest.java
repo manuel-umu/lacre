@@ -270,6 +270,18 @@ class DetalleDesgloseTest {
                 .hasMessageContaining("21 %");
     }
 
+    @Test
+    void elMensajeDiceSiLaBaseEsLaDeACoste() {
+        DetalleDesglose detalle = new Linea(IPSI, "01", S1)
+                .tipo("10")
+                .base("1000")
+                .aCoste("100")
+                .cuota("50")
+                .construir();
+
+        assertThatThrownBy(detalle::exigirCuotaCoherenteConLaBase).hasMessageContaining("la base imponible a coste");
+    }
+
     /** Línea de desglose por partes; los importes van en texto y nulo es no informado. */
     record Linea(
             Impuesto impuesto,

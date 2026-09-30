@@ -62,6 +62,17 @@ class NifTest {
         assertThat(new Nif("  12345678z  ")).isEqualTo(new Nif("12345678Z"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"00000000T", "12345678Z", "Y1234567X"})
+    void dniYNieSonDePersonaFisica(String valor) {
+        assertThat(new Nif(valor).esDePersonaFisica()).isTrue();
+    }
+
+    @Test
+    void unCifNoEsDePersonaFisica() {
+        assertThat(new Nif("B12345674").esDePersonaFisica()).isFalse();
+    }
+
     @Test
     void nifInvalidoEsUnValorInvalido() {
         assertThatThrownBy(() -> new Nif("12345678A")).isInstanceOf(ValorInvalidoException.class);

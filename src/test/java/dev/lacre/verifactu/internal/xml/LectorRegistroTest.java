@@ -138,6 +138,19 @@ class LectorRegistroTest {
         assertThatThrownBy(() -> LectorRegistro.leer(conEntidad)).isInstanceOf(RegistroIlegibleException.class);
     }
 
+    @Test
+    void noExpandeEntidadesDeclaradasEnElPropioDocumento() {
+        String xml = EscritorRegistro.escribir(encadenadoA("2024-01-01T18:20:30Z")
+                .encadenar(alta("FA/1"), Optional.empty(), ZoneId.of("Europe/Madrid")));
+        String conEntidad = "<!DOCTYPE sf:RegistroAlta [<!ENTITY serie \"INYECTADA\">]>"
+                + xml.replace(
+                        "<sf:NumSerieFactura>FA/1</sf:NumSerieFactura>",
+                        "<sf:NumSerieFactura>&serie;</sf:NumSerieFactura>");
+
+        assertThat(conEntidad).contains("&serie;");
+        assertThatThrownBy(() -> LectorRegistro.leer(conEntidad)).isInstanceOf(RegistroIlegibleException.class);
+    }
+
     private static Huella recalculada(RegistroEncadenado registro) {
         return LectorRegistro.leer(EscritorRegistro.escribir(registro)).huellaRecalculada(CANONICALIZADOR);
     }

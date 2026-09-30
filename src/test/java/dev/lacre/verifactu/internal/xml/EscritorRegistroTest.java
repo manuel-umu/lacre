@@ -6,15 +6,26 @@ import dev.lacre.shared.Huella;
 import dev.lacre.shared.IdOtro;
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
+import dev.lacre.shared.Porcentaje;
 import dev.lacre.shared.TipoIdentificacion;
+import dev.lacre.verifactu.desglose.CalificacionOperacion;
+import dev.lacre.verifactu.desglose.ClaveRegimen;
+import dev.lacre.verifactu.desglose.Desglose;
+import dev.lacre.verifactu.desglose.DetalleDesglose;
+import dev.lacre.verifactu.desglose.Impuesto;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
 import dev.lacre.verifactu.internal.CanonicalizadorAeat;
 import dev.lacre.verifactu.internal.EsquemasAeat;
+import dev.lacre.verifactu.registro.ClaveTipoRectificativa;
 import dev.lacre.verifactu.registro.DatosRegistroAlta;
+import dev.lacre.verifactu.registro.EmitidaPor;
+import dev.lacre.verifactu.registro.ImporteRectificacion;
 import dev.lacre.verifactu.registro.PersonaFisicaJuridica;
+import dev.lacre.verifactu.registro.RechazoPrevio;
 import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.RegistroEncadenado;
 import dev.lacre.verifactu.registro.Registros;
+import dev.lacre.verifactu.registro.SistemaInformatico;
 import dev.lacre.verifactu.registro.TipoFactura;
 import java.io.IOException;
 import java.io.StringReader;
@@ -79,30 +90,41 @@ class EscritorRegistroTest {
     }
 
     @Test
-    void unRegistroConTodoInformadoSigueValidando() {
-        DatosRegistroAlta datos = Registros.alta()
-                .refExterna("PEDIDO-2024-0001")
-                .tipoFactura(TipoFactura.R1)
-                .tipoRectificativa(dev.lacre.verifactu.registro.ClaveTipoRectificativa.S)
-                .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
-                .importeRectificacion(new dev.lacre.verifactu.registro.ImporteRectificacion(
-                        Importe.de("100.00"), Importe.de("21.00"), Importe.de("5.20")))
-                .fechaOperacion(LocalDate.of(2023, 12, 28))
-                .subsanacion(true)
-                .rechazoPrevio(dev.lacre.verifactu.registro.RechazoPrevio.S)
-                .macrodato(true)
-                .importeTotal(Importe.de("100000000.00"))
-                .cupon(true)
-                .emitidaPorTerceroODestinatario(dev.lacre.verifactu.registro.EmitidaPor.T)
-                .tercero(new PersonaFisicaJuridica("Asesoría SL", new Nif("B12345674")))
-                .numRegistroAcuerdoFacturacion("ACU-000001")
-                .idAcuerdoSistemaInformatico("SIF-0001")
-                .build();
-
+    void unRegistroConTodoInformadoValidaYCoincideConSuGolden() throws Exception {
         String xml = EscritorRegistro.escribir(
-                ENCADENADOR.encadenar(datos, Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
+                ENCADENADOR.encadenar(altaCompleta(), Optional.of(Registros.anterior(HUELLA_ANTERIOR)), MADRID));
 
         assertThat(validar(xml)).isEmpty();
+        assertThat(diferenciasCon("registro-alta-completo.xml", xml)).isEmpty();
+    }
+
+    @Test
+    void unaSustitutivaLlevaLasFacturasQueSustituye() {
+        DatosRegistroAlta datos = Registros.alta()
+                .tipoFactura(TipoFactura.F3)
+                .facturasSustituidas(List.of(Registros.idFactura("F2/SUSTITUIDA")))
+                .build();
+
+        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(datos, Optional.empty(), MADRID));
+
+        assertThat(validar(xml)).isEmpty();
+        assertThat(xml)
+                .contains("<sf:FacturasSustituidas><sf:IDFacturaSustituida>")
+                .contains("<sf:NumSerieFactura>F2/SUSTITUIDA</sf:NumSerieFactura>");
+    }
+
+    @Test
+    void unaSimplificadaSinIdentificarAlDestinatarioLlevaSuMarca() {
+        DatosRegistroAlta datos = Registros.alta()
+                .tipoFactura(TipoFactura.F2)
+                .destinatarios(List.of())
+                .facturaSinIdentifDestinatarioArt61d(true)
+                .build();
+
+        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(datos, Optional.empty(), MADRID));
+
+        assertThat(validar(xml)).isEmpty();
+        assertThat(xml).contains("<sf:FacturaSinIdentifDestinatarioArt61d>S</sf:FacturaSinIdentifDestinatarioArt61d>");
     }
 
     @Test
@@ -179,8 +201,10 @@ class EscritorRegistroTest {
 
         assertThat(validar(xml)).isEmpty();
         assertThat(xml)
+                .contains("<sf:RefExterna>REF-ANU-1</sf:RefExterna>")
                 .contains("<sf:SinRegistroPrevio>S</sf:SinRegistroPrevio>")
                 .contains("<sf:RechazoPrevio>S</sf:RechazoPrevio>")
+                .contains("<sf:GeneradoPor>T</sf:GeneradoPor>")
                 .contains("<sf:Generador>");
     }
 
@@ -215,6 +239,62 @@ class EscritorRegistroTest {
                 .isFalse();
     }
 
+    /**
+     * R1 por sustitución con todos los campos opcionales compatibles entre sí, y cada indicador y
+     * cada valor distinto del que tendría si no se informara.
+     */
+    private static DatosRegistroAlta altaCompleta() {
+        return Registros.alta()
+                .refExterna("PEDIDO-2024-0001")
+                .tipoFactura(TipoFactura.R1)
+                .tipoRectificativa(ClaveTipoRectificativa.S)
+                .facturasRectificadas(List.of(Registros.idFactura("FA/ORIGINAL")))
+                .importeRectificacion(
+                        new ImporteRectificacion(Importe.de("100.00"), Importe.de("21.00"), Importe.de("5.20")))
+                .fechaOperacion(LocalDate.of(2023, 12, 28))
+                .subsanacion(true)
+                .rechazoPrevio(RechazoPrevio.S)
+                .facturaSimplificadaArt7273(true)
+                .macrodato(true)
+                .importeTotal(Importe.de("100000000.00"))
+                .cupon(true)
+                .emitidaPorTerceroODestinatario(EmitidaPor.T)
+                .tercero(new PersonaFisicaJuridica("Asesoría SL", new Nif("B12345674")))
+                .desglose(Desglose.de(
+                        new DetalleDesglose(
+                                Impuesto.IVA,
+                                new ClaveRegimen("01"),
+                                CalificacionOperacion.S1,
+                                Porcentaje.de("21"),
+                                Importe.de("111.10"),
+                                null,
+                                Importe.de("23.33"),
+                                Porcentaje.de("5.2"),
+                                Importe.de("5.78")),
+                        new DetalleDesglose(
+                                Impuesto.IPSI,
+                                null,
+                                CalificacionOperacion.S1,
+                                Porcentaje.de("10"),
+                                Importe.de("50.00"),
+                                Importe.de("40.00"),
+                                Importe.de("4.00"),
+                                null,
+                                null)))
+                .numRegistroAcuerdoFacturacion("ACU-000001")
+                .idAcuerdoSistemaInformatico("SIF-0001")
+                .sistemaInformatico(new SistemaInformatico(
+                        new PersonaFisicaJuridica("lacre", new Nif("12345678Z")),
+                        "lacre",
+                        "01",
+                        "0.0.1",
+                        "0001",
+                        false,
+                        true,
+                        true))
+                .build();
+    }
+
     private static RegistroEncadenado encadenar(Optional<RegistroAnterior> anterior) {
         return ENCADENADOR.encadenar(Registros.alta().build(), anterior, MADRID);
     }
@@ -231,6 +311,16 @@ class EscritorRegistroTest {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /** Diferencias entre el XML y su fichero golden, o vacío si coinciden. */
+    private static String diferenciasCon(String golden, String xml) throws IOException {
+        Diff diff = DiffBuilder.compare(golden(golden))
+                .withTest(xml)
+                .ignoreWhitespace()
+                .checkForSimilar()
+                .build();
+        return diff.hasDifferences() ? diff + "%n%nGenerado:%n".formatted() + xml : "";
     }
 
     private static String golden(String nombre) throws IOException {

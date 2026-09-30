@@ -267,7 +267,7 @@
 						<param>dev.lacre.verifactu.internal.adaptador.*</param>
 					</excludedTestClasses>
 					<threads>4</threads>
-					<mutationThreshold>88</mutationThreshold>
+					<mutationThreshold>94</mutationThreshold>
 					<outputFormats>
 						<param>HTML</param>
 						<param>XML</param>

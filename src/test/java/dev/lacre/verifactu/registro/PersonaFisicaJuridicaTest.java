@@ -46,6 +46,8 @@ class PersonaFisicaJuridicaTest {
         assertThat(new PersonaFisicaJuridica("  Cliente SL  ", new Nif("12345678Z")).nombreRazon())
                 .isEqualTo("Cliente SL");
 
+        assertThat(new PersonaFisicaJuridica("X".repeat(120), new Nif("12345678Z")).nombreRazon())
+                .hasSize(120);
         assertThatThrownBy(() -> new PersonaFisicaJuridica("X".repeat(121), new Nif("12345678Z")))
                 .isInstanceOf(ValorInvalidoException.class)
                 .hasMessageContaining("120");
