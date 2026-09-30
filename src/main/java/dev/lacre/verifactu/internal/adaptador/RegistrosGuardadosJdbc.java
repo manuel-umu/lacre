@@ -99,12 +99,15 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
         private final List<Rotura> roturas = new ArrayList<>();
         private long registros;
         private Eslabon anterior;
+        private RegistroLeido anteriorLeido;
 
         void comprobar(Eslabon eslabon) {
             registros++;
             enlace(eslabon);
-            huella(eslabon);
+            RegistroLeido leido = huella(eslabon);
+            identificacionDelAnterior(eslabon, leido);
             anterior = eslabon;
+            anteriorLeido = leido;
         }
 
         /**
@@ -128,17 +131,37 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
             }
         }
 
-        /** La huella guardada tiene que ser la que declara el XML y la que sale de su contenido. */
-        private void huella(Eslabon eslabon) {
+        /**
+         * La huella guardada tiene que ser la que declara el XML y la que sale de su contenido.
+         * Devuelve el registro leído, o {@code null} si su XML es ilegible.
+         */
+        private RegistroLeido huella(Eslabon eslabon) {
             try {
                 RegistroLeido leido = LectorRegistro.leer(eslabon.xml());
                 if (!leido.huella().equals(eslabon.huella())
                         || !leido.huellaRecalculada(canonicalizador).equals(eslabon.huella())) {
                     roturas.add(new Rotura(eslabon.posicion(), Motivo.HUELLA_NO_CUADRA));
                 }
+                return leido;
             } catch (RegistroIlegibleException e) {
                 roturas.add(new Rotura(eslabon.posicion(), Motivo.XML_ILEGIBLE));
+                return null;
             }
+        }
+
+        /**
+         * La factura que el XML declara como anterior es la del XML que le precede. Si no declara
+         * ninguna, la falta ya la denuncian los enlaces; si algún XML es ilegible, también.
+         */
+        private void identificacionDelAnterior(Eslabon eslabon, RegistroLeido leido) {
+            if (leido == null || anteriorLeido == null) {
+                return;
+            }
+            leido.anterior()
+                    .filter(declarado ->
+                            !declarado.idFactura().equals(anteriorLeido.campos().idFactura()))
+                    .ifPresent(declarado ->
+                            roturas.add(new Rotura(eslabon.posicion(), Motivo.IDENTIFICACION_ANTERIOR_NO_CUADRA)));
         }
     }
 

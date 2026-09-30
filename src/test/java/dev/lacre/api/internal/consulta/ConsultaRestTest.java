@@ -145,7 +145,7 @@ class ConsultaRestTest {
     @Test
     void unEslabonQueNoEnlazaSeDenuncia() throws Exception {
         emitir("FA/1", "rota-1");
-        RegistroEncadenado suelto = registroQueApuntaA(new Huella("0".repeat(64)));
+        RegistroEncadenado suelto = registroQueApuntaA(facturaDelObligado("FA/1"), new Huella("0".repeat(64)));
         insertarEslabon(2, suelto, EscritorRegistro.escribir(suelto));
 
         mvc.perform(get("/v1/obligados/{nif}/cadena", nifDelObligado).with(ApiDePrueba.autenticada()))
@@ -155,6 +155,25 @@ class ConsultaRestTest {
                 .andExpect(jsonPath("$.roturas.length()").value(1))
                 .andExpect(jsonPath("$.roturas[0].posicion").value(2))
                 .andExpect(jsonPath("$.roturas[0].motivo").value("HUELLA_ANTERIOR_NO_CUADRA"));
+    }
+
+    /** Enlaza bien por huella, pero su XML declara como anterior una factura que no es la que le precede. */
+    @Test
+    void unEslabonQueDeclaraOtraFacturaComoAnteriorSeDenuncia() throws Exception {
+        UUID primero = emitir("FA/1", "identidad-1");
+        Huella huellaDelPrimero = new Huella(jdbc.sql("select huella from registro_facturacion where id = :id")
+                .param("id", primero)
+                .query(String.class)
+                .single());
+        RegistroEncadenado suelto = registroQueApuntaA(facturaDelObligado("OTRA"), huellaDelPrimero);
+        insertarEslabon(2, suelto, EscritorRegistro.escribir(suelto));
+
+        mvc.perform(get("/v1/obligados/{nif}/cadena", nifDelObligado).with(ApiDePrueba.autenticada()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.intacta").value(false))
+                .andExpect(jsonPath("$.roturas.length()").value(1))
+                .andExpect(jsonPath("$.roturas[0].posicion").value(2))
+                .andExpect(jsonPath("$.roturas[0].motivo").value("IDENTIFICACION_ANTERIOR_NO_CUADRA"));
     }
 
     /**
@@ -190,7 +209,7 @@ class ConsultaRestTest {
                 select huella from registro_facturacion
                 where obligado_id = :obligado and posicion = 1
                 """).param("obligado", obligadoId).query(String.class).single());
-        insertarEslabon(2, registroQueApuntaA(delPrimero), "<x/>");
+        insertarEslabon(2, registroQueApuntaA(facturaDelObligado("FA/1"), delPrimero), "<x/>");
 
         mvc.perform(get("/v1/obligados/{nif}/cadena", nifDelObligado).with(ApiDePrueba.autenticada()))
                 .andExpect(status().isOk())
@@ -207,13 +226,16 @@ class ConsultaRestTest {
                 .andExpect(jsonPath("$.codigo").value("obligado-desconocido"));
     }
 
-    /** Un alta del obligado que declara como anterior la huella indicada. */
-    private RegistroEncadenado registroQueApuntaA(Huella anterior) {
-        IdFactura factura = new IdFactura(new Nif(nifDelObligado), "SUELTA", LocalDate.of(2026, 1, 15));
+    /** Un alta del obligado que declara como anterior la factura y la huella indicadas. */
+    private RegistroEncadenado registroQueApuntaA(IdFactura facturaAnterior, Huella huellaAnterior) {
         return encadenador.encadenar(
-                Registros.alta().idFactura(factura).build(),
-                Optional.of(new RegistroAnterior(Registros.idFactura("FA/0"), anterior)),
+                Registros.alta().idFactura(facturaDelObligado("SUELTA")).build(),
+                Optional.of(new RegistroAnterior(facturaAnterior, huellaAnterior)),
                 ZoneId.of("Europe/Madrid"));
+    }
+
+    private IdFactura facturaDelObligado(String numSerie) {
+        return new IdFactura(new Nif(nifDelObligado), numSerie, LocalDate.of(2026, 1, 15));
     }
 
     private void insertarEslabon(long posicion, RegistroEncadenado registro, String xml) {

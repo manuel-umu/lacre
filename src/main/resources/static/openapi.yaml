@@ -1079,14 +1079,16 @@ components:
             `HUELLA_ANTERIOR_NO_CUADRA`: la huella anterior declarada no es la del registro que
             le precede. `POSICION_SALTADA`: falta al menos una posición. `SIN_HUELLA_ANTERIOR`:
             no es el primero y no declara huella anterior. `PRIMERO_CON_HUELLA_ANTERIOR`: abre
-            la cadena y declara una que no debería existir. `HUELLA_NO_CUADRA`: el contenido de
-            su XML no produce la huella guardada. `XML_ILEGIBLE`: su XML no se puede leer, así
-            que no hay forma de recalcular su huella.
+            la cadena y declara una que no debería existir. `IDENTIFICACION_ANTERIOR_NO_CUADRA`: la
+            factura que su XML declara como anterior no es la del registro que le precede.
+            `HUELLA_NO_CUADRA`: el contenido de su XML no produce la huella guardada.
+            `XML_ILEGIBLE`: su XML no se puede leer, así que no hay forma de recalcular su huella.
           enum:
             - HUELLA_ANTERIOR_NO_CUADRA
             - POSICION_SALTADA
             - SIN_HUELLA_ANTERIOR
             - PRIMERO_CON_HUELLA_ANTERIOR
+            - IDENTIFICACION_ANTERIOR_NO_CUADRA
             - HUELLA_NO_CUADRA
             - XML_ILEGIBLE
 

@@ -47,6 +47,9 @@ public record VerificacionDeCadena(UUID obligadoId, long registros, List<Rotura>
             /** Abre la cadena y declara una huella anterior que no debería existir. */
             PRIMERO_CON_HUELLA_ANTERIOR,
 
+            /** La factura que su XML declara como anterior no es la del registro que le precede. */
+            IDENTIFICACION_ANTERIOR_NO_CUADRA,
+
             /** El contenido de su XML no produce la huella guardada. */
             HUELLA_NO_CUADRA,
 

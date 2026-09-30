@@ -98,7 +98,7 @@ respuestas de la AEAT se emparejan por factura y tipo de operación.
 | `POST /v1/registros/alta` | Registro de alta: devuelve id, posición, huella, avisos y URL del QR |
 | `POST /v1/registros/anulacion` | Añade un eslabón de anulación; no borra el alta |
 | `GET /v1/registros/{id}` | Posición en la cadena y desenlace de la remisión |
-| `GET /v1/obligados/{nif}/cadena` | Verifica la cadena entera recalculando cada huella desde su XML |
+| `GET /v1/obligados/{nif}/cadena` | Verifica la cadena entera recalculando cada huella desde su XML y comprobando que cada registro declara como anterior la factura que le precede |
 
 El contrato está escrito en [`openapi.yaml`](../src/main/resources/static/openapi.yaml), y`ContratoOpenApiTest` lo compara con el código para que no se quede desactualizado.
 
