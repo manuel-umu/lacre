@@ -42,10 +42,6 @@ public record Importe(BigDecimal valor) implements Comparable<Importe> {
         }
     }
 
-    public static Importe de(long valor) {
-        return new Importe(BigDecimal.valueOf(valor));
-    }
-
     public Importe sumar(Importe otro) {
         return new Importe(valor.add(otro.valor));
     }

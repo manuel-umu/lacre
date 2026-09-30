@@ -37,6 +37,7 @@ class NifTest {
                 "X1234567A", // control de NIE incorrecto
                 "W1234567X", // W no es prefijo válido de NIE
                 "B12345670", // control de CIF incorrecto
+                "C12345670", // C admite dígito o letra, y este no es ninguno de los dos
                 "B1234567D", // B exige control numérico
                 "A1234567D",
                 "P12345674", // P exige control alfabético

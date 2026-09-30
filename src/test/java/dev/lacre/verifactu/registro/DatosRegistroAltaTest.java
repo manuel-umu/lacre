@@ -205,6 +205,11 @@ class DatosRegistroAltaTest {
                 .isEmpty();
     }
 
+    @Test
+    void unAltaEsUnRegistroDeAlta() {
+        assertThat(Registros.alta().build().tipo()).isEqualTo(TipoRegistro.ALTA);
+    }
+
     // --- Cuadre de totales con el desglose ---
 
     @Test

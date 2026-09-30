@@ -13,6 +13,7 @@ import dev.lacre.verifactu.desglose.ClaveRegimen;
 import dev.lacre.verifactu.desglose.Desglose;
 import dev.lacre.verifactu.desglose.DetalleDesglose;
 import dev.lacre.verifactu.desglose.Impuesto;
+import dev.lacre.verifactu.desglose.OperacionExenta;
 import dev.lacre.verifactu.huella.EncadenadorRegistros;
 import dev.lacre.verifactu.internal.CanonicalizadorAeat;
 import dev.lacre.verifactu.internal.EsquemasAeat;
@@ -96,6 +97,27 @@ class EscritorRegistroTest {
 
         assertThat(validar(xml)).isEmpty();
         assertThat(diferenciasCon("registro-alta-completo.xml", xml)).isEmpty();
+    }
+
+    @Test
+    void unaLineaExentaSeSerializaComoOperacionExenta() {
+        DatosRegistroAlta datos = Registros.alta()
+                .desglose(Desglose.de(new DetalleDesglose(
+                        Impuesto.IVA,
+                        new ClaveRegimen("01"),
+                        OperacionExenta.E1,
+                        null,
+                        Importe.de("123.45"),
+                        null,
+                        null,
+                        null,
+                        null)))
+                .build();
+
+        String xml = EscritorRegistro.escribir(ENCADENADOR.encadenar(datos, Optional.empty(), MADRID));
+
+        assertThat(validar(xml)).isEmpty();
+        assertThat(xml).contains("<sf:OperacionExenta>E1</sf:OperacionExenta>").doesNotContain("CalificacionOperacion");
     }
 
     @Test

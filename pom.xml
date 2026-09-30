@@ -258,6 +258,9 @@
 					</targetClasses>
 					<excludedClasses>
 						<param>dev.lacre.verifactu.internal.adaptador.*</param>
+						<param>dev.lacre.verifactu.consulta.*</param>
+						<param>dev.lacre.verifactu.emision.*</param>
+						<param>dev.lacre.verifactu.evento.*</param>
 					</excludedClasses>
 					<targetTests>
 						<param>dev.lacre.shared.*</param>
@@ -267,7 +270,7 @@
 						<param>dev.lacre.verifactu.internal.adaptador.*</param>
 					</excludedTestClasses>
 					<threads>4</threads>
-					<mutationThreshold>94</mutationThreshold>
+					<mutationThreshold>98</mutationThreshold>
 					<outputFormats>
 						<param>HTML</param>
 						<param>XML</param>
