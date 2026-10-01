@@ -38,6 +38,12 @@ class SeguridadConsolaTest {
     }
 
     @Test
+    void elDetalleDeUnObligadoTambienExigeSesion() throws Exception {
+        mvc.perform(get("/consola/obligados/{nif}", "89890001K")).andExpect(redirectedUrl("/consola/entrar"));
+        mvc.perform(get("/consola/obligados/{nif}/cadena", "89890001K")).andExpect(redirectedUrl("/consola/entrar"));
+    }
+
+    @Test
     void laPaginaDeEntradaYSusEstilosSonPublicos() throws Exception {
         mvc.perform(get("/consola/entrar")).andExpect(status().isOk());
         mvc.perform(get("/consola/consola.css")).andExpect(status().isOk());

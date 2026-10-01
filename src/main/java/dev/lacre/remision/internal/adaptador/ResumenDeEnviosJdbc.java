@@ -1,9 +1,14 @@
 package dev.lacre.remision.internal.adaptador;
 
+import dev.lacre.remision.EnvioRegistro;
 import dev.lacre.remision.EnviosDeObligado;
+import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.ResumenDeEnvios;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -46,5 +51,51 @@ class ResumenDeEnviosJdbc implements ResumenDeEnvios {
                             rs.getObject("mas_antiguo", OffsetDateTime.class)));
         });
         return resumen;
+    }
+
+    @Override
+    public List<EnvioRegistro> pendientesDe(UUID obligadoId, int maximo) {
+        return jdbc.sql(SELECT_ENVIO + """
+                        where obligado_id = :obligado and estado = 'PENDIENTE'
+                        order by creado_en, id
+                        limit :maximo
+                        """)
+                .param("obligado", obligadoId)
+                .param("maximo", maximo)
+                .query(ResumenDeEnviosJdbc::envio)
+                .list();
+    }
+
+    @Override
+    public List<EnvioRegistro> conErroresDe(UUID obligadoId, int maximo) {
+        return jdbc.sql(SELECT_ENVIO + """
+                        where obligado_id = :obligado and estado in ('RECHAZADO', 'ACEPTADO_CON_ERRORES')
+                        order by enviado_en desc, id
+                        limit :maximo
+                        """)
+                .param("obligado", obligadoId)
+                .param("maximo", maximo)
+                .query(ResumenDeEnviosJdbc::envio)
+                .list();
+    }
+
+    private static final String SELECT_ENVIO = """
+            select id, registro_id, obligado_id, estado, creado_en, enviado_en, codigo_error,
+                   descripcion_error, intentos, version
+            from envio_registro
+            """;
+
+    private static EnvioRegistro envio(ResultSet rs, int fila) throws SQLException {
+        return new EnvioRegistro(
+                rs.getObject("id", UUID.class),
+                rs.getObject("registro_id", UUID.class),
+                rs.getObject("obligado_id", UUID.class),
+                EstadoEnvio.valueOf(rs.getString("estado")),
+                rs.getObject("creado_en", OffsetDateTime.class),
+                rs.getObject("enviado_en", OffsetDateTime.class),
+                rs.getObject("codigo_error", Integer.class),
+                rs.getString("descripcion_error"),
+                rs.getInt("intentos"),
+                rs.getLong("version"));
     }
 }

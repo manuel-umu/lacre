@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="|lacre · ${obligado.nif().valor()}|">lacre · consola</title>
+    <link rel="stylesheet" th:href="@{/consola/consola.css}">
+    <script th:src="@{/consola/htmx.min.js}" defer></script>
+</head>
+<body>
+<header>
+    <h1><a th:href="@{/consola}">lacre</a></h1>
+    <form th:action="@{/consola/salir}" method="post">
+        <button type="submit">Salir</button>
+    </form>
+</header>
+<main>
+    <p class="nota"><a th:href="@{/consola}">Obligados</a> /</p>
+    <h2 th:text="|${obligado.nif().valor()} · ${obligado.nombreRazon()}|">NIF · Nombre</h2>
+    <dl class="resumen">
+        <div><dt>Zona horaria</dt><dd th:text="${obligado.zonaHoraria()}">Europe/Madrid</dd></div>
+        <div><dt>Último registro</dt><dd th:text="${fila.ultimaPosicion()} ?: '—'">0</dd></div>
+        <div><dt>Pendientes</dt><dd th:text="${fila.envios().pendientes()}">0</dd></div>
+        <div><dt>Aceptados</dt><dd th:text="${fila.envios().aceptados()}">0</dd></div>
+        <div><dt>Con errores</dt><dd th:text="${fila.envios().aceptadosConErrores()}">0</dd></div>
+        <div><dt>Rechazados</dt><dd th:text="${fila.envios().rechazados()}">0</dd></div>
+        <div><dt>Duplicados</dt><dd th:text="${fila.envios().duplicados()}">0</dd></div>
+    </dl>
+
+    <h3>Cadena</h3>
+    <div id="verificacion">
+        <button type="button" th:attr="hx-get=@{/consola/obligados/{nif}/cadena(nif=${obligado.nif().valor()})}"
+                hx-target="#verificacion" hx-swap="innerHTML">Verificar la cadena
+        </button>
+        <span class="nota">Recalcula la huella de cada registro.</span>
+    </div>
+    <div th:fragment="verificacion" th:if="${verificacion != null}" th:remove="tag">
+        <p th:if="${verificacion.intacta()}" class="correcto"
+           th:text="|Íntegra: ${verificacion.registros()} registros${verificacion.alcance().name() == 'HUELLAS' ? ', con las huellas recalculadas' : ', comprobados solo los enlaces'}.|">
+            Íntegra.</p>
+        <th:block th:unless="${verificacion.intacta()}">
+            <p class="aviso"
+               th:text="|Rota: ${#lists.size(verificacion.roturas())} roturas en ${verificacion.registros()} registros.|">
+                Rota.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th class="numero">Posición</th>
+                    <th>Motivo</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="rotura : ${verificacion.roturas()}">
+                    <td class="numero" th:text="${rotura.posicion()}">1</td>
+                    <td th:text="${#strings.replace(#strings.toLowerCase(rotura.motivo()), '_', ' ')}">motivo</td>
+                </tr>
+                </tbody>
+            </table>
+        </th:block>
+    </div>
+
+    <h3>Pendientes</h3>
+    <p th:if="${#lists.isEmpty(pendientes)}" class="nota">No hay envíos pendientes.</p>
+    <table th:unless="${#lists.isEmpty(pendientes)}">
+        <thead>
+        <tr>
+            <th class="numero">Posición</th>
+            <th>Factura</th>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Pendiente desde</th>
+            <th class="numero">Intentos</th>
+            <th class="numero">Código</th>
+            <th>Último fallo</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="p : ${pendientes}">
+            <td class="numero" th:text="${p.registro()?.posicion()} ?: '—'">1</td>
+            <td th:text="${p.factura()}">FA/1</td>
+            <td th:text="${p.fechaFactura()}">01/01/2026</td>
+            <td th:text="${p.tipo()}">Alta</td>
+            <td th:text="${p.creado()}">01/01/2026 10:00</td>
+            <td class="numero" th:text="${p.envio().intentos()}">0</td>
+            <td class="numero" th:text="${p.envio().codigoError()} ?: '—'">—</td>
+            <td class="descripcion" th:text="${p.envio().descripcionError()} ?: '—'">—</td>
+        </tr>
+        </tbody>
+    </table>
+    <p th:if="${pendientesSinListar > 0}" class="nota" th:text="|Y ${pendientesSinListar} más.|">Y 3 más.</p>
+
+    <h3>Con errores de la AEAT</h3>
+    <p th:if="${#lists.isEmpty(conErrores)}" class="nota">La AEAT no ha devuelto errores.</p>
+    <table th:unless="${#lists.isEmpty(conErrores)}">
+        <thead>
+        <tr>
+            <th class="numero">Posición</th>
+            <th>Factura</th>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Respondido</th>
+            <th class="numero">Código</th>
+            <th>Descripción</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="e : ${conErrores}">
+            <td class="numero" th:text="${e.registro()?.posicion()} ?: '—'">1</td>
+            <td th:text="${e.factura()}">FA/1</td>
+            <td th:text="${e.fechaFactura()}">01/01/2026</td>
+            <td th:text="${e.tipo()}">Alta</td>
+            <td th:text="${e.envio().estado().name() == 'RECHAZADO'} ? 'Rechazado' : 'Aceptado con errores'">Rechazado</td>
+            <td th:text="${e.respondido()}">01/01/2026 10:00</td>
+            <td class="numero" th:text="${e.envio().codigoError()} ?: '—'">—</td>
+            <td class="descripcion" th:text="${e.envio().descripcionError()} ?: '—'">—</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

@@ -14,10 +14,13 @@ import dev.lacre.verifactu.internal.xml.RegistroIlegibleException;
 import dev.lacre.verifactu.internal.xml.RegistroLeido;
 import dev.lacre.verifactu.registro.IdFactura;
 import dev.lacre.verifactu.registro.TipoRegistro;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,30 +46,46 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
         this.canonicalizador = canonicalizador;
     }
 
+    private static final String SELECT_REGISTRO = """
+            select id, obligado_id, posicion, tipo, emisor, num_serie_factura,
+                   fecha_expedicion_factura, huella, huella_anterior,
+                   fecha_hora_huso_gen_registro, huso_offset_segundos
+            from registro_facturacion
+            """;
+
     @Override
     public Optional<RegistroGuardado> porId(UUID registroId) {
-        return jdbc.sql("""
-                select id, obligado_id, posicion, tipo, emisor, num_serie_factura,
-                       fecha_expedicion_factura, huella, huella_anterior,
-                       fecha_hora_huso_gen_registro, huso_offset_segundos
-                from registro_facturacion
-                where id = :id
-                """)
+        return jdbc.sql(SELECT_REGISTRO + "where id = :id")
                 .param("id", registroId)
-                .query((rs, fila) -> new RegistroGuardado(
-                        rs.getObject("id", UUID.class),
-                        rs.getObject("obligado_id", UUID.class),
-                        rs.getLong("posicion"),
-                        TipoRegistro.valueOf(rs.getString("tipo")),
-                        new IdFactura(
-                                new Nif(rs.getString("emisor")),
-                                rs.getString("num_serie_factura"),
-                                rs.getObject("fecha_expedicion_factura", LocalDate.class)),
-                        new Huella(rs.getString("huella")),
-                        huellaOpcional(rs.getString("huella_anterior")),
-                        rs.getObject("fecha_hora_huso_gen_registro", OffsetDateTime.class)
-                                .withOffsetSameInstant(ZoneOffset.ofTotalSeconds(rs.getInt("huso_offset_segundos")))))
+                .query(RegistrosGuardadosJdbc::registroGuardado)
                 .optional();
+    }
+
+    @Override
+    public List<RegistroGuardado> porIds(Collection<UUID> registroIds) {
+        if (registroIds.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql(SELECT_REGISTRO + "where id in (:ids)")
+                .param("ids", registroIds)
+                .query(RegistrosGuardadosJdbc::registroGuardado)
+                .list();
+    }
+
+    private static RegistroGuardado registroGuardado(ResultSet rs, int fila) throws SQLException {
+        return new RegistroGuardado(
+                rs.getObject("id", UUID.class),
+                rs.getObject("obligado_id", UUID.class),
+                rs.getLong("posicion"),
+                TipoRegistro.valueOf(rs.getString("tipo")),
+                new IdFactura(
+                        new Nif(rs.getString("emisor")),
+                        rs.getString("num_serie_factura"),
+                        rs.getObject("fecha_expedicion_factura", LocalDate.class)),
+                new Huella(rs.getString("huella")),
+                huellaOpcional(rs.getString("huella_anterior")),
+                rs.getObject("fecha_hora_huso_gen_registro", OffsetDateTime.class)
+                        .withOffsetSameInstant(ZoneOffset.ofTotalSeconds(rs.getInt("huso_offset_segundos"))));
     }
 
     @Override

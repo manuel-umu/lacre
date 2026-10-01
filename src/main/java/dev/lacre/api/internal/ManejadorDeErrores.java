@@ -20,9 +20,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 /**
  * Traduce las excepciones a {@code ProblemDetail} (RFC 9457) con un {@code codigo} estable para
- * el integrador.
+ * el integrador. Solo atiende a los controladores de la API.
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "dev.lacre.api")
 class ManejadorDeErrores extends ResponseEntityExceptionHandler {
 
     /**

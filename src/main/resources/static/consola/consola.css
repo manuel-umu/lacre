@@ -6,6 +6,7 @@
     --borde: #e2ded6;
     --lacre: #a3242b;
     --atasco: #fbeaea;
+    --correcto: #2f6b3a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,6 +18,7 @@
         --borde: #34322e;
         --lacre: #e0676d;
         --atasco: #3a1f20;
+        --correcto: #7fc48c;
     }
 }
 
@@ -128,4 +130,43 @@ button {
     border-radius: 6px;
     background: var(--superficie);
     color: var(--texto);
+}
+
+a {
+    color: inherit;
+}
+
+h1 a {
+    text-decoration: none;
+}
+
+h3 {
+    margin-top: 28px;
+    font-size: 15px;
+}
+
+.resumen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin: 0;
+}
+
+.resumen dt {
+    color: var(--tenue);
+    font-size: 13px;
+}
+
+.resumen dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+td.descripcion {
+    white-space: normal;
+    min-width: 280px;
+}
+
+.correcto {
+    color: var(--correcto);
 }
