@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>lacre · consola</title>
+    <link rel="stylesheet" th:href="@{/consola/consola.css}">
+    <script th:src="@{/consola/htmx.min.js}" defer></script>
+</head>
+<body>
+<header>
+    <h1>lacre</h1>
+    <form th:action="@{/consola/salir}" method="post">
+        <button type="submit">Salir</button>
+    </form>
+</header>
+<main>
+    <h2>Obligados</h2>
+    <div th:fragment="tabla" id="tabla" th:attr="hx-get=@{/consola/obligados}" hx-trigger="every 30s"
+         hx-swap="outerHTML">
+        <p th:if="${#lists.isEmpty(filas)}" class="nota">Todavía no hay obligados dados de alta.</p>
+        <table th:unless="${#lists.isEmpty(filas)}">
+            <thead>
+            <tr>
+                <th>NIF</th>
+                <th>Nombre</th>
+                <th class="numero">Último registro</th>
+                <th class="numero">Pendientes</th>
+                <th>Pendiente más antiguo</th>
+                <th class="numero">Aceptados</th>
+                <th class="numero">Con errores</th>
+                <th class="numero">Rechazados</th>
+                <th class="numero">Duplicados</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="fila : ${filas}" th:classappend="${fila.atascado()} ? 'atascado'">
+                <td th:text="${fila.nif()}">12345678Z</td>
+                <td th:text="${fila.nombre()}">Obligado</td>
+                <td class="numero" th:text="${fila.ultimaPosicion()} ?: '—'">0</td>
+                <td class="numero" th:text="${fila.envios().pendientes()}">0</td>
+                <td th:text="${fila.espera()} ?: '—'">—</td>
+                <td class="numero" th:text="${fila.envios().aceptados()}">0</td>
+                <td class="numero" th:text="${fila.envios().aceptadosConErrores()}">0</td>
+                <td class="numero" th:text="${fila.envios().rechazados()}">0</td>
+                <td class="numero" th:text="${fila.envios().duplicados()}">0</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

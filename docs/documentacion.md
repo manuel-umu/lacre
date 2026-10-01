@@ -13,6 +13,7 @@ El proyecto es un monolito modular hecho con Spring Modulith. Cada módulo es un
 | `identidad` | Obligados tributarios, con su zona horaria, y sus certificados |
 | `remision` | Outbox, máquina de estados del envío, cliente SOAP y despachador |
 | `api` | La API REST: emisión, consulta, alta de obligados, autenticación y errores |
+| `consola` | Consola web de operación: estado de las cadenas y de los envíos de cada obligado |
 
 ```mermaid
 flowchart LR
@@ -25,6 +26,9 @@ flowchart LR
     REM -->|"RegistrosRechazados"| VF
     REM --> ID
     VFA["verifactu.internal.adaptador"] --> ID
+    CON["consola"] -->|"consulta"| VF
+    CON --> ID
+    CON --> REM
 ```
 
 ## Hexagonal por módulo
@@ -107,6 +111,12 @@ La autenticación es una clave por despliegue en `Authorization: Bearer`, compro
 Los errores se devuelven como `ProblemDetail` con un campo `codigo`. Si un alta incumple alguna regla por la que la AEAT la rechazaría, el 400 incluye también el `codigoAeat` y el registro no
 se guarda.
 
+## Consola
+
+La consola de operación está en `/consola`, hecha con Thymeleaf y htmx. Muestra una fila por obligado con la posición de su último registro y sus envíos por estado, y resalta los que tienen pendientes de más de una hora. La tabla se refresca sola cada 30 segundos.
+
+Tiene su propio inicio de sesión con Spring Security, separado de la clave de la API: una `SecurityFilterChain` que solo cubre `/consola/**`, con sesión y protección CSRF. La credencial se configura con `LACRE_CONSOLA_USUARIO` y `LACRE_CONSOLA_CLAVE`; si no hay clave, la consola responde 404 y el resto de la aplicación funciona igual.
+
 ## Tests
 
 Se han utilizado varios tipos de test, dependiendo de **qué** es lo que se esta probando:
@@ -131,11 +141,14 @@ src/main/java/dev/lacre/
     verifactu/                 huella, encadenamiento y XML
     remision/                  outbox y envío a la AEAT
     api/                       API REST: emisión, consulta y autenticación
+    consola/                   consola web de operación
     ConfiguracionJdbc.java     conversores de Spring Data JDBC
 
 src/main/resources/
     aeat/                      catálogo oficial de errores de la AEAT
     static/openapi.yaml        el contrato de la API, con la guía de integración
+    static/consola/            estilos de la consola y htmx
+    templates/consola/         plantillas Thymeleaf de la consola
     db/migration/              migraciones de Flyway
     xsd/aeat/                  esquemas oficiales de la AEAT
     xsd/w3c/                   esquema de firma XML y sus DTD, copiados en local

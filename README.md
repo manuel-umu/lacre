@@ -48,7 +48,7 @@ disponible, y por eso el envío es asíncrono y reintentable.
 
 ## Arquitectura
 
-Monolito modular con Spring Modulith, hexagonal por módulo. Cuatro módulos más un paquete de
+Monolito modular con Spring Modulith, hexagonal por módulo. Cinco módulos más un paquete de
 tipos compartidos.
 
 ```mermaid
@@ -57,10 +57,15 @@ flowchart TB
 
     subgraph APP["lacre"]
         API["API REST"]
-        ID["identidad<br/>obligados, certificados"]
+        ID["IDENTIDAD<br/>obligados, certificados"]
         SIF["VERIFACTU<br/>registros, huella, encadenamiento, XML"]
         REM["REMISION<br/>outbox, envío, máquina de estados"]
+        CON["CONSOLA<br/>operación"]
     end
+
+    OP["Administrador"] --> CON
+    CON --> SIF
+    CON --> REM
 
     SH["SHARED<br/>Nif · Importe · Porcentaje · Huella"]
 
@@ -80,7 +85,7 @@ del repositorio se detallan en la [documentación técnica](docs/documentacion.m
 
 ## Stack
 
-Java 25, Spring Boot 4.1, Spring Modulith 2.1, Spring Data JDBC, PostgreSQL 17 con Flyway. Thymeleaf y htmx para la consola de operación, todavía pendiente.
+Java 25, Spring Boot 4.1, Spring Modulith 2.1, Spring Data JDBC, PostgreSQL 17 con Flyway. Thymeleaf, htmx y Spring Security para la consola de operación.
 
 Tests con JUnit 5, AssertJ, Testcontainers con PostgreSQL real, jqwik, XMLUnit, WireMock y ArchUnit.
 
@@ -104,6 +109,8 @@ Y en `.env` se sustituyen las tres claves de ejemplo por claves propias, que pue
 | `LACRE_DB_CLAVE_APLICACION` | Clave del rol con el que se conecta la aplicación |
 | `LACRE_API_CLAVE` | Clave que deben enviar las llamadas a la API; mínimo 32 caracteres |
 | `LACRE_QR_URL_BASE` | Destino de los códigos QR; el valor de ejemplo es el entorno de pruebas de la AEAT |
+| `LACRE_CONSOLA_USUARIO` | Opcional. Usuario de la consola de operación; por omisión, `lacre` |
+| `LACRE_CONSOLA_CLAVE` | Opcional. Clave de la consola; mínimo 16 caracteres. |
 
 **2. Arrancar.**
 
@@ -112,7 +119,7 @@ docker compose up -d db lacre
 ```
 
 La primera vez se construye la imagen y tarda unos minutos. La API queda en
-<http://localhost:8080>.
+<http://localhost:8080>, y la consola, si tiene clave, en <http://localhost:8080/consola>.
 
 **3. Dar de alta un obligado tributario**, que es quien expide las facturas. Todas las llamadas
 llevan la clave de la API en la cabecera `Authorization`:

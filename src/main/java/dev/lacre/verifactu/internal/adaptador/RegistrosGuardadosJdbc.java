@@ -18,7 +18,9 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -65,6 +67,16 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
                         rs.getObject("fecha_hora_huso_gen_registro", OffsetDateTime.class)
                                 .withOffsetSameInstant(ZoneOffset.ofTotalSeconds(rs.getInt("huso_offset_segundos")))))
                 .optional();
+    }
+
+    @Override
+    public Map<UUID, Long> ultimaPosicionDeCadaObligado() {
+        Map<UUID, Long> posiciones = new HashMap<>();
+        jdbc.sql("select obligado_id, max(posicion) as ultima from registro_facturacion group by obligado_id")
+                .query(rs -> {
+                    posiciones.put(rs.getObject("obligado_id", UUID.class), rs.getLong("ultima"));
+                });
+        return posiciones;
     }
 
     /**

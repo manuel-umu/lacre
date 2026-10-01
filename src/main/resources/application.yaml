@@ -2,17 +2,19 @@ spring:
   application:
     name: lacre
 
-  # La consola de operación es de la Fase 9 y todavía no hay plantillas. Sin esto, cada arranque
-  # avisa de que falta classpath:/templates/, que en un despliegue ajeno parece un fallo.
-  thymeleaf:
-    check-template-location: false
-
   # Flyway migra como propietario y la aplicación se conecta como lacre_app, que solo puede leer e
   # insertar en registro_facturacion. Las dos credenciales las pone el despliegue; aquí solo va la
   # clave del rol restringido, que un callback de Flyway le asigna en cada arranque.
   flyway:
     placeholders:
       clave_rol_aplicacion: ${LACRE_DB_CLAVE_APLICACION:}
+
+# La cookie de sesión de la consola no viaja en peticiones iniciadas desde otro sitio.
+server:
+  servlet:
+    session:
+      cookie:
+        same-site: strict
 
 # El identificador de correlación de cada petición, que pone FiltroDeCorrelacion.
 logging:
@@ -31,6 +33,14 @@ lacre:
   #     openssl rand -base64 32
   api:
     clave: ${LACRE_API_CLAVE:}
+
+  # Credencial de la consola de operación, en /consola. Sin clave la consola queda cerrada y
+  # responde 404; lacre arranca igual. La clave, de al menos 16 caracteres, NUNCA se escribe aquí.
+  #
+  #     openssl rand -base64 24
+  consola:
+    usuario: ${LACRE_CONSOLA_USUARIO:lacre}
+    clave: ${LACRE_CONSOLA_CLAVE:}
 
   # Identidad del sistema informático de facturación. Viaja en cada registro y debe coincidir
   # con la declaración responsable que firme quien comercializa el sistema.

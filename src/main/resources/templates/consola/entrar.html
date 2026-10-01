@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>lacre · consola</title>
+    <link rel="stylesheet" th:href="@{/consola/consola.css}">
+</head>
+<body class="entrada">
+<main>
+    <h1>lacre</h1>
+    <p class="subtitulo">Consola de operación</p>
+    <p th:if="${param.error}" class="aviso">Usuario o clave incorrectos.</p>
+    <p th:if="${param.salida}" class="nota">Sesión cerrada.</p>
+    <form th:action="@{/consola/entrar}" method="post">
+        <label>Usuario <input name="username" autocomplete="username" required autofocus></label>
+        <label>Clave <input type="password" name="password" autocomplete="current-password" required></label>
+        <button type="submit">Entrar</button>
+    </form>
+</main>
+</body>
+</html>

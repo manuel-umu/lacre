@@ -1,5 +1,6 @@
 package dev.lacre.verifactu.consulta;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -12,4 +13,7 @@ public interface RegistrosGuardados {
 
     /** Recorre la cadena entera del obligado. Una cadena vacía está íntegra. */
     VerificacionDeCadena verificarCadenaDe(UUID obligadoId);
+
+    /** Posición del último registro de cada obligado con cadena; los que no tienen no aparecen. */
+    Map<UUID, Long> ultimaPosicionDeCadaObligado();
 }

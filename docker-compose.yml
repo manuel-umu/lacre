@@ -1,6 +1,5 @@
 # Despliegue de ejemplo. Las variables obligatorias van sin valor por defecto y con `:?`: si
-# faltan, compose se para antes de arrancar nada. Un despliegue a medias tiene que fallar aquí y
-# no en la primera factura.
+# faltan.
 #
 #     cp .env.example .env      y cambia las cuatro claves
 #     docker compose up -d db lacre
@@ -29,9 +28,6 @@ services:
       db:
         condition: service_healthy
     environment:
-      # Dos conexiones: Flyway migra como propietario y la aplicación entra como lacre_app, que
-      # solo puede leer e insertar en registro_facturacion. Con una sola, el rol restringido
-      # existiría y no lo usaría nadie.
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/lacre
       SPRING_DATASOURCE_USERNAME: lacre_app
       SPRING_DATASOURCE_PASSWORD: ${LACRE_DB_CLAVE_APLICACION:?falta LACRE_DB_CLAVE_APLICACION}
@@ -40,6 +36,9 @@ services:
       LACRE_DB_CLAVE_APLICACION: ${LACRE_DB_CLAVE_APLICACION:?falta LACRE_DB_CLAVE_APLICACION}
       LACRE_API_CLAVE: ${LACRE_API_CLAVE:?falta LACRE_API_CLAVE}
       LACRE_QR_URL_BASE: ${LACRE_QR_URL_BASE:?falta LACRE_QR_URL_BASE}
+      # Consola de operación en /consola; sin clave queda desactivada.
+      LACRE_CONSOLA_USUARIO: ${LACRE_CONSOLA_USUARIO:-lacre}
+      LACRE_CONSOLA_CLAVE: ${LACRE_CONSOLA_CLAVE:-}
       # Certificados de los obligados: un PKCS#12 por NIF, en un volumen de solo lectura. Sin
       # ellos lacre registra facturas pero no puede remitirlas.
       # LACRE_CERTIFICADOS_DIR: /certificados
@@ -53,14 +52,6 @@ services:
       timeout: 3s
       retries: 6
       start_period: 30s
-
-  # Swagger UI sobre el contrato del árbol de trabajo, para leerlo y probar llamadas mientras se
-  # desarrolla. No forma parte de lo que se despliega: lacre sirve el openapi.yaml en crudo y
-  # quien integra usa el visor que quiera.
-  #
-  #     docker compose up -d docs      →  http://localhost:8081
-  #
-  # El fichero se monta, no se copia: al editarlo basta con recargar el navegador.
   docs:
     image: swaggerapi/swagger-ui:v5.32.15
     container_name: lacre-docs
