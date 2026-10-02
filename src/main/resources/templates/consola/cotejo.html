@@ -21,10 +21,32 @@
     </p>
     <h2 th:text="|Cotejo con la AEAT · ${periodo} |">Cotejo con la AEAT</h2>
 
-    <form class="acciones" method="get"
-          th:action="@{/consola/obligados/{nif}/cotejo(nif=${obligado.nif().valor()})}">
-        <label>Periodo <input type="month" name="periodo" th:value="${periodo}" th:max="${mesEnCurso}" required></label>
-        <button type="submit">Cotejar</button>
+    <form th:fragment="selectorPeriodo" class="acciones" method="get"
+          th:action="@{/consola/obligados/{nif}/cotejo(nif=${obligado.nif().valor()})}"
+          th:with="elegido=${periodo} ?: ${mesEnCurso}">
+        <label class="campo">Mes
+            <select name="mes">
+                <option value="1" th:selected="${elegido.monthValue == 1}">Enero</option>
+                <option value="2" th:selected="${elegido.monthValue == 2}">Febrero</option>
+                <option value="3" th:selected="${elegido.monthValue == 3}">Marzo</option>
+                <option value="4" th:selected="${elegido.monthValue == 4}">Abril</option>
+                <option value="5" th:selected="${elegido.monthValue == 5}">Mayo</option>
+                <option value="6" th:selected="${elegido.monthValue == 6}">Junio</option>
+                <option value="7" th:selected="${elegido.monthValue == 7}">Julio</option>
+                <option value="8" th:selected="${elegido.monthValue == 8}">Agosto</option>
+                <option value="9" th:selected="${elegido.monthValue == 9}">Septiembre</option>
+                <option value="10" th:selected="${elegido.monthValue == 10}">Octubre</option>
+                <option value="11" th:selected="${elegido.monthValue == 11}">Noviembre</option>
+                <option value="12" th:selected="${elegido.monthValue == 12}">Diciembre</option>
+            </select>
+        </label>
+        <label class="campo">Año
+            <select name="anio">
+                <option th:each="anio : ${#numbers.sequence(mesEnCurso.year, 2024, -1)}" th:value="${anio}"
+                        th:text="${anio}" th:selected="${anio == elegido.year}">2026</option>
+            </select>
+        </label>
+        <button type="submit">Cotejar con la AEAT</button>
     </form>
 
     <p th:if="${error}" class="aviso" th:text="${error}">Error.</p>

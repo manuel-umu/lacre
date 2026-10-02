@@ -1,4 +1,5 @@
 :root {
+    color-scheme: light dark;
     --fondo: #f7f6f3;
     --superficie: #ffffff;
     --texto: #1f1d1a;
@@ -180,4 +181,27 @@ td.descripcion {
 
 td form {
     margin: 0;
+}
+
+.campo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tenue);
+}
+
+select {
+    font: inherit;
+    padding: 6px 28px 6px 10px;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+    background: var(--superficie);
+    color: var(--texto);
+    cursor: pointer;
+}
+
+select:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--lacre);
+    outline-offset: 1px;
 }

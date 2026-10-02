@@ -21,9 +21,9 @@ import dev.lacre.verifactu.consulta.RegistroGuardado;
 import dev.lacre.verifactu.consulta.RegistrosGuardados;
 import java.security.Principal;
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
-import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -129,11 +129,16 @@ class ConsolaController {
         return "consola/detalle :: verificacion";
     }
 
-    /** Consulta a la AEAT lo presentado en el periodo y lo cruza con lo local; sin periodo, el mes en curso. */
+    /**
+     * Consulta a la AEAT lo presentado en un mes y lo cruza con lo local. El mes llega como año y
+     * número del selector o como {@code periodo=AAAA-MM}; sin ninguno, el mes en curso.
+     */
     @GetMapping("/obligados/{nif}/cotejo")
     String cotejo(
             @PathVariable String nif,
             @RequestParam(required = false) String periodo,
+            @RequestParam(required = false) Integer anio,
+            @RequestParam(name = "mes", required = false) Integer numeroDeMes,
             Principal operador,
             Model modelo) {
         ObligadoTributario obligado = obligadoDe(nif);
@@ -142,8 +147,14 @@ class ConsolaController {
         modelo.addAttribute("mesEnCurso", enCurso);
         YearMonth mes;
         try {
-            mes = periodo == null || periodo.isBlank() ? enCurso : YearMonth.parse(periodo);
-        } catch (DateTimeParseException e) {
+            if (anio != null && numeroDeMes != null) {
+                mes = YearMonth.of(anio, numeroDeMes);
+            } else if (periodo != null && !periodo.isBlank()) {
+                mes = YearMonth.parse(periodo);
+            } else {
+                mes = enCurso;
+            }
+        } catch (DateTimeException e) {
             modelo.addAttribute("error", "El periodo tiene que tener la forma AAAA-MM.");
             return "consola/cotejo";
         }

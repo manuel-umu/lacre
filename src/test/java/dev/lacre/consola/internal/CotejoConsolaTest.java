@@ -124,6 +124,27 @@ class CotejoConsolaTest {
     }
 
     @Test
+    void elSelectorMandaAnioYMes() throws Exception {
+        mvc.perform(get("/consola/obligados/{nif}/cotejo", nif)
+                        .param("anio", String.valueOf(PERIODO.getYear()))
+                        .param("mes", String.valueOf(PERIODO.getMonthValue()))
+                        .with(user("operador")))
+                .andExpect(status().isOk());
+        assertThat(aeat.periodosPedidos).containsExactly(PERIODO);
+    }
+
+    @Test
+    void unMesQueNoExisteNoLlegaALaAeat() throws Exception {
+        mvc.perform(get("/consola/obligados/{nif}/cotejo", nif)
+                        .param("anio", "2026")
+                        .param("mes", "13")
+                        .with(user("operador")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("AAAA-MM")));
+        assertThat(aeat.periodosPedidos).isEmpty();
+    }
+
+    @Test
     void unMesFuturoNoLlegaALaAeat() throws Exception {
         String siguiente = YearMonth.now().plusMonths(2).toString();
 
