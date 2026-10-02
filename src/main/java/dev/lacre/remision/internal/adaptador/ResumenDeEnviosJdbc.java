@@ -34,6 +34,7 @@ class ResumenDeEnviosJdbc implements ResumenDeEnvios {
                                count(*) filter (where estado = 'ACEPTADO_CON_ERRORES') as con_errores,
                                count(*) filter (where estado = 'RECHAZADO')            as rechazados,
                                count(*) filter (where estado = 'DUPLICADO')            as duplicados,
+                               count(*) filter (where estado = 'APARTADO')             as apartados,
                                min(creado_en) filter (where estado = 'PENDIENTE')      as mas_antiguo
                         from envio_registro
                         group by obligado_id
@@ -48,6 +49,7 @@ class ResumenDeEnviosJdbc implements ResumenDeEnvios {
                             rs.getLong("con_errores"),
                             rs.getLong("rechazados"),
                             rs.getLong("duplicados"),
+                            rs.getLong("apartados"),
                             rs.getObject("mas_antiguo", OffsetDateTime.class)));
         });
         return resumen;
@@ -55,12 +57,22 @@ class ResumenDeEnviosJdbc implements ResumenDeEnvios {
 
     @Override
     public List<EnvioRegistro> pendientesDe(UUID obligadoId, int maximo) {
+        return enEstado(obligadoId, EstadoEnvio.PENDIENTE, maximo);
+    }
+
+    @Override
+    public List<EnvioRegistro> apartadosDe(UUID obligadoId, int maximo) {
+        return enEstado(obligadoId, EstadoEnvio.APARTADO, maximo);
+    }
+
+    private List<EnvioRegistro> enEstado(UUID obligadoId, EstadoEnvio estado, int maximo) {
         return jdbc.sql(SELECT_ENVIO + """
-                        where obligado_id = :obligado and estado = 'PENDIENTE'
+                        where obligado_id = :obligado and estado = :estado
                         order by creado_en, id
                         limit :maximo
                         """)
                 .param("obligado", obligadoId)
+                .param("estado", estado.name())
                 .param("maximo", maximo)
                 .query(ResumenDeEnviosJdbc::envio)
                 .list();

@@ -143,8 +143,57 @@ class EnvioRegistroTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = EstadoEnvio.class, names = "PENDIENTE", mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(
+            value = EstadoEnvio.class,
+            names = {"PENDIENTE", "APARTADO"},
+            mode = EnumSource.Mode.EXCLUDE)
     void todoDesenlaceEsTerminal(EstadoEnvio estado) {
         assertThat(estado.esTerminal()).isTrue();
+    }
+
+    @Test
+    void pendienteYApartadoNoSonTerminales() {
+        assertThat(EstadoEnvio.PENDIENTE.esTerminal()).isFalse();
+        assertThat(EstadoEnvio.APARTADO.esTerminal()).isFalse();
+    }
+
+    // --- Apartar y reanudar ---
+
+    @Test
+    void unPendienteSeApartaYSeReanudaConservandoSuHistorial() {
+        EnvioRegistro conFallo = pendiente().otroIntentoFallido(4102, "Timeout");
+
+        EnvioRegistro apartado = conFallo.apartado();
+        EnvioRegistro reanudado = apartado.reanudado();
+
+        assertThat(apartado.estado()).isEqualTo(EstadoEnvio.APARTADO);
+        assertThat(apartado.enviadoEn()).isNull();
+        assertThat(reanudado.estado()).isEqualTo(EstadoEnvio.PENDIENTE);
+        assertThat(reanudado.intentos()).isEqualTo(1);
+        assertThat(reanudado.codigoError()).isEqualTo(4102);
+        assertThat(reanudado.descripcionError()).isEqualTo("Timeout");
+    }
+
+    @Test
+    void soloSeApartaUnPendienteYSoloSeReanudaUnApartado() {
+        EnvioRegistro apartado = pendiente().apartado();
+
+        assertThatThrownBy(apartado::apartado).isInstanceOf(EnvioYaResueltoException.class);
+        assertThatThrownBy(() -> pendiente().reanudado()).isInstanceOf(EnvioYaResueltoException.class);
+        desenlaces().forEach(desenlace -> {
+            EnvioRegistro resuelto = desenlace.apply(pendiente());
+            assertThatThrownBy(resuelto::apartado).isInstanceOf(EnvioYaResueltoException.class);
+            assertThatThrownBy(resuelto::reanudado).isInstanceOf(EnvioYaResueltoException.class);
+        });
+    }
+
+    @Test
+    void unApartadoNoRecibeDesenlacesNiIntentos() {
+        EnvioRegistro apartado = pendiente().apartado();
+
+        desenlaces()
+                .forEach(desenlace -> assertThatThrownBy(() -> desenlace.apply(apartado))
+                        .isInstanceOf(EnvioYaResueltoException.class));
+        assertThatThrownBy(() -> apartado.otroIntentoFallido(null, "x")).isInstanceOf(EnvioYaResueltoException.class);
     }
 }

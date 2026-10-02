@@ -10,7 +10,8 @@ import org.springframework.data.relational.core.mapping.Table;
 
 /**
  * Fila del outbox: un registro de facturación pendiente de remitir o ya remitido. El estado no
- * se asigna, se transita: los desenlaces solo salen de {@link EstadoEnvio#PENDIENTE}.
+ * se asigna, se transita: los desenlaces solo salen de {@link EstadoEnvio#PENDIENTE}, que el operador
+ * puede apartar y reanudar.
  *
  * @param enviadoEn   momento en que respondió la AEAT; nulo mientras está pendiente
  * @param codigoError último error conocido, del catálogo de la AEAT; lo hay también cuando se
@@ -82,7 +83,7 @@ public record EnvioRegistro(
      *                    que no tienen límite
      */
     public EnvioRegistro otroIntentoFallido(Integer codigo, String descripcion) {
-        if (estado.esTerminal()) {
+        if (estado != EstadoEnvio.PENDIENTE) {
             throw new EnvioYaResueltoException(id, estado, estado);
         }
         return new EnvioRegistro(
@@ -104,8 +105,26 @@ public record EnvioRegistro(
                 : texto.substring(0, MAXIMO_LONGITUD_DESCRIPCION_ERROR);
     }
 
+    /** Retirado del despacho por el operador; solo desde {@link EstadoEnvio#PENDIENTE}. */
+    public EnvioRegistro apartado() {
+        return cambiadoA(EstadoEnvio.PENDIENTE, EstadoEnvio.APARTADO);
+    }
+
+    /** Devuelto al despacho; solo desde {@link EstadoEnvio#APARTADO}. */
+    public EnvioRegistro reanudado() {
+        return cambiadoA(EstadoEnvio.APARTADO, EstadoEnvio.PENDIENTE);
+    }
+
+    private EnvioRegistro cambiadoA(EstadoEnvio desde, EstadoEnvio hacia) {
+        if (estado != desde) {
+            throw new EnvioYaResueltoException(id, estado, hacia);
+        }
+        return new EnvioRegistro(
+                id, registroId, obligadoId, hacia, creadoEn, null, codigoError, descripcionError, intentos, version);
+    }
+
     private EnvioRegistro resuelto(EstadoEnvio desenlace, OffsetDateTime cuando, Integer codigo, String descripcion) {
-        if (estado.esTerminal()) {
+        if (estado != EstadoEnvio.PENDIENTE) {
             throw new EnvioYaResueltoException(id, estado, desenlace);
         }
         if (cuando == null) {

@@ -31,6 +31,7 @@
                 <th class="numero">Con errores</th>
                 <th class="numero">Rechazados</th>
                 <th class="numero">Duplicados</th>
+                <th class="numero">Apartados</th>
             </tr>
             </thead>
             <tbody>
@@ -44,6 +45,7 @@
                 <td class="numero" th:text="${fila.envios().aceptadosConErrores()}">0</td>
                 <td class="numero" th:text="${fila.envios().rechazados()}">0</td>
                 <td class="numero" th:text="${fila.envios().duplicados()}">0</td>
+                <td class="numero" th:text="${fila.envios().apartados()}">0</td>
             </tr>
             </tbody>
         </table>

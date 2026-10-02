@@ -14,4 +14,5 @@ public record EnviosDeObligado(
         long aceptadosConErrores,
         long rechazados,
         long duplicados,
+        long apartados,
         OffsetDateTime pendienteMasAntiguo) {}

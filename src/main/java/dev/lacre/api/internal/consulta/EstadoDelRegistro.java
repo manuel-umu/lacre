@@ -29,8 +29,8 @@ public record EstadoDelRegistro(
         Remision remision) {
 
     /**
-     * @param estado             {@code PENDIENTE} mientras no haya salido; los demás son
-     *                           terminales
+     * @param estado             {@code PENDIENTE} mientras no haya salido, o {@code APARTADO} si el
+     *                           operador lo retiró del despacho; los demás son terminales
      * @param codigoError        último error conocido, del catálogo de la AEAT; lo hay también
      *                           cuando se aceptó con errores y cuando un intento falló sin
      *                           resolver el envío

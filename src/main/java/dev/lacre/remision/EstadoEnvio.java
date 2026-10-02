@@ -1,8 +1,9 @@
 package dev.lacre.remision;
 
 /**
- * Situación de un registro respecto de su remisión a la AEAT. Solo {@link #PENDIENTE} no es
- * terminal: un registro rechazado o aceptado con errores se subsana con uno nuevo, no se reenvía.
+ * Situación de un registro respecto de su remisión a la AEAT. Solo {@link #PENDIENTE} y
+ * {@link #APARTADO} no son terminales: un registro rechazado o aceptado con errores se subsana con
+ * uno nuevo, no se reenvía.
  */
 public enum EstadoEnvio {
 
@@ -28,12 +29,15 @@ public enum EstadoEnvio {
      * La AEAT respondió con el código 3000, «registro de facturación duplicado»: ya estaba
      * presentado.
      */
-    DUPLICADO;
+    DUPLICADO,
+
+    /** Pendiente que el operador ha retirado del despacho; vuelve a {@link #PENDIENTE} al reanudarlo. */
+    APARTADO;
 
     /** Código del catálogo de la AEAT que identifica el duplicado. */
     public static final int CODIGO_REGISTRO_DUPLICADO = 3000;
 
     public boolean esTerminal() {
-        return this != PENDIENTE;
+        return this != PENDIENTE && this != APARTADO;
     }
 }

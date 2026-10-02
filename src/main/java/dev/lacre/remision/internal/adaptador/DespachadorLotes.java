@@ -213,6 +213,7 @@ public class DespachadorLotes {
             case RECHAZADO -> envio.rechazado(cuando, linea.codigoError(), linea.descripcionError());
             case DUPLICADO -> envio.duplicado(cuando, linea.descripcionError());
             case PENDIENTE -> envio;
+            case APARTADO -> throw new IllegalStateException("La respuesta de la AEAT no aparta envíos");
         };
     }
 

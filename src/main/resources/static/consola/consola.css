@@ -170,3 +170,14 @@ td.descripcion {
 .correcto {
     color: var(--correcto);
 }
+
+.acciones {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+td form {
+    margin: 0;
+}

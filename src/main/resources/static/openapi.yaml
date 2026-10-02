@@ -282,8 +282,8 @@ paths:
       summary: Estado de un registro y desenlace de su remisión
       description: |
         Junta el eslabón en la cadena con lo que la AEAT contestó. Mientras `remision.estado`
-        sea `PENDIENTE`, el registro existe pero todavía no se ha presentado; los demás estados
-        son terminales y no se reintentan.
+        sea `PENDIENTE` o `APARTADO`, el registro existe pero todavía no se ha presentado; los
+        demás estados son terminales y no se reintentan.
 
         `codigoError` es el último error conocido: lo hay también cuando la AEAT aceptó con
         errores y cuando un intento falló sin resolver el envío. `clasificacionError` dice de
@@ -1014,10 +1014,11 @@ components:
         estado:
           type: string
           description: |
-            `PENDIENTE` mientras no haya salido. Los otros cuatro son terminales y no se
-            reintentan: subsanar es registrar de nuevo, no reenviar. `DUPLICADO` es la respuesta
-            a reenviar algo ya presentado, el código 3000.
-          enum: [PENDIENTE, ACEPTADO, ACEPTADO_CON_ERRORES, RECHAZADO, DUPLICADO]
+            `PENDIENTE` mientras no haya salido. `APARTADO` es un pendiente que el operador ha
+            retirado del despacho desde la consola, y vuelve a `PENDIENTE` cuando lo reanuda. Los
+            otros cuatro son terminales y no se reintentan: subsanar es registrar de nuevo, no
+            reenviar. `DUPLICADO` es la respuesta a reenviar algo ya presentado, el código 3000.
+          enum: [PENDIENTE, APARTADO, ACEPTADO, ACEPTADO_CON_ERRORES, RECHAZADO, DUPLICADO]
         enviadoEn:
           type: string
           format: date-time

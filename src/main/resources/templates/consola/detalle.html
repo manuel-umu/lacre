@@ -17,6 +17,8 @@
 <main>
     <p class="nota"><a th:href="@{/consola}">Obligados</a> /</p>
     <h2 th:text="|${obligado.nif().valor()} · ${obligado.nombreRazon()}|">NIF · Nombre</h2>
+    <p th:if="${mensaje}" class="correcto" th:text="${mensaje}">Hecho.</p>
+    <p th:if="${error}" class="aviso" th:text="${error}">Error.</p>
     <dl class="resumen">
         <div><dt>Zona horaria</dt><dd th:text="${obligado.zonaHoraria()}">Europe/Madrid</dd></div>
         <div><dt>Último registro</dt><dd th:text="${fila.ultimaPosicion()} ?: '—'">0</dd></div>
@@ -25,6 +27,7 @@
         <div><dt>Con errores</dt><dd th:text="${fila.envios().aceptadosConErrores()}">0</dd></div>
         <div><dt>Rechazados</dt><dd th:text="${fila.envios().rechazados()}">0</dd></div>
         <div><dt>Duplicados</dt><dd th:text="${fila.envios().duplicados()}">0</dd></div>
+        <div><dt>Apartados</dt><dd th:text="${fila.envios().apartados()}">0</dd></div>
     </dl>
 
     <h3>Cadena</h3>
@@ -61,6 +64,11 @@
 
     <h3>Pendientes</h3>
     <p th:if="${#lists.isEmpty(pendientes)}" class="nota">No hay envíos pendientes.</p>
+    <form th:unless="${#lists.isEmpty(pendientes)}" class="acciones" method="post"
+          th:action="@{/consola/obligados/{nif}/apartar-pendientes(nif=${obligado.nif().valor()})}">
+        <button type="submit">Apartar todos los pendientes</button>
+        <span class="nota">El despachador deja de remitirlos hasta que se reanuden.</span>
+    </form>
     <table th:unless="${#lists.isEmpty(pendientes)}">
         <thead>
         <tr>
@@ -72,6 +80,7 @@
             <th class="numero">Intentos</th>
             <th class="numero">Código</th>
             <th>Último fallo</th>
+            <th></th>
         </tr>
         </thead>
         <tbody>
@@ -84,10 +93,57 @@
             <td class="numero" th:text="${p.envio().intentos()}">0</td>
             <td class="numero" th:text="${p.envio().codigoError()} ?: '—'">—</td>
             <td class="descripcion" th:text="${p.envio().descripcionError()} ?: '—'">—</td>
+            <td>
+                <form method="post"
+                      th:action="@{/consola/obligados/{nif}/envios/{envio}/apartar(nif=${obligado.nif().valor()},envio=${p.envio().id()})}">
+                    <button type="submit">Apartar</button>
+                </form>
+            </td>
         </tr>
         </tbody>
     </table>
     <p th:if="${pendientesSinListar > 0}" class="nota" th:text="|Y ${pendientesSinListar} más.|">Y 3 más.</p>
+
+    <h3>Apartados</h3>
+    <p th:if="${#lists.isEmpty(apartados)}" class="nota">No hay envíos apartados.</p>
+    <form th:unless="${#lists.isEmpty(apartados)}" class="acciones" method="post"
+          th:action="@{/consola/obligados/{nif}/reanudar-apartados(nif=${obligado.nif().valor()})}">
+        <button type="submit">Reanudar todos</button>
+    </form>
+    <table th:unless="${#lists.isEmpty(apartados)}">
+        <thead>
+        <tr>
+            <th class="numero">Posición</th>
+            <th>Factura</th>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Creado</th>
+            <th class="numero">Intentos</th>
+            <th class="numero">Código</th>
+            <th>Último fallo</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="a : ${apartados}">
+            <td class="numero" th:text="${a.registro()?.posicion()} ?: '—'">1</td>
+            <td th:text="${a.factura()}">FA/1</td>
+            <td th:text="${a.fechaFactura()}">01/01/2026</td>
+            <td th:text="${a.tipo()}">Alta</td>
+            <td th:text="${a.creado()}">01/01/2026 10:00</td>
+            <td class="numero" th:text="${a.envio().intentos()}">0</td>
+            <td class="numero" th:text="${a.envio().codigoError()} ?: '—'">—</td>
+            <td class="descripcion" th:text="${a.envio().descripcionError()} ?: '—'">—</td>
+            <td>
+                <form method="post"
+                      th:action="@{/consola/obligados/{nif}/envios/{envio}/reanudar(nif=${obligado.nif().valor()},envio=${a.envio().id()})}">
+                    <button type="submit">Reanudar</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <p th:if="${apartadosSinListar > 0}" class="nota" th:text="|Y ${apartadosSinListar} más.|">Y 3 más.</p>
 
     <h3>Con errores de la AEAT</h3>
     <p th:if="${#lists.isEmpty(conErrores)}" class="nota">La AEAT no ha devuelto errores.</p>

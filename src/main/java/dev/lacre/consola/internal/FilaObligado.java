@@ -14,7 +14,8 @@ public record FilaObligado(
 
     static FilaObligado de(
             ObligadoTributario obligado, Long ultimaPosicion, EnviosDeObligado envios, OffsetDateTime ahora) {
-        EnviosDeObligado conCeros = envios != null ? envios : new EnviosDeObligado(obligado.id(), 0, 0, 0, 0, 0, null);
+        EnviosDeObligado conCeros =
+                envios != null ? envios : new EnviosDeObligado(obligado.id(), 0, 0, 0, 0, 0, 0, null);
         Duration espera =
                 conCeros.pendienteMasAntiguo() == null ? null : Duration.between(conCeros.pendienteMasAntiguo(), ahora);
         return new FilaObligado(obligado.nif().valor(), obligado.nombreRazon(), ultimaPosicion, conCeros, espera);

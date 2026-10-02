@@ -65,7 +65,7 @@ class ResumenDeEnviosJdbcTest {
 
         EnviosDeObligado envios = resumen.porObligado().get(obligado);
 
-        assertThat(envios).isEqualTo(new EnviosDeObligado(obligado, 2, 2, 1, 1, 1, envios.pendienteMasAntiguo()));
+        assertThat(envios).isEqualTo(new EnviosDeObligado(obligado, 2, 2, 1, 1, 1, 0, envios.pendienteMasAntiguo()));
         assertThat(envios.pendienteMasAntiguo()).isEqualTo(antiguo);
     }
 

@@ -109,6 +109,19 @@ class ConsultaRestTest {
     }
 
     @Test
+    void unEnvioApartadoDesdeLaConsolaSeVeComoTal() throws Exception {
+        UUID registro = emitir("FA/1", "apartado-1");
+        jdbc.sql("update envio_registro set estado = 'APARTADO' where registro_id = :id")
+                .param("id", registro)
+                .update();
+
+        mvc.perform(get("/v1/registros/{id}", registro).with(ApiDePrueba.autenticada()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.remision.estado").value("APARTADO"))
+                .andExpect(jsonPath("$.remision.enviadoEn").doesNotExist());
+    }
+
+    @Test
     void unRegistroQueNoExisteEs404() throws Exception {
         mvc.perform(get("/v1/registros/{id}", UUID.randomUUID()).with(ApiDePrueba.autenticada()))
                 .andExpect(status().isNotFound())
