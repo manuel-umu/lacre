@@ -69,12 +69,23 @@ class CotejoTest {
     }
 
     @Test
-    void unaAnulacionAceptadaCoincideConUnAnuladoSinCompararHuellas() {
+    void unaAnulacionAceptadaCoincideConUnAnuladoConLaHuellaDeLaAnulacion() {
+        local("FA/1", TipoRegistro.ALTA, H1, EstadoEnvio.ACEPTADO);
+        local("FA/1", TipoRegistro.ANULACION, H2, EstadoEnvio.ACEPTADO);
+        aeat("FA/1", H2, RegistroEnAeat.Estado.ANULADO);
+
+        assertThat(cotejar().coinciden()).containsExactly(factura("FA/1"));
+    }
+
+    @Test
+    void unAnuladoConLaHuellaDelAltaEsUnaDiscrepancia() {
         local("FA/1", TipoRegistro.ALTA, H1, EstadoEnvio.ACEPTADO);
         local("FA/1", TipoRegistro.ANULACION, H2, EstadoEnvio.ACEPTADO);
         aeat("FA/1", H1, RegistroEnAeat.Estado.ANULADO);
 
-        assertThat(cotejar().coinciden()).containsExactly(factura("FA/1"));
+        assertThat(cotejar().discrepancias())
+                .singleElement()
+                .satisfies(d -> assertThat(d.motivo()).contains("huella"));
     }
 
     @Test

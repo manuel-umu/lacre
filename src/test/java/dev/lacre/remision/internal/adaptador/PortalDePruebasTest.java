@@ -196,9 +196,8 @@ class PortalDePruebasTest {
     // --- 4. Consulta de lo presentado ---
 
     /**
-     * Presenta un alta y el alta y la anulación de otra factura, y consulta el mes en curso. Imprime
-     * el estado con el que responde la AEAT y qué huella da para la anulada: la del alta o la de la
-     * anulación.
+     * Presenta un alta y el alta y la anulación de otra factura, y consulta el mes en curso: la
+     * vigente vuelve con su huella y la anulada, como anulada y con la huella de la anulación.
      */
     @Test
     void laConsultaDevuelveLoPresentadoYDiceQueHuellaTieneUnaAnulada() {
@@ -228,6 +227,7 @@ class PortalDePruebasTest {
 
         assertThat(buscar(consulta, vigente).huella()).isEqualTo(altaVigente.huella());
         assertThat(deLaAnulada.estado()).isEqualTo(RegistroEnAeat.Estado.ANULADO);
+        assertThat(deLaAnulada.huella()).isEqualTo(anulacion.huella());
     }
 
     private static RegistroEnAeat buscar(ResultadoConsulta consulta, String numSerie) {

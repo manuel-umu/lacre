@@ -90,10 +90,7 @@ public record Cotejo(
         return discrepancias.isEmpty() && soloEnAeat.isEmpty() && soloEnLacre.isEmpty();
     }
 
-    /**
-     * La huella que la AEAT da para una factura anulada no se compara: su documentación no dice si
-     * es la del alta o la de la anulación.
-     */
+    /** Para una factura anulada, la AEAT devuelve la huella de la anulación. */
     private static Optional<String> discrepancia(RegistroEnAeat enAeat, Optional<RegistroDeFactura> local) {
         if (local.isEmpty()) {
             return Optional.of("lacre no tiene ningún registro de esta factura aceptado por la AEAT");
@@ -107,7 +104,7 @@ public record Cotejo(
         if (!anuladaEnAeat && anuladaEnLacre) {
             return Optional.of("lacre la anuló y la AEAT no la tiene anulada");
         }
-        if (!anuladaEnAeat && enAeat.huella() != null && !enAeat.huella().equals(ultimo.huella())) {
+        if (enAeat.huella() != null && !enAeat.huella().equals(ultimo.huella())) {
             return Optional.of("la huella vigente en la AEAT no es la del último registro aceptado en lacre");
         }
         return Optional.empty();
