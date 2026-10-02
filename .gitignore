@@ -41,4 +41,6 @@ docs/certs/
 
 *.p12
 *.pfx
-!/src/test/resources/certificados/*.p12
+!/src/test/resources/certificados/00000001R.p12
+!/src/test/resources/certificados/00000002W.p12
+!/src/test/resources/certificados/89890001K.p12

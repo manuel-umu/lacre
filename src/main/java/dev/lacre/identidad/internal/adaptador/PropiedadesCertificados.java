@@ -1,5 +1,7 @@
 package dev.lacre.identidad.internal.adaptador;
 
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -13,7 +15,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties("lacre.certificados")
 public record PropiedadesCertificados(String directorio, Map<String, String> contrasenas) {
 
+    /** El NIF de la clave se pasa a mayúsculas: desde una variable de entorno llega en minúsculas. */
     public PropiedadesCertificados {
-        contrasenas = contrasenas == null ? Map.of() : Map.copyOf(contrasenas);
+        Map<String, String> porNif = new HashMap<>();
+        if (contrasenas != null) {
+            contrasenas.forEach((nif, contrasena) -> {
+                if (porNif.put(nif.toUpperCase(Locale.ROOT), contrasena) != null) {
+                    throw new IllegalStateException("La contraseña del certificado de " + nif.toUpperCase(Locale.ROOT)
+                            + " está configurada dos veces");
+                }
+            });
+        }
+        contrasenas = Map.copyOf(porNif);
     }
 }
