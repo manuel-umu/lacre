@@ -79,6 +79,7 @@ class DetalleConsolaTest {
                 .andExpect(content().string(containsString("FA/RECHAZADA")))
                 .andExpect(content().string(containsString("Valor o tipo incorrecto del campo: NumSerieFactura")))
                 .andExpect(content().string(not(containsString("FA/ACEPTADA"))))
+                .andExpect(content().string(containsString("Ninguno: no se puede remitir")))
                 .andReturn();
 
         @SuppressWarnings("unchecked")

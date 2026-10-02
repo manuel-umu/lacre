@@ -3,6 +3,7 @@ package dev.lacre.identidad.internal.adaptador;
 import dev.lacre.identidad.AlmacenCertificados;
 import dev.lacre.identidad.CertificadoDeObligado;
 import dev.lacre.identidad.CertificadoNoDisponibleException;
+import dev.lacre.identidad.OrigenCertificado;
 import dev.lacre.shared.Nif;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/** Lee los certificados de un directorio: un PKCS#12 por obligado, nombrado con su NIF. */
+/**
+ * Lee los certificados de un directorio: un PKCS#12 por obligado, nombrado con su NIF, y un
+ * {@code presentador.p12} opcional que remite por los obligados que no tienen el suyo.
+ */
 @Component
 class AlmacenCertificadosEnDisco implements AlmacenCertificados {
 
@@ -25,6 +29,9 @@ class AlmacenCertificadosEnDisco implements AlmacenCertificados {
 
     /** Margen con el que se avisa de la caducidad. */
     private static final Duration AVISO_DE_CADUCIDAD = Duration.ofDays(30);
+
+    /** Nombre, sin extensión, del fichero del presentador. */
+    static final String PRESENTADOR = "presentador";
 
     private final PropiedadesCertificados propiedades;
     private final Clock reloj;
@@ -36,9 +43,42 @@ class AlmacenCertificadosEnDisco implements AlmacenCertificados {
 
     @Override
     public CertificadoDeObligado de(Nif nif) {
-        Path fichero = ficheroDe(nif);
-        char[] contrasena = contrasenaDe(nif);
+        Path propio = ficheroDe(nif.valor());
+        if (Files.isReadable(propio)) {
+            CertificadoDeObligado certificado = abrir(propio, contrasenaDe(nif), nif.valor());
+            avisarSiCaduca("del obligado " + nif.valor(), certificado);
+            return certificado;
+        }
+        Path presentador = ficheroDe(PRESENTADOR);
+        if (!Files.isReadable(presentador)) {
+            throw new CertificadoNoDisponibleException(
+                    nif.valor(),
+                    "no hay fichero legible en " + propio + " ni certificado del presentador en " + presentador);
+        }
+        String contrasena = propiedades.presentador().contrasena();
+        if (contrasena == null) {
+            throw new CertificadoNoDisponibleException(
+                    nif.valor(),
+                    "no tiene certificado propio y el del presentador no tiene contraseña configurada "
+                            + "(LACRE_CERTIFICADOS_PRESENTADOR_CONTRASENA)");
+        }
+        CertificadoDeObligado certificado = abrir(presentador, contrasena.toCharArray(), "presentador");
+        avisarSiCaduca("del presentador", certificado);
+        return certificado;
+    }
 
+    @Override
+    public OrigenCertificado origenDe(Nif nif) {
+        if (sinDirectorio()) {
+            return OrigenCertificado.NINGUNO;
+        }
+        if (Files.isReadable(ficheroDe(nif.valor()))) {
+            return OrigenCertificado.PROPIO;
+        }
+        return Files.isReadable(ficheroDe(PRESENTADOR)) ? OrigenCertificado.PRESENTADOR : OrigenCertificado.NINGUNO;
+    }
+
+    private CertificadoDeObligado abrir(Path fichero, char[] contrasena, String origen) {
         KeyStore almacen;
         try (InputStream entrada = Files.newInputStream(fichero)) {
             almacen = KeyStore.getInstance("PKCS12");
@@ -46,26 +86,23 @@ class AlmacenCertificadosEnDisco implements AlmacenCertificados {
         } catch (IOException e) {
             // Una contraseña incorrecta llega como IOException.
             throw new CertificadoNoDisponibleException(
-                    nif.valor(), "no se pudo abrir su fichero; ¿ruta o contraseña equivocadas?", e);
+                    origen, "no se pudo abrir su fichero; ¿ruta o contraseña equivocadas?", e);
         } catch (GeneralSecurityException e) {
-            throw new CertificadoNoDisponibleException(nif.valor(), "no es un PKCS#12 legible", e);
+            throw new CertificadoNoDisponibleException(origen, "no es un PKCS#12 legible", e);
         }
-
-        CertificadoDeObligado certificado = CertificadoDeObligado.desde(almacen, contrasena, nif.valor());
-        avisarSiCaduca(nif, certificado);
-        return certificado;
+        return CertificadoDeObligado.desde(almacen, contrasena, origen);
     }
 
-    private Path ficheroDe(Nif nif) {
-        if (propiedades.directorio() == null || propiedades.directorio().isBlank()) {
+    private boolean sinDirectorio() {
+        return propiedades.directorio() == null || propiedades.directorio().isBlank();
+    }
+
+    private Path ficheroDe(String nombre) {
+        if (sinDirectorio()) {
             throw new CertificadoNoDisponibleException(
-                    nif.valor(), "no hay directorio de certificados configurado en lacre.certificados.directorio");
+                    nombre, "no hay directorio de certificados configurado en lacre.certificados.directorio");
         }
-        Path fichero = Path.of(propiedades.directorio(), nif.valor() + ".p12");
-        if (!Files.isReadable(fichero)) {
-            throw new CertificadoNoDisponibleException(nif.valor(), "no hay fichero legible en " + fichero);
-        }
-        return fichero;
+        return Path.of(propiedades.directorio(), nombre + ".p12");
     }
 
     private char[] contrasenaDe(Nif nif) {
@@ -77,18 +114,17 @@ class AlmacenCertificadosEnDisco implements AlmacenCertificados {
     }
 
     /** Un certificado caducado se carga y se denuncia en el log; no impide cargarlo. */
-    private void avisarSiCaduca(Nif nif, CertificadoDeObligado certificado) {
+    private void avisarSiCaduca(String de, CertificadoDeObligado certificado) {
         Instant ahora = reloj.instant();
         if (certificado.caducadoA(ahora)) {
             log.error(
-                    "El certificado del obligado {} CADUCÓ el {}: no podrá remitir a la AEAT "
-                            + "hasta que se sustituya el fichero",
-                    nif.valor(),
+                    "El certificado {} CADUCÓ el {}: no podrá remitir a la AEAT " + "hasta que se sustituya el fichero",
+                    de,
                     certificado.caducaEn());
         } else if (certificado.caducadoA(ahora.plus(AVISO_DE_CADUCIDAD))) {
             log.warn(
-                    "El certificado del obligado {} caduca el {}, dentro de menos de {} días",
-                    nif.valor(),
+                    "El certificado {} caduca el {}, dentro de menos de {} días",
+                    de,
                     certificado.caducaEn(),
                     AVISO_DE_CADUCIDAD.toDays());
         }

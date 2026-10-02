@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import dev.lacre.identidad.CertificadoDeObligado;
 import dev.lacre.identidad.CertificadoNoDisponibleException;
+import dev.lacre.identidad.OrigenCertificado;
 import dev.lacre.shared.Nif;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -16,6 +17,7 @@ import java.time.ZoneOffset;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
@@ -43,7 +45,8 @@ class AlmacenCertificadosEnDiscoTest {
                         Map.of(
                                 "89890001K", "cambiar",
                                 "00000001R", "cambiar",
-                                "00000002W", "n0-es-la-buena")),
+                                "00000002W", "n0-es-la-buena"),
+                        null),
                 Clock.fixed(momento, ZoneOffset.UTC));
     }
 
@@ -104,6 +107,66 @@ class AlmacenCertificadosEnDiscoTest {
 
     // --- Los cuatro motivos por los que no hay certificado ---
 
+    // --- El certificado del presentador ---
+
+    @Test
+    void sinCertificadoPropioSeUsaElDelPresentador(@TempDir Path directorio) throws Exception {
+        AlmacenCertificadosEnDisco conPresentador = conPresentador(directorio, "cambiar");
+
+        assertThat(conPresentador.origenDe(new Nif("00000003A"))).isEqualTo(OrigenCertificado.PRESENTADOR);
+        assertThat(conPresentador.de(new Nif("00000003A")).titular()).contains("Obligado de prueba SL");
+    }
+
+    @Test
+    void elCertificadoPropioGanaAlDelPresentador(@TempDir Path directorio) throws Exception {
+        AlmacenCertificadosEnDisco conPresentador = conPresentador(directorio, "cambiar");
+        Files.copy(Path.of(DIRECTORIO, "00000001R.p12"), directorio.resolve("00000001R.p12"));
+
+        assertThat(conPresentador.origenDe(CADUCADO)).isEqualTo(OrigenCertificado.PROPIO);
+        assertThat(conPresentador.de(CADUCADO).caducadoA(AHORA)).isTrue();
+    }
+
+    /** Un propio mal configurado se denuncia: remitir con otra identidad sin avisar no vale. */
+    @Test
+    void unPropioSinContrasenaNoCaeAlDelPresentador(@TempDir Path directorio) throws Exception {
+        AlmacenCertificadosEnDisco conPresentador = conPresentador(directorio, "cambiar");
+        Files.copy(Path.of(DIRECTORIO, "00000002W.p12"), directorio.resolve("00000002W.p12"));
+
+        assertThatThrownBy(() -> conPresentador.de(CONTRASENA_MALA))
+                .isInstanceOf(CertificadoNoDisponibleException.class)
+                .hasMessageContaining("no hay contraseña configurada para este obligado");
+    }
+
+    @Test
+    void unPresentadorSinContrasenaLoDice(@TempDir Path directorio) throws Exception {
+        AlmacenCertificadosEnDisco sinContrasena = conPresentador(directorio, null);
+
+        assertThatThrownBy(() -> sinContrasena.de(new Nif("00000003A")))
+                .isInstanceOf(CertificadoNoDisponibleException.class)
+                .hasMessageContaining("LACRE_CERTIFICADOS_PRESENTADOR_CONTRASENA");
+    }
+
+    @Test
+    void sinNingunoDeLosDosElOrigenEsNinguno() {
+        assertThat(almacen.origenDe(new Nif("00000003A"))).isEqualTo(OrigenCertificado.NINGUNO);
+        assertThat(almacen.origenDe(VIGENTE)).isEqualTo(OrigenCertificado.PROPIO);
+        assertThat(new AlmacenCertificadosEnDisco(
+                                new PropiedadesCertificados(" ", Map.of(), null), Clock.fixed(AHORA, ZoneOffset.UTC))
+                        .origenDe(VIGENTE))
+                .isEqualTo(OrigenCertificado.NINGUNO);
+    }
+
+    /** Un directorio con el certificado vigente de los tests como {@code presentador.p12}. */
+    private static AlmacenCertificadosEnDisco conPresentador(Path directorio, String contrasena) throws Exception {
+        Files.copy(Path.of(DIRECTORIO, "89890001K.p12"), directorio.resolve("presentador.p12"));
+        return new AlmacenCertificadosEnDisco(
+                new PropiedadesCertificados(
+                        directorio.toString(),
+                        Map.of("00000001R", "cambiar"),
+                        new PropiedadesCertificados.Presentador(contrasena)),
+                Clock.fixed(AHORA, ZoneOffset.UTC));
+    }
+
     @Test
     void sinFicheroLoDiceConLaRutaQueBusco() {
         assertThatThrownBy(() -> almacen.de(new Nif("00000003A")))
@@ -116,7 +179,7 @@ class AlmacenCertificadosEnDiscoTest {
     @Test
     void sinContrasenaConfiguradaLoDiceSinInventarsela() {
         AlmacenCertificadosEnDisco sinContrasenas = new AlmacenCertificadosEnDisco(
-                new PropiedadesCertificados(DIRECTORIO, Map.of()), Clock.fixed(AHORA, ZoneOffset.UTC));
+                new PropiedadesCertificados(DIRECTORIO, Map.of(), null), Clock.fixed(AHORA, ZoneOffset.UTC));
 
         assertThatThrownBy(() -> sinContrasenas.de(VIGENTE))
                 .isInstanceOf(CertificadoNoDisponibleException.class)
@@ -127,7 +190,7 @@ class AlmacenCertificadosEnDiscoTest {
     @Test
     void sinDirectorioConfiguradoLoDiceEnVezDeBuscarEnLaRaiz() {
         AlmacenCertificadosEnDisco sinConfigurar = new AlmacenCertificadosEnDisco(
-                new PropiedadesCertificados("  ", Map.of()), Clock.fixed(AHORA, ZoneOffset.UTC));
+                new PropiedadesCertificados("  ", Map.of(), null), Clock.fixed(AHORA, ZoneOffset.UTC));
 
         assertThatThrownBy(() -> sinConfigurar.de(VIGENTE))
                 .isInstanceOf(CertificadoNoDisponibleException.class)

@@ -6,7 +6,9 @@ import ch.qos.logback.classic.Level;
 import dev.lacre.identidad.AlmacenCertificados;
 import dev.lacre.identidad.CertificadoDeObligado;
 import dev.lacre.identidad.ObligadoTributario;
+import dev.lacre.identidad.OrigenCertificado;
 import dev.lacre.remision.RegistroEnAeat;
+import dev.lacre.remision.RemisionFallidaException;
 import dev.lacre.remision.RespuestaRemision;
 import dev.lacre.remision.ResultadoConsulta;
 import dev.lacre.shared.Importe;
@@ -230,6 +232,36 @@ class PortalDePruebasTest {
         assertThat(deLaAnulada.huella()).isEqualTo(anulacion.huella());
     }
 
+    // --- 5. Remitir por otro obligado con el certificado propio ---
+
+    /**
+     * Con el certificado del titular como presentador, remite un alta de otro obligado, el de
+     * {@code LACRE_REPRESENTADO_NIF} y {@code LACRE_REPRESENTADO_NOMBRE}, e imprime lo que responde
+     * la AEAT. Sin representación ni colaboración social, cabe esperar un rechazo; su código dice
+     * cómo lo trata.
+     */
+    @Test
+    @EnabledIfEnvironmentVariable(named = "LACRE_REPRESENTADO_NIF", matches = ".+")
+    void remitirPorOtroObligadoConElCertificadoPropio() {
+        Nif representado = new Nif(env("LACRE_REPRESENTADO_NIF"));
+        String nombre = env("LACRE_REPRESENTADO_NOMBRE");
+        DatosRegistroAlta alta = altaQueCuadra(numeroDeSerie("REPR"))
+                .idFactura(new IdFactura(representado, numeroDeSerie("REPR"), LocalDate.now()))
+                .nombreRazonEmisor(nombre)
+                .build();
+        ObligadoTributario otro =
+                ObligadoTributario.nuevo(UUID.randomUUID(), representado, nombre, ZoneId.of("Europe/Madrid"));
+
+        try {
+            RespuestaRemision respuesta =
+                    aeat.remitir(otro, List.of(EscritorRegistro.escribir(encadenar(alta, Optional.empty()))));
+            informar("ALTA DE OTRO OBLIGADO CON EL CERTIFICADO DEL TITULAR", respuesta);
+        } catch (RemisionFallidaException e) {
+            System.out.println("========== ALTA DE OTRO OBLIGADO CON EL CERTIFICADO DEL TITULAR");
+            System.out.println("  Rechazada: " + e.getMessage());
+        }
+    }
+
     private static RegistroEnAeat buscar(ResultadoConsulta consulta, String numSerie) {
         return consulta.registros().stream()
                 .filter(registro -> registro.idFactura().numSerieFactura().equals(numSerie))
@@ -341,13 +373,21 @@ class PortalDePruebasTest {
     private static AlmacenCertificados almacenDelKit() {
         Path fichero = Path.of(env("LACRE_CERT_P12"));
         char[] contrasena = env("LACRE_CERT_PASS").toCharArray();
-        return nif -> {
-            try (InputStream entrada = Files.newInputStream(fichero)) {
-                KeyStore almacen = KeyStore.getInstance("PKCS12");
-                almacen.load(entrada, contrasena);
-                return CertificadoDeObligado.desde(almacen, contrasena, nif.valor());
-            } catch (Exception e) {
-                throw new IllegalStateException("No se pudo abrir " + fichero, e);
+        return new AlmacenCertificados() {
+            @Override
+            public CertificadoDeObligado de(Nif nif) {
+                try (InputStream entrada = Files.newInputStream(fichero)) {
+                    KeyStore almacen = KeyStore.getInstance("PKCS12");
+                    almacen.load(entrada, contrasena);
+                    return CertificadoDeObligado.desde(almacen, contrasena, nif.valor());
+                } catch (Exception e) {
+                    throw new IllegalStateException("No se pudo abrir " + fichero, e);
+                }
+            }
+
+            @Override
+            public OrigenCertificado origenDe(Nif nif) {
+                return OrigenCertificado.PRESENTADOR;
             }
         };
     }

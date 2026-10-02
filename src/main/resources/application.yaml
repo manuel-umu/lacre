@@ -74,9 +74,13 @@ lacre:
   # nombrado con su NIF, en un volumen que monta quien despliega. Rotar uno es sustituir su
   # fichero. lacre NO guarda claves privadas ajenas en su base de datos.
   #
+  # Un presentador.p12 opcional en el mismo directorio remite por los obligados que no tienen el
+  # suyo: el certificado de quien despliega, si actúa como colaborador social o apoderado.
+  #
   # Las contraseñas NUNCA se escriben aquí: vienen de variables de entorno o de un fichero de
   # secretos montado en el contenedor. La forma del mapa es
-  # lacre.certificados.contrasenas.<NIF>, porque cada PKCS#12 trae la suya.
+  # lacre.certificados.contrasenas.<NIF>, porque cada PKCS#12 trae la suya; la del presentador,
+  # lacre.certificados.presentador.contrasena.
   certificados:
     directorio: ${LACRE_CERTIFICADOS_DIR:}
 

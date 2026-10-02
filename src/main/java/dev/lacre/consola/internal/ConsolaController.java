@@ -1,5 +1,6 @@
 package dev.lacre.consola.internal;
 
+import dev.lacre.identidad.AlmacenCertificados;
 import dev.lacre.identidad.CertificadoNoDisponibleException;
 import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
@@ -63,6 +64,7 @@ class ConsolaController {
     private final ResumenDeEnvios envios;
     private final OperacionDeEnvios operacion;
     private final ConsultaAeat aeat;
+    private final AlmacenCertificados certificados;
     private final Clock reloj;
 
     ConsolaController(
@@ -71,12 +73,14 @@ class ConsolaController {
             ResumenDeEnvios envios,
             OperacionDeEnvios operacion,
             ConsultaAeat aeat,
+            AlmacenCertificados certificados,
             Clock reloj) {
         this.obligados = obligados;
         this.registros = registros;
         this.envios = envios;
         this.operacion = operacion;
         this.aeat = aeat;
+        this.certificados = certificados;
         this.reloj = reloj;
     }
 
@@ -113,6 +117,7 @@ class ConsolaController {
         modelo.addAttribute("obligado", obligado);
         modelo.addAttribute("fila", fila);
         modelo.addAttribute("mesEnCurso", mesEnCurso(obligado));
+        modelo.addAttribute("certificado", certificados.origenDe(obligado.nif()).name());
         modelo.addAttribute("pendientes", conSuRegistro(pendientes, obligado));
         modelo.addAttribute("pendientesSinListar", fila.envios().pendientes() - pendientes.size());
         modelo.addAttribute("conErrores", conSuRegistro(conErrores, obligado));

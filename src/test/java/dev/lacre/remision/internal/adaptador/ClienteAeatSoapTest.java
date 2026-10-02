@@ -16,6 +16,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import dev.lacre.identidad.AlmacenCertificados;
 import dev.lacre.identidad.CertificadoDeObligado;
 import dev.lacre.identidad.ObligadoTributario;
+import dev.lacre.identidad.OrigenCertificado;
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.EstadoEnvioAeat;
 import dev.lacre.remision.RemisionFallidaException;
@@ -312,13 +313,22 @@ class ClienteAeatSoapTest {
 
     /** El mismo PKCS#12 autofirmado que usa el almacén en sus tests. */
     private static AlmacenCertificados almacenDePrueba() {
-        return nif -> {
-            try (InputStream entrada = Files.newInputStream(Path.of("src/test/resources/certificados/89890001K.p12"))) {
-                KeyStore almacen = KeyStore.getInstance("PKCS12");
-                almacen.load(entrada, "cambiar".toCharArray());
-                return CertificadoDeObligado.desde(almacen, "cambiar".toCharArray(), nif.valor());
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
+        return new AlmacenCertificados() {
+            @Override
+            public CertificadoDeObligado de(Nif nif) {
+                try (InputStream entrada =
+                        Files.newInputStream(Path.of("src/test/resources/certificados/89890001K.p12"))) {
+                    KeyStore almacen = KeyStore.getInstance("PKCS12");
+                    almacen.load(entrada, "cambiar".toCharArray());
+                    return CertificadoDeObligado.desde(almacen, "cambiar".toCharArray(), nif.valor());
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+
+            @Override
+            public OrigenCertificado origenDe(Nif nif) {
+                return OrigenCertificado.PROPIO;
             }
         };
     }

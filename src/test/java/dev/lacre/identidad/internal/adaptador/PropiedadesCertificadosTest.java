@@ -18,21 +18,31 @@ class PropiedadesCertificadosTest {
         PropiedadesCertificados propiedades = desdeElEntorno(Map.of(
                 "LACRE_CERTIFICADOS_DIRECTORIO", "/certificados",
                 "LACRE_CERTIFICADOS_CONTRASENAS_89890001K", "de-la-persona",
-                "LACRE_CERTIFICADOS_CONTRASENAS_B12345674", "de-la-sociedad"));
+                "LACRE_CERTIFICADOS_CONTRASENAS_B12345674", "de-la-sociedad",
+                "LACRE_CERTIFICADOS_PRESENTADOR_CONTRASENA", "del-presentador"));
 
         assertThat(propiedades.contrasenas())
                 .containsOnly(Map.entry("89890001K", "de-la-persona"), Map.entry("B12345674", "de-la-sociedad"));
+        assertThat(propiedades.presentador().contrasena()).isEqualTo("del-presentador");
     }
 
     @Test
     void lasClavesEscritasEnMinusculasTambienValen() {
-        assertThat(new PropiedadesCertificados("/certificados", Map.of("89890001k", "x")).contrasenas())
+        assertThat(new PropiedadesCertificados("/certificados", Map.of("89890001k", "x"), null).contrasenas())
                 .containsOnlyKeys("89890001K");
     }
 
     @Test
+    void sinPresentadorConfiguradoSuContrasenaEsNula() {
+        assertThat(new PropiedadesCertificados("/c", Map.of(), null)
+                        .presentador()
+                        .contrasena())
+                .isNull();
+    }
+
+    @Test
     void elMismoNifDosVecesEsUnErrorDeConfiguracion() {
-        assertThatThrownBy(() -> new PropiedadesCertificados("/c", Map.of("89890001k", "x", "89890001K", "y")))
+        assertThatThrownBy(() -> new PropiedadesCertificados("/c", Map.of("89890001k", "x", "89890001K", "y"), null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("89890001K");
     }

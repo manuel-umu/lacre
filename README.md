@@ -195,7 +195,7 @@ Todo se configura en el `.env`:
 
 1. Rellenar el bloque obligatorio y cambiar `LACRE_QR_URL_BASE` a la URL de producción.
 2. En el bloque «Para presentar a la AEAT», descomentar `LACRE_AEAT_ENDPOINT` con el endpoint de producción y poner los datos del productor del sistema informático.
-3. Copiar el certificado de cada obligado a `certificados/`, con su NIF como nombre (`12345678Z.p12`), y añadir su contraseña en `LACRE_CERTIFICADOS_CONTRASENAS_12345678Z`.
+3. Copiar el certificado de cada obligado a `certificados/`, con su NIF como nombre (`12345678Z.p12`), y añadir su contraseña en `LACRE_CERTIFICADOS_CONTRASENAS_12345678Z`. Si se remite en nombre de los obligados como colaborador social o apoderado, basta con un único `presentador.p12` y su contraseña en `LACRE_CERTIFICADOS_PRESENTADOR_CONTRASENA`; la autorización de cada obligado se gestiona fuera de lacre.
 4. `docker compose up -d --build db lacre`.
 
 ## Integración

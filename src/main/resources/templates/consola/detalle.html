@@ -21,6 +21,13 @@
     <p th:if="${error}" class="aviso" th:text="${error}">Error.</p>
     <dl class="resumen">
         <div><dt>Zona horaria</dt><dd th:text="${obligado.zonaHoraria()}">Europe/Madrid</dd></div>
+        <div><dt>Certificado</dt>
+            <dd th:switch="${certificado}">
+                <span th:case="'PROPIO'">Propio</span>
+                <span th:case="'PRESENTADOR'">Del presentador</span>
+                <span th:case="*" class="aviso">Ninguno: no se puede remitir</span>
+            </dd>
+        </div>
         <div><dt>Último registro</dt><dd th:text="${fila.ultimaPosicion()} ?: '—'">0</dd></div>
         <div><dt>Pendientes</dt><dd th:text="${fila.envios().pendientes()}">0</dd></div>
         <div><dt>Aceptados</dt><dd th:text="${fila.envios().aceptados()}">0</dd></div>
