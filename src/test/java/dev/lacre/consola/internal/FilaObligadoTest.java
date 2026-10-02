@@ -49,6 +49,6 @@ class FilaObligadoTest {
     }
 
     private EnviosDeObligado pendienteDesde(OffsetDateTime creado) {
-        return new EnviosDeObligado(obligado.id(), 1, 0, 0, 0, 0, 0, creado);
+        return new EnviosDeObligado(obligado.id(), 1, 0, 0, 0, 0, 0, 0, creado);
     }
 }

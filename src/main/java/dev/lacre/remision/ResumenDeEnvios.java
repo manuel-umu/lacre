@@ -16,6 +16,9 @@ public interface ResumenDeEnvios {
     /** Los apartados del obligado, del más antiguo al más reciente. */
     List<EnvioRegistro> apartadosDe(UUID obligadoId, int maximo);
 
-    /** Los rechazados y aceptados con errores del obligado, del más reciente al más antiguo. */
+    /**
+     * Los rechazados y aceptados con errores del obligado sin atender, del más reciente al más
+     * antiguo.
+     */
     List<EnvioRegistro> conErroresDe(UUID obligadoId, int maximo);
 }

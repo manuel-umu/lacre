@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -46,6 +47,9 @@ class OperacionDeEnviosJdbcTest {
 
     @Autowired
     private TransactionTemplate transaccion;
+
+    @Autowired
+    private PostgreSQLContainer postgres;
 
     private UUID obligado;
 
@@ -127,6 +131,58 @@ class OperacionDeEnviosJdbcTest {
             lote.get(10, TimeUnit.SECONDS);
         }
         assertThat(estadoDe(envio)).isEqualTo(EstadoEnvio.PENDIENTE);
+    }
+
+    @Test
+    void unRechazadoYUnAceptadoConErroresSeDanPorAtendidosConQuienYCuando() {
+        EnvioRegistro rechazado = resolver(emitir("FA/1"), "RECHAZADO");
+        EnvioRegistro conErrores = resolver(emitir("FA/2"), "ACEPTADO_CON_ERRORES");
+
+        operacion.marcarAtendido(obligado, rechazado.id(), "operador");
+        operacion.marcarAtendido(obligado, conErrores.id(), "operador");
+
+        var atencion = TestcontainersConfiguration.comoPropietario(postgres)
+                .sql("select atendido_por, atendido_en from envio_registro where id = :id")
+                .param("id", rechazado.id())
+                .query((rs, fila) -> rs.getString("atendido_por") + "@" + (rs.getObject("atendido_en") != null))
+                .single();
+        assertThat(atencion).isEqualTo("operador@true");
+        assertThat(estadoDe(rechazado)).isEqualTo(EstadoEnvio.RECHAZADO);
+    }
+
+    @Test
+    void soloSeAtiendeUnErrorDeLaAeatYUnaSolaVez() {
+        EnvioRegistro rechazado = resolver(emitir("FA/1"), "RECHAZADO");
+        EnvioRegistro aceptado = resolver(emitir("FA/2"), "ACEPTADO");
+        EnvioRegistro pendiente = emitir("FA/3");
+        operacion.marcarAtendido(obligado, rechazado.id(), "operador");
+
+        assertThatThrownBy(() -> operacion.marcarAtendido(obligado, rechazado.id(), "operador"))
+                .isInstanceOf(EnvioYaResueltoException.class);
+        assertThatThrownBy(() -> operacion.marcarAtendido(obligado, aceptado.id(), "operador"))
+                .isInstanceOf(EnvioYaResueltoException.class);
+        assertThatThrownBy(() -> operacion.marcarAtendido(obligado, pendiente.id(), "operador"))
+                .isInstanceOf(EnvioYaResueltoException.class);
+    }
+
+    @Test
+    void elErrorDeOtroObligadoEsDesconocido() {
+        EnvioRegistro rechazado = resolver(emitir("FA/1"), "RECHAZADO");
+        UUID otro = ObligadosDePrueba.nuevo(obligados);
+
+        assertThatThrownBy(() -> operacion.marcarAtendido(otro, rechazado.id(), "operador"))
+                .isInstanceOf(EnvioDesconocidoException.class);
+        assertThatThrownBy(() -> operacion.marcarAtendido(obligado, UUID.randomUUID(), "operador"))
+                .isInstanceOf(EnvioDesconocidoException.class);
+    }
+
+    private EnvioRegistro resolver(EnvioRegistro envio, String estado) {
+        TestcontainersConfiguration.comoPropietario(postgres)
+                .sql("update envio_registro set estado = :estado, enviado_en = now() where id = :id")
+                .param("estado", estado)
+                .param("id", envio.id())
+                .update();
+        return envios.findById(envio.id()).orElseThrow();
     }
 
     private java.util.List<UUID> reservar() {

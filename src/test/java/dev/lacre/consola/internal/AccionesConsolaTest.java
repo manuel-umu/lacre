@@ -1,10 +1,15 @@
 package dev.lacre.consola.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -24,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -41,6 +47,9 @@ class AccionesConsolaTest {
 
     @Autowired
     private Envios envios;
+
+    @Autowired
+    private PostgreSQLContainer postgres;
 
     private UUID obligado;
     private String nif;
@@ -91,6 +100,23 @@ class AccionesConsolaTest {
                         .with(user("operador"))
                         .with(csrf()))
                 .andExpect(flash().attribute("mensaje", "2 envíos reanudados."));
+    }
+
+    @Test
+    void unRechazoAtendidoDejaDeListarseEnElDetalle() throws Exception {
+        TestcontainersConfiguration.comoPropietario(postgres)
+                .sql("update envio_registro set estado = 'RECHAZADO', enviado_en = now() where id = :id")
+                .param("id", envio.id())
+                .update();
+
+        mvc.perform(post(ruta("atendido")).with(user("operador"))).andExpect(status().isForbidden());
+        mvc.perform(post(ruta("atendido")).with(user("operador")).with(csrf()))
+                .andExpect(redirectedUrl("/consola/obligados/" + nif))
+                .andExpect(flash().attribute("mensaje", "Error marcado como atendido."));
+
+        mvc.perform(get("/consola/obligados/{nif}", nif).with(user("operador")))
+                .andExpect(model().attribute("conErrores", hasSize(0)))
+                .andExpect(content().string(containsString("1 atendidos, ocultos.")));
     }
 
     @Test

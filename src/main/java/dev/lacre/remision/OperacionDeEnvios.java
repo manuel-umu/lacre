@@ -2,7 +2,10 @@ package dev.lacre.remision;
 
 import java.util.UUID;
 
-/** Acciones del operador sobre los envíos pendientes de un obligado: apartarlos del despacho y reanudarlos. */
+/**
+ * Acciones del operador sobre los envíos de un obligado: apartar y reanudar los pendientes, y dar
+ * por atendidos los errores de la AEAT.
+ */
 public interface OperacionDeEnvios {
 
     /**
@@ -24,4 +27,12 @@ public interface OperacionDeEnvios {
 
     /** Devuelve al despacho todos los apartados del obligado; devuelve cuántos. */
     int reanudarApartadosDe(UUID obligadoId);
+
+    /**
+     * Da por atendido un rechazado o aceptado con errores, que deja de listarse entre los errores.
+     *
+     * @throws EnvioDesconocidoException si el envío no existe o es de otro obligado
+     * @throws EnvioYaResueltoException si no tiene un error de la AEAT o ya estaba atendido
+     */
+    void marcarAtendido(UUID obligadoId, UUID envioId, String operador);
 }

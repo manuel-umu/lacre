@@ -37,7 +37,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * Páginas de la consola: el inicio de sesión, la vista general, el detalle de un obligado y las
- * acciones de apartar y reanudar sus envíos.
+ * acciones sobre sus envíos: apartar, reanudar y dar por atendido un error.
  */
 @Controller
 @RequestMapping("/consola")
@@ -148,6 +148,16 @@ class ConsolaController {
             int reanudados = operacion.reanudarApartadosDe(obligado);
             log.info("{} reanudó {} envíos apartados del obligado {}", operador.getName(), reanudados, nif);
             return reanudados + " envíos reanudados.";
+        });
+    }
+
+    @PostMapping("/obligados/{nif}/envios/{envio}/atendido")
+    String marcarAtendido(
+            @PathVariable String nif, @PathVariable UUID envio, Principal operador, RedirectAttributes aviso) {
+        return actuar(nif, aviso, obligado -> {
+            operacion.marcarAtendido(obligado, envio, operador.getName());
+            log.info("{} dio por atendido el error del envío {}", operador.getName(), envio);
+            return "Error marcado como atendido.";
         });
     }
 

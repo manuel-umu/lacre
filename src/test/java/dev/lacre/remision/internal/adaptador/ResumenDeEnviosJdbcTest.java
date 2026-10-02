@@ -65,7 +65,7 @@ class ResumenDeEnviosJdbcTest {
 
         EnviosDeObligado envios = resumen.porObligado().get(obligado);
 
-        assertThat(envios).isEqualTo(new EnviosDeObligado(obligado, 2, 2, 1, 1, 1, 0, envios.pendienteMasAntiguo()));
+        assertThat(envios).isEqualTo(new EnviosDeObligado(obligado, 2, 2, 1, 1, 1, 0, 0, envios.pendienteMasAntiguo()));
         assertThat(envios.pendienteMasAntiguo()).isEqualTo(antiguo);
     }
 
@@ -110,6 +110,24 @@ class ResumenDeEnviosJdbcTest {
         assertThat(errores).extracting(EnvioRegistro::registroId).containsExactly(reciente, medio, antiguo);
         assertThat(errores.getFirst().codigoError()).isEqualTo(1100);
         assertThat(resumen.conErroresDe(obligado, 1)).hasSize(1);
+    }
+
+    @Test
+    void losErroresAtendidosNoSeListanPeroSeCuentan() {
+        UUID atendido = emitir("FA/1");
+        UUID sinAtender = emitir("FA/2");
+        marcar(atendido, EstadoEnvio.RECHAZADO);
+        marcar(sinAtender, EstadoEnvio.RECHAZADO);
+        jdbc.sql("update envio_registro set atendido_en = now(), atendido_por = 'operador' where registro_id = :id")
+                .param("id", atendido)
+                .update();
+
+        assertThat(resumen.conErroresDe(obligado, 10))
+                .extracting(EnvioRegistro::registroId)
+                .containsExactly(sinAtender);
+        EnviosDeObligado envios = resumen.porObligado().get(obligado);
+        assertThat(envios.rechazados()).isEqualTo(2);
+        assertThat(envios.erroresAtendidos()).isEqualTo(1);
     }
 
     @Test

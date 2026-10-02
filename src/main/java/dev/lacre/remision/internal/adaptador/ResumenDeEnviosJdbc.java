@@ -35,6 +35,7 @@ class ResumenDeEnviosJdbc implements ResumenDeEnvios {
                                count(*) filter (where estado = 'RECHAZADO')            as rechazados,
                                count(*) filter (where estado = 'DUPLICADO')            as duplicados,
                                count(*) filter (where estado = 'APARTADO')             as apartados,
+                               count(*) filter (where atendido_en is not null)         as atendidos,
                                min(creado_en) filter (where estado = 'PENDIENTE')      as mas_antiguo
                         from envio_registro
                         group by obligado_id
@@ -50,6 +51,7 @@ class ResumenDeEnviosJdbc implements ResumenDeEnvios {
                             rs.getLong("rechazados"),
                             rs.getLong("duplicados"),
                             rs.getLong("apartados"),
+                            rs.getLong("atendidos"),
                             rs.getObject("mas_antiguo", OffsetDateTime.class)));
         });
         return resumen;
@@ -82,6 +84,7 @@ class ResumenDeEnviosJdbc implements ResumenDeEnvios {
     public List<EnvioRegistro> conErroresDe(UUID obligadoId, int maximo) {
         return jdbc.sql(SELECT_ENVIO + """
                         where obligado_id = :obligado and estado in ('RECHAZADO', 'ACEPTADO_CON_ERRORES')
+                          and atendido_en is null
                         order by enviado_en desc, id
                         limit :maximo
                         """)

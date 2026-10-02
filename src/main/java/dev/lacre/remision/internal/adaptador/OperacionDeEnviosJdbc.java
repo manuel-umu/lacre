@@ -3,10 +3,13 @@ package dev.lacre.remision.internal.adaptador;
 import dev.lacre.remision.EnvioDesconocidoException;
 import dev.lacre.remision.EnvioEnCursoException;
 import dev.lacre.remision.EnvioRegistro;
+import dev.lacre.remision.EnvioYaResueltoException;
 import dev.lacre.remision.Envios;
 import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.OperacionDeEnvios;
 import java.sql.SQLException;
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
 import org.springframework.dao.DataAccessException;
@@ -27,10 +30,12 @@ class OperacionDeEnviosJdbc implements OperacionDeEnvios {
 
     private final JdbcClient jdbc;
     private final Envios envios;
+    private final Clock reloj;
 
-    OperacionDeEnviosJdbc(JdbcClient jdbc, Envios envios) {
+    OperacionDeEnviosJdbc(JdbcClient jdbc, Envios envios, Clock reloj) {
         this.jdbc = jdbc;
         this.envios = envios;
+        this.reloj = reloj;
     }
 
     @Override
@@ -51,6 +56,27 @@ class OperacionDeEnviosJdbc implements OperacionDeEnvios {
     @Override
     public int reanudarApartadosDe(UUID obligadoId) {
         return cambiarTodos(obligadoId, EstadoEnvio.APARTADO, EstadoEnvio.PENDIENTE);
+    }
+
+    @Override
+    public void marcarAtendido(UUID obligadoId, UUID envioId, String operador) {
+        int marcados = jdbc.sql("""
+                        update envio_registro set atendido_en = :ahora, atendido_por = :operador
+                        where id = :id and obligado_id = :obligado
+                          and estado in ('RECHAZADO', 'ACEPTADO_CON_ERRORES') and atendido_en is null
+                        """)
+                .param("ahora", OffsetDateTime.now(reloj))
+                .param("operador", operador)
+                .param("id", envioId)
+                .param("obligado", obligadoId)
+                .update();
+        if (marcados == 0) {
+            EnvioRegistro envio = envios.findById(envioId)
+                    .filter(encontrado -> encontrado.obligadoId().equals(obligadoId))
+                    .orElseThrow(() -> new EnvioDesconocidoException(envioId));
+            throw new EnvioYaResueltoException(
+                    envioId, "está " + envio.estado() + " y no tiene un error de la AEAT sin atender");
+        }
     }
 
     private void cambiar(UUID obligadoId, UUID envioId, UnaryOperator<EnvioRegistro> transicion) {

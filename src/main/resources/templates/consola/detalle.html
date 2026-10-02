@@ -146,7 +146,7 @@
     <p th:if="${apartadosSinListar > 0}" class="nota" th:text="|Y ${apartadosSinListar} más.|">Y 3 más.</p>
 
     <h3>Con errores de la AEAT</h3>
-    <p th:if="${#lists.isEmpty(conErrores)}" class="nota">La AEAT no ha devuelto errores.</p>
+    <p th:if="${#lists.isEmpty(conErrores)}" class="nota">No hay errores de la AEAT sin atender.</p>
     <table th:unless="${#lists.isEmpty(conErrores)}">
         <thead>
         <tr>
@@ -158,6 +158,7 @@
             <th>Respondido</th>
             <th class="numero">Código</th>
             <th>Descripción</th>
+            <th></th>
         </tr>
         </thead>
         <tbody>
@@ -170,9 +171,17 @@
             <td th:text="${e.respondido()}">01/01/2026 10:00</td>
             <td class="numero" th:text="${e.envio().codigoError()} ?: '—'">—</td>
             <td class="descripcion" th:text="${e.envio().descripcionError()} ?: '—'">—</td>
+            <td>
+                <form method="post"
+                      th:action="@{/consola/obligados/{nif}/envios/{envio}/atendido(nif=${obligado.nif().valor()},envio=${e.envio().id()})}">
+                    <button type="submit">Atendido</button>
+                </form>
+            </td>
         </tr>
         </tbody>
     </table>
+    <p th:if="${fila.envios().erroresAtendidos() > 0}" class="nota"
+       th:text="|${fila.envios().erroresAtendidos()} atendidos, ocultos.|">2 atendidos, ocultos.</p>
 </main>
 </body>
 </html>
