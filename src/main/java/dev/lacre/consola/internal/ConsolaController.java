@@ -1,22 +1,31 @@
 package dev.lacre.consola.internal;
 
+import dev.lacre.identidad.CertificadoNoDisponibleException;
 import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
+import dev.lacre.remision.ConsultaAeat;
 import dev.lacre.remision.EnvioDesconocidoException;
 import dev.lacre.remision.EnvioEnCursoException;
 import dev.lacre.remision.EnvioRegistro;
 import dev.lacre.remision.EnvioYaResueltoException;
 import dev.lacre.remision.EnviosDeObligado;
 import dev.lacre.remision.OperacionDeEnvios;
+import dev.lacre.remision.RegistroEnAeat;
+import dev.lacre.remision.RemisionFallidaException;
+import dev.lacre.remision.ResultadoConsulta;
 import dev.lacre.remision.ResumenDeEnvios;
 import dev.lacre.shared.Nif;
 import dev.lacre.shared.ValorInvalidoException;
+import dev.lacre.verifactu.consulta.RegistroDeFactura;
 import dev.lacre.verifactu.consulta.RegistroGuardado;
 import dev.lacre.verifactu.consulta.RegistrosGuardados;
 import java.security.Principal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,12 +41,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * Páginas de la consola: el inicio de sesión, la vista general, el detalle de un obligado y las
- * acciones sobre sus envíos: apartar, reanudar y dar por atendido un error.
+ * acciones sobre sus envíos —apartar, reanudar y dar por atendido un error— y el cotejo con la AEAT.
  */
 @Controller
 @RequestMapping("/consola")
@@ -52,6 +62,7 @@ class ConsolaController {
     private final RegistrosGuardados registros;
     private final ResumenDeEnvios envios;
     private final OperacionDeEnvios operacion;
+    private final ConsultaAeat aeat;
     private final Clock reloj;
 
     ConsolaController(
@@ -59,11 +70,13 @@ class ConsolaController {
             RegistrosGuardados registros,
             ResumenDeEnvios envios,
             OperacionDeEnvios operacion,
+            ConsultaAeat aeat,
             Clock reloj) {
         this.obligados = obligados;
         this.registros = registros;
         this.envios = envios;
         this.operacion = operacion;
+        this.aeat = aeat;
         this.reloj = reloj;
     }
 
@@ -113,6 +126,53 @@ class ConsolaController {
         modelo.addAttribute(
                 "verificacion", registros.verificarCadenaDe(obligadoDe(nif).id()));
         return "consola/detalle :: verificacion";
+    }
+
+    /** Consulta a la AEAT lo presentado en el periodo y lo cruza con lo local; sin periodo, el mes en curso. */
+    @GetMapping("/obligados/{nif}/cotejo")
+    String cotejo(
+            @PathVariable String nif,
+            @RequestParam(required = false) String periodo,
+            Principal operador,
+            Model modelo) {
+        ObligadoTributario obligado = obligadoDe(nif);
+        modelo.addAttribute("obligado", obligado);
+        YearMonth mes;
+        try {
+            mes = periodo == null || periodo.isBlank()
+                    ? YearMonth.now(reloj.withZone(obligado.zonaHoraria()))
+                    : YearMonth.parse(periodo);
+        } catch (DateTimeParseException e) {
+            modelo.addAttribute("error", "El periodo tiene que tener la forma AAAA-MM.");
+            return "consola/cotejo";
+        }
+        modelo.addAttribute("periodo", mes);
+        try {
+            ResultadoConsulta consulta = aeat.consultar(obligado, mes);
+            Map<UUID, RegistroDeFactura> locales = new LinkedHashMap<>();
+            registros.deFacturasExpedidasEn(obligado.id(), mes).forEach(r -> locales.put(r.id(), r));
+            registros
+                    .deFacturas(
+                            obligado.id(),
+                            consulta.registros().stream()
+                                    .map(RegistroEnAeat::idFactura)
+                                    .toList())
+                    .forEach(r -> locales.put(r.id(), r));
+            modelo.addAttribute(
+                    "cotejo",
+                    Cotejo.de(
+                            mes,
+                            consulta.registros(),
+                            consulta.completo(),
+                            locales.values(),
+                            envios.estadosDe(locales.keySet())));
+            log.info("{} cotejó con la AEAT el periodo {} del obligado {}", operador.getName(), mes, nif);
+        } catch (CertificadoNoDisponibleException e) {
+            modelo.addAttribute("error", "No hay certificado con el que consultar a la AEAT: " + e.getMessage());
+        } catch (RemisionFallidaException e) {
+            modelo.addAttribute("error", "La consulta a la AEAT no salió bien: " + e.getMessage());
+        }
+        return "consola/cotejo";
     }
 
     @PostMapping("/obligados/{nif}/envios/{envio}/apartar")

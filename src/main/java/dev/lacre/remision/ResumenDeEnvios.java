@@ -1,5 +1,6 @@
 package dev.lacre.remision;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -12,6 +13,9 @@ public interface ResumenDeEnvios {
 
     /** Los pendientes del obligado, del más antiguo al más reciente. */
     List<EnvioRegistro> pendientesDe(UUID obligadoId, int maximo);
+
+    /** El estado del envío de cada uno de esos registros que tenga envío. */
+    Map<UUID, EstadoEnvio> estadosDe(Collection<UUID> registroIds);
 
     /** Los apartados del obligado, del más antiguo al más reciente. */
     List<EnvioRegistro> apartadosDe(UUID obligadoId, int maximo);

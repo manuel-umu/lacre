@@ -6,8 +6,9 @@ import ch.qos.logback.classic.Level;
 import dev.lacre.identidad.AlmacenCertificados;
 import dev.lacre.identidad.CertificadoDeObligado;
 import dev.lacre.identidad.ObligadoTributario;
-import dev.lacre.remision.ClienteAeat;
+import dev.lacre.remision.RegistroEnAeat;
 import dev.lacre.remision.RespuestaRemision;
+import dev.lacre.remision.ResultadoConsulta;
 import dev.lacre.shared.Importe;
 import dev.lacre.shared.Nif;
 import dev.lacre.shared.Porcentaje;
@@ -36,6 +37,7 @@ import java.security.KeyStore;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -82,7 +84,7 @@ class PortalDePruebasTest {
         ((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("dev.lacre")).setLevel(Level.DEBUG);
     }
 
-    private final ClienteAeat aeat = clienteReal();
+    private final ClienteAeatSoap aeat = clienteReal();
 
     // --- 1. Que el transporte funciona de extremo a extremo ---
 
@@ -191,6 +193,50 @@ class PortalDePruebasTest {
                 altaQueCuadra(factura).subsanacion(true).build());
     }
 
+    // --- 4. Consulta de lo presentado ---
+
+    /**
+     * Presenta un alta y el alta y la anulación de otra factura, y consulta el mes en curso. Imprime
+     * el estado con el que responde la AEAT y qué huella da para la anulada: la del alta o la de la
+     * anulación.
+     */
+    @Test
+    void laConsultaDevuelveLoPresentadoYDiceQueHuellaTieneUnaAnulada() {
+        String vigente = numeroDeSerie("CONS");
+        String anulada = numeroDeSerie("CONS-ANUL");
+        Cadena cadena = new Cadena();
+        RegistroEncadenado altaVigente =
+                cadena.remitir("ALTA QUE SE CONSULTA", altaQueCuadra(vigente).build());
+        RegistroEncadenado altaAnulada =
+                cadena.remitir("ALTA QUE SE ANULA", altaQueCuadra(anulada).build());
+        RegistroEncadenado anulacion = cadena.remitir("ANULACIÓN", anulacion(anulada, false));
+
+        ResultadoConsulta consulta = aeat.consultar(obligado(), YearMonth.now(ZoneId.of("Europe/Madrid")));
+
+        System.out.println(
+                "========== CONSULTA: " + consulta.registros().size() + " registros, completa: " + consulta.completo());
+        consulta.registros().stream()
+                .filter(registro -> registro.idFactura().numSerieFactura().startsWith("CONS"))
+                .forEach(registro ->
+                        System.out.println("  " + registro.idFactura().numSerieFactura() + " " + registro.estado()
+                                + " huella " + registro.huella() + " presentado " + registro.presentado()));
+        RegistroEnAeat deLaAnulada = buscar(consulta, anulada);
+        System.out.println("  La huella de la anulada es la "
+                + (anulacion.huella().equals(deLaAnulada.huella())
+                        ? "DE LA ANULACIÓN"
+                        : altaAnulada.huella().equals(deLaAnulada.huella()) ? "DEL ALTA" : "DE NINGUNA DE LAS DOS"));
+
+        assertThat(buscar(consulta, vigente).huella()).isEqualTo(altaVigente.huella());
+        assertThat(deLaAnulada.estado()).isEqualTo(RegistroEnAeat.Estado.ANULADO);
+    }
+
+    private static RegistroEnAeat buscar(ResultadoConsulta consulta, String numSerie) {
+        return consulta.registros().stream()
+                .filter(registro -> registro.idFactura().numSerieFactura().equals(numSerie))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("La consulta no devuelve " + numSerie));
+    }
+
     // --- Apoyo ---
 
     /** Encadena cada registro con el último remitido e imprime la respuesta. */
@@ -198,10 +244,11 @@ class PortalDePruebasTest {
 
         private Optional<RegistroAnterior> anterior = Optional.empty();
 
-        void remitir(String caso, DatosRegistro datos) {
+        RegistroEncadenado remitir(String caso, DatosRegistro datos) {
             RegistroEncadenado encadenado = encadenar(datos, anterior);
             informar(caso, PortalDePruebasTest.this.remitir(encadenado));
             anterior = Optional.of(new RegistroAnterior(datos.camposDeHuella().idFactura(), encadenado.huella()));
+            return encadenado;
         }
     }
 
@@ -285,7 +332,7 @@ class PortalDePruebasTest {
         return prefijo + "-" + System.currentTimeMillis();
     }
 
-    private ClienteAeat clienteReal() {
+    private ClienteAeatSoap clienteReal() {
         String endpoint = soloPreproduccion(System.getenv().getOrDefault("LACRE_AEAT_ENDPOINT", ENDPOINT_PRUEBAS));
         return new ClienteAeatSoap(new PropiedadesAeat(endpoint, Duration.ofSeconds(60)), almacenDelKit());
     }

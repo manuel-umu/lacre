@@ -99,7 +99,7 @@ final class LectorRespuestaAeat {
     }
 
     /** Extrae el código del catálogo del texto del Fault. */
-    private static EnvioRechazadoException rechazo(String faultstring) {
+    static EnvioRechazadoException rechazo(String faultstring) {
         String texto = faultstring.trim();
         if (texto.startsWith(PREFIJO_DEL_CODIGO)) {
             int cierre = texto.indexOf(']');
@@ -115,7 +115,7 @@ final class LectorRespuestaAeat {
     }
 
     /** Avanza hasta el cierre del elemento en curso, con todo lo que contenga. */
-    private static void saltar(XMLStreamReader lector) throws XMLStreamException {
+    static void saltar(XMLStreamReader lector) throws XMLStreamException {
         int profundidad = 1;
         while (profundidad > 0) {
             switch (lector.next()) {
@@ -127,7 +127,7 @@ final class LectorRespuestaAeat {
     }
 
     /** Entidades externas desactivadas: defensa contra XXE. */
-    private static XMLInputFactory entradaSegura() {
+    static XMLInputFactory entradaSegura() {
         XMLInputFactory factoria = XMLInputFactory.newInstance();
         factoria.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
         factoria.setProperty(XMLInputFactory.SUPPORT_DTD, false);

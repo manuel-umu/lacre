@@ -7,6 +7,7 @@ import dev.lacre.remision.ResumenDeEnvios;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,20 @@ class ResumenDeEnviosJdbc implements ResumenDeEnvios {
                             rs.getObject("mas_antiguo", OffsetDateTime.class)));
         });
         return resumen;
+    }
+
+    @Override
+    public Map<UUID, EstadoEnvio> estadosDe(Collection<UUID> registroIds) {
+        Map<UUID, EstadoEnvio> estados = new HashMap<>();
+        if (registroIds.isEmpty()) {
+            return estados;
+        }
+        jdbc.sql("select registro_id, estado from envio_registro where registro_id in (:ids)")
+                .param("ids", registroIds)
+                .query(rs -> {
+                    estados.put(rs.getObject("registro_id", UUID.class), EstadoEnvio.valueOf(rs.getString("estado")));
+                });
+        return estados;
     }
 
     @Override

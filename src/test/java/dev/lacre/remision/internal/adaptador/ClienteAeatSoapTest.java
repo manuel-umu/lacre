@@ -1,8 +1,10 @@
 package dev.lacre.remision.internal.adaptador;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
+import static com.github.tomakehurst.wiremock.client.WireMock.notContaining;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -18,12 +20,14 @@ import dev.lacre.remision.EstadoEnvio;
 import dev.lacre.remision.EstadoEnvioAeat;
 import dev.lacre.remision.RemisionFallidaException;
 import dev.lacre.remision.RespuestaRemision;
+import dev.lacre.remision.ResultadoConsulta;
 import dev.lacre.shared.Nif;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.time.Duration;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
@@ -182,7 +186,87 @@ class ClienteAeatSoapTest {
                 .hasMessageContaining("no se pudo interpretar");
     }
 
+    // --- Consulta ---
+
+    @Test
+    void laConsultaRecorreLasPaginasConLaClaveDeLaAnteriorYNoRepiteElRegistroDeLaClave() {
+        aeat.stubFor(post(urlEqualTo(RUTA))
+                .withRequestBody(notContaining("ClavePaginacion"))
+                .willReturn(soap(RespuestasDeConsulta.respuesta(
+                        "S",
+                        "ConDatos",
+                        RespuestasDeConsulta.registro("FA/1", RespuestasDeConsulta.HUELLA_FA1, "Correcto", ""),
+                        RespuestasDeConsulta.clavePaginacion("FA/1")))));
+        aeat.stubFor(post(urlEqualTo(RUTA))
+                .withRequestBody(containing("<sf:NumSerieFactura>FA/1</sf:NumSerieFactura>"))
+                .willReturn(soap(RespuestasDeConsulta.respuesta(
+                        "N",
+                        "ConDatos",
+                        RespuestasDeConsulta.registro("FA/1", RespuestasDeConsulta.HUELLA_FA1, "Correcto", "")
+                                + RespuestasDeConsulta.registro("FA/2", RespuestasDeConsulta.HUELLA_FA2, "Anulado", ""),
+                        ""))));
+
+        ResultadoConsulta resultado = cliente.consultar(OBLIGADO, YearMonth.of(2024, 11));
+
+        assertThat(resultado.completo()).isTrue();
+        assertThat(resultado.registros())
+                .extracting(registro -> registro.idFactura().numSerieFactura())
+                .containsExactly("FA/1", "FA/2");
+        aeat.verify(2, postRequestedFor(urlEqualTo(RUTA)));
+    }
+
+    @Test
+    void unaConsultaSinDatosEsUnaListaVacia() {
+        responder(200, RespuestasDeConsulta.respuesta("N", "SinDatos", "", ""));
+
+        ResultadoConsulta resultado = cliente.consultar(OBLIGADO, YearMonth.of(2024, 11));
+
+        assertThat(resultado.registros()).isEmpty();
+        assertThat(resultado.completo()).isTrue();
+    }
+
+    @Test
+    void laConsultaSeCortaAlLlegarAlTopeDePaginasYLoDice() {
+        responder(
+                200,
+                RespuestasDeConsulta.respuesta(
+                        "S",
+                        "ConDatos",
+                        RespuestasDeConsulta.registro("FA/1", RespuestasDeConsulta.HUELLA_FA1, "Correcto", ""),
+                        RespuestasDeConsulta.clavePaginacion("FA/1")));
+
+        ResultadoConsulta resultado = cliente.consultar(OBLIGADO, YearMonth.of(2024, 11));
+
+        assertThat(resultado.completo()).isFalse();
+        aeat.verify(ClienteAeatSoap.MAXIMO_PAGINAS, postRequestedFor(urlEqualTo(RUTA)));
+    }
+
+    @Test
+    void unErrorHttpEnLaConsultaEsUnFalloYNoUnaListaVacia() {
+        responder(500, "<html>Servicio no disponible</html>");
+
+        assertThatThrownBy(() -> cliente.consultar(OBLIGADO, YearMonth.of(2024, 11)))
+                .isInstanceOf(RemisionFallidaException.class)
+                .hasMessageContaining("HTTP 500");
+    }
+
+    @Test
+    void unaRespuestaDeConsultaIlegibleEsUnFallo() {
+        responder(200, "<esto no es xml");
+
+        assertThatThrownBy(() -> cliente.consultar(OBLIGADO, YearMonth.of(2024, 11)))
+                .isInstanceOf(RemisionFallidaException.class)
+                .hasMessageContaining("no se pudo interpretar");
+    }
+
     // --- Apoyo ---
+
+    private static com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder soap(String cuerpo) {
+        return aResponse()
+                .withStatus(200)
+                .withHeader("Content-Type", "text/xml; charset=utf-8")
+                .withBody(cuerpo);
+    }
 
     private void responder(int estado, String cuerpo) {
         aeat.stubFor(post(urlEqualTo(RUTA))

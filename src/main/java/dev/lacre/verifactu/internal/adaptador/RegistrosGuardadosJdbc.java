@@ -5,6 +5,7 @@ import static dev.lacre.verifactu.consulta.VerificacionDeCadena.Rotura.Motivo;
 
 import dev.lacre.shared.Huella;
 import dev.lacre.shared.Nif;
+import dev.lacre.verifactu.consulta.RegistroDeFactura;
 import dev.lacre.verifactu.consulta.RegistroGuardado;
 import dev.lacre.verifactu.consulta.RegistrosGuardados;
 import dev.lacre.verifactu.consulta.VerificacionDeCadena;
@@ -18,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -86,6 +89,72 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
                 huellaOpcional(rs.getString("huella_anterior")),
                 rs.getObject("fecha_hora_huso_gen_registro", OffsetDateTime.class)
                         .withOffsetSameInstant(ZoneOffset.ofTotalSeconds(rs.getInt("huso_offset_segundos"))));
+    }
+
+    @Override
+    public List<RegistroDeFactura> deFacturasExpedidasEn(UUID obligadoId, YearMonth mes) {
+        return jdbc.sql(SELECT_PARA_COTEJAR + """
+                        where obligado_id = :obligado
+                          and fecha_expedicion_factura between :desde and :hasta
+                        """)
+                .param("obligado", obligadoId)
+                .param("desde", mes.atDay(1))
+                .param("hasta", mes.atEndOfMonth())
+                .query(RegistrosGuardadosJdbc::registroDeFactura)
+                .list();
+    }
+
+    @Override
+    public List<RegistroDeFactura> deFacturas(UUID obligadoId, Collection<IdFactura> facturas) {
+        if (facturas.isEmpty()) {
+            return List.of();
+        }
+        Set<IdFactura> buscadas = Set.copyOf(facturas);
+        return jdbc
+                .sql(SELECT_PARA_COTEJAR + """
+                        where obligado_id = :obligado and num_serie_factura in (:series)
+                        """)
+                .param("obligado", obligadoId)
+                .param(
+                        "series",
+                        buscadas.stream()
+                                .map(IdFactura::numSerieFactura)
+                                .distinct()
+                                .toList())
+                .query(RegistrosGuardadosJdbc::registroDeFactura)
+                .stream()
+                .filter(registro -> buscadas.contains(registro.idFactura()))
+                .toList();
+    }
+
+    private static final String SELECT_PARA_COTEJAR = """
+            select id, posicion, tipo, emisor, num_serie_factura, fecha_expedicion_factura, huella, xml
+            from registro_facturacion
+            """;
+
+    /** Un XML ilegible no impide cotejar: sin fecha de operación se imputa por la de expedición. */
+    private static RegistroDeFactura registroDeFactura(ResultSet rs, int fila) throws SQLException {
+        TipoRegistro tipo = TipoRegistro.valueOf(rs.getString("tipo"));
+        LocalDate fechaOperacion = null;
+        if (tipo == TipoRegistro.ALTA) {
+            try {
+                fechaOperacion = LectorRegistro.leer(rs.getString("xml"))
+                        .fechaOperacion()
+                        .orElse(null);
+            } catch (RegistroIlegibleException e) {
+                fechaOperacion = null;
+            }
+        }
+        return new RegistroDeFactura(
+                rs.getObject("id", UUID.class),
+                rs.getLong("posicion"),
+                tipo,
+                new IdFactura(
+                        new Nif(rs.getString("emisor")),
+                        rs.getString("num_serie_factura"),
+                        rs.getObject("fecha_expedicion_factura", LocalDate.class)),
+                new Huella(rs.getString("huella")),
+                fechaOperacion);
     }
 
     @Override

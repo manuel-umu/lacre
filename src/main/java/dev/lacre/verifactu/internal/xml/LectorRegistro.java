@@ -11,6 +11,7 @@ import dev.lacre.verifactu.registro.RegistroAnterior;
 import dev.lacre.verifactu.registro.TipoFactura;
 import java.io.StringReader;
 import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +26,7 @@ import javax.xml.stream.XMLStreamReader;
 
 /**
  * Lee de un fragmento {@code RegistroAlta} o {@code RegistroAnulacion} lo que hace falta para
- * recalcular su huella. Lee por ruta y no por nombre de elemento: en un alta rectificativa,
+ * recalcular su huella, y la fecha de operación de un alta. Lee por ruta y no por nombre de elemento: en un alta rectificativa,
  * {@code NumSerieFactura} aparece tres veces y {@code Huella}, dos.
  */
 public final class LectorRegistro {
@@ -48,6 +49,7 @@ public final class LectorRegistro {
             ANTERIOR + "FechaExpedicionFactura",
             ANTERIOR + "Huella",
             "FechaHoraHusoGenRegistro",
+            "FechaOperacion",
             "Huella");
 
     private LectorRegistro() {}
@@ -108,7 +110,11 @@ public final class LectorRegistro {
 
         OffsetDateTime fechaHora = FormatosAeat.leerFechaHoraHuso(obligatorio(valores, "FechaHoraHusoGenRegistro"));
 
-        return new RegistroLeido(campos, anterior, fechaHora, new Huella(obligatorio(valores, "Huella")));
+        Optional<LocalDate> fechaOperacion =
+                Optional.ofNullable(valores.get("FechaOperacion")).map(FormatosAeat::leerFecha);
+
+        return new RegistroLeido(
+                campos, anterior, fechaHora, new Huella(obligatorio(valores, "Huella")), fechaOperacion);
     }
 
     /** Los campos de la anulación llevan el sufijo {@code Anulada}; los del anterior, no. */

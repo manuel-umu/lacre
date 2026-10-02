@@ -47,6 +47,21 @@ class LectorRegistroTest {
     }
 
     @Test
+    void leeLaFechaDeOperacionDeUnAltaQueLaDeclara() {
+        DatosRegistroAlta conFecha = Registros.alta()
+                .fechaOperacion(java.time.LocalDate.of(2023, 12, 20))
+                .build();
+
+        RegistroLeido leido = LectorRegistro.leer(EscritorRegistro.escribir(
+                encadenadoA("2024-01-01T18:20:30Z").encadenar(conFecha, Optional.empty(), MADRID)));
+        RegistroLeido sinFecha = LectorRegistro.leer(EscritorRegistro.escribir(
+                encadenadoA("2024-01-01T18:20:30Z").encadenar(alta("FA/1"), Optional.empty(), MADRID)));
+
+        assertThat(leido.fechaOperacion()).contains(java.time.LocalDate.of(2023, 12, 20));
+        assertThat(sinFecha.fechaOperacion()).isEmpty();
+    }
+
+    @Test
     void desdeElXmlSeRecalculaLaHuellaDelCaso2() {
         RegistroEncadenado registro = encadenadoA("2024-01-01T18:20:35Z")
                 .encadenar(alta("12345679/G34"), Optional.of(Registros.anterior(HUELLA_CASO_1)), MADRID);

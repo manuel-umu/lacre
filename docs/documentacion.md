@@ -113,9 +113,8 @@ se guarda.
 
 ## Consola
 
-La consola de operación está en `/consola`, hecha con Thymeleaf y htmx. Muestra una fila por obligado con la posición de su último registro y sus envíos por estado, y resalta los que tienen pendientes de más de una hora. La tabla se refresca sola cada 30 segundos. Desde cada obligado se entra a su detalle: los envíos pendientes con sus intentos y el último fallo, los que la AEAT rechazó o aceptó con errores con el código y la descripción que devolvió, y un botón que verifica la cadena entera bajo demanda.
+La consola de operación está en `/consola`, hecha con Thymeleaf y htmx. Muestra una fila por obligado con la posición de su último registro y sus envíos por estado, y resalta los que tienen pendientes de más de una hora. Desde cada obligado se entra a su detalle: los envíos pendientes con sus intentos y el último fallo, los que la AEAT rechazó o aceptó con errores con el código y la descripción que devolvió, y un botón que verifica la cadena entera bajo demanda. Desde cada detalle se pueden cotejar los datos de la AEAT que tiene la aplicación.
 
-Tiene su propio inicio de sesión con Spring Security, separado de la clave de la API: una `SecurityFilterChain` que solo cubre `/consola/**`, con sesión y protección CSRF. La credencial se configura con `LACRE_CONSOLA_USUARIO` y `LACRE_CONSOLA_CLAVE`; si no hay clave, la consola responde 404 y el resto de la aplicación funciona igual.
 
 ## Tests
 

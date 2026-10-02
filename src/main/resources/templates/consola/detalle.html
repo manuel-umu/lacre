@@ -30,6 +30,14 @@
         <div><dt>Apartados</dt><dd th:text="${fila.envios().apartados()}">0</dd></div>
     </dl>
 
+    <h3>Cotejo con la AEAT</h3>
+    <form class="acciones" method="get"
+          th:action="@{/consola/obligados/{nif}/cotejo(nif=${obligado.nif().valor()})}">
+        <label>Periodo <input type="month" name="periodo" required></label>
+        <button type="submit">Cotejar con la AEAT</button>
+        <span class="nota">Consulta lo presentado en ese mes y lo cruza con lo registrado aquí.</span>
+    </form>
+
     <h3>Cadena</h3>
     <div id="verificacion">
         <button type="button" th:attr="hx-get=@{/consola/obligados/{nif}/cadena(nif=${obligado.nif().valor()})}"

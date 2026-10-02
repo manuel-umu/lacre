@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="|lacre · cotejo ${obligado.nif().valor()}|">lacre · cotejo</title>
+    <link rel="stylesheet" th:href="@{/consola/consola.css}">
+</head>
+<body>
+<header>
+    <h1><a th:href="@{/consola}">lacre</a></h1>
+    <form th:action="@{/consola/salir}" method="post">
+        <button type="submit">Salir</button>
+    </form>
+</header>
+<main>
+    <p class="nota">
+        <a th:href="@{/consola}">Obligados</a> /
+        <a th:href="@{/consola/obligados/{nif}(nif=${obligado.nif().valor()})}"
+           th:text="${obligado.nif().valor()}">NIF</a> /
+    </p>
+    <h2 th:text="|Cotejo con la AEAT · ${periodo} |">Cotejo con la AEAT</h2>
+
+    <form class="acciones" method="get"
+          th:action="@{/consola/obligados/{nif}/cotejo(nif=${obligado.nif().valor()})}">
+        <label>Periodo <input type="month" name="periodo" th:value="${periodo}" required></label>
+        <button type="submit">Cotejar</button>
+    </form>
+
+    <p th:if="${error}" class="aviso" th:text="${error}">Error.</p>
+
+    <th:block th:if="${cotejo}">
+        <p th:if="${!cotejo.completo()}" class="aviso">
+            La AEAT tenía más registros de los que se han pedido: el cotejo es parcial.
+        </p>
+        <p th:if="${cotejo.cuadra()}" class="correcto"
+           th:text="|Cuadra: las ${#lists.size(cotejo.coinciden())} facturas de la AEAT coinciden con lacre.|">
+            Cuadra.</p>
+        <dl class="resumen" th:unless="${cotejo.cuadra()}">
+            <div><dt>Coinciden</dt><dd th:text="${#lists.size(cotejo.coinciden())}">0</dd></div>
+            <div><dt>Con discrepancias</dt><dd th:text="${#lists.size(cotejo.discrepancias())}">0</dd></div>
+            <div><dt>Solo en la AEAT</dt><dd th:text="${#lists.size(cotejo.soloEnAeat())}">0</dd></div>
+            <div><dt>Solo en lacre</dt><dd th:text="${#lists.size(cotejo.soloEnLacre())}">0</dd></div>
+        </dl>
+
+        <th:block th:unless="${#lists.isEmpty(cotejo.soloEnLacre())}">
+            <h3>Solo en lacre</h3>
+            <p class="nota">Aceptadas por la AEAT según lacre, pero la consulta no las devuelve.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th class="numero">Posición</th>
+                    <th>Factura</th>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${cotejo.soloEnLacre()}">
+                    <td class="numero" th:text="${r.posicion()}">1</td>
+                    <td th:text="${r.idFactura().numSerieFactura()}">FA/1</td>
+                    <td th:text="${#temporals.format(r.idFactura().fechaExpedicion(), 'dd/MM/yyyy')}">01/01/2026</td>
+                    <td th:text="${r.tipo().name() == 'ALTA'} ? 'Alta' : 'Anulación'">Alta</td>
+                </tr>
+                </tbody>
+            </table>
+        </th:block>
+
+        <th:block th:unless="${#lists.isEmpty(cotejo.discrepancias())}">
+            <h3>Con discrepancias</h3>
+            <table>
+                <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Fecha</th>
+                    <th>Motivo</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${cotejo.discrepancias()}">
+                    <td th:text="${d.idFactura().numSerieFactura()}">FA/1</td>
+                    <td th:text="${#temporals.format(d.idFactura().fechaExpedicion(), 'dd/MM/yyyy')}">01/01/2026</td>
+                    <td class="descripcion" th:text="${d.motivo()}">Motivo</td>
+                </tr>
+                </tbody>
+            </table>
+        </th:block>
+
+        <th:block th:unless="${#lists.isEmpty(cotejo.soloEnAeat())}">
+            <h3>Solo en la AEAT</h3>
+            <p class="nota">Presentadas desde otro sistema o antes de usar lacre.</p>
+            <table>
+                <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Presentada</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="a : ${cotejo.soloEnAeat()}">
+                    <td th:text="${a.idFactura().numSerieFactura()}">FA/1</td>
+                    <td th:text="${#temporals.format(a.idFactura().fechaExpedicion(), 'dd/MM/yyyy')}">01/01/2026</td>
+                    <td th:text="${a.estado()}">CORRECTO</td>
+                    <td th:text="${a.presentado()} ? ${#temporals.format(a.presentado(), 'dd/MM/yyyy HH:mm')} : '—'">—</td>
+                </tr>
+                </tbody>
+            </table>
+        </th:block>
+    </th:block>
+</main>
+</body>
+</html>
