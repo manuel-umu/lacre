@@ -1,7 +1,7 @@
 # Despliegue de ejemplo. Las variables obligatorias van sin valor por defecto y con `:?`: si
 # faltan.
 #
-#     cp .env.example .env      y cambia las cuatro claves
+#     cp .env.example .env      y rellena el bloque obligatorio
 #     docker compose up -d db lacre
 
 services:
@@ -27,6 +27,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file: .env
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/lacre
       SPRING_DATASOURCE_USERNAME: lacre_app
@@ -36,14 +37,9 @@ services:
       LACRE_DB_CLAVE_APLICACION: ${LACRE_DB_CLAVE_APLICACION:?falta LACRE_DB_CLAVE_APLICACION}
       LACRE_API_CLAVE: ${LACRE_API_CLAVE:?falta LACRE_API_CLAVE}
       LACRE_QR_URL_BASE: ${LACRE_QR_URL_BASE:?falta LACRE_QR_URL_BASE}
-      # Consola de operación en /consola; sin clave queda desactivada.
-      LACRE_CONSOLA_USUARIO: ${LACRE_CONSOLA_USUARIO:-lacre}
-      LACRE_CONSOLA_CLAVE: ${LACRE_CONSOLA_CLAVE:-}
-      # Certificados de los obligados: un PKCS#12 por NIF, en un volumen de solo lectura. Sin
-      # ellos lacre registra facturas pero no puede remitirlas.
-      # LACRE_CERTIFICADOS_DIR: /certificados
-    # volumes:
-    #   - ./certificados:/certificados:ro
+      LACRE_CERTIFICADOS_DIR: /certificados
+    volumes:
+      - ${LACRE_CERTIFICADOS_HOST:-./certificados}:/certificados:ro
     ports:
       - "8080:8080"
     healthcheck:

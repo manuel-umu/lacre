@@ -189,6 +189,15 @@ Requieren JDK 25 y Docker en marcha, porque levantan un PostgreSQL con Testconta
 ./mvnw test
 ```
 
+## Producción
+
+Todo se configura en el `.env`:
+
+1. Rellenar el bloque obligatorio y cambiar `LACRE_QR_URL_BASE` a la URL de producción.
+2. En el bloque «Para presentar a la AEAT», descomentar `LACRE_AEAT_ENDPOINT` con el endpoint de producción y poner los datos del productor del sistema informático.
+3. Copiar el certificado de cada obligado a `certificados/`, con su NIF como nombre (`12345678Z.p12`), y añadir su contraseña en `LACRE_CERTIFICADOS_CONTRASENAS_12345678Z`.
+4. `docker compose up -d --build db lacre`.
+
 ## Integración
 
 El contrato está en [src/main/resources/static/openapi.yaml](src/main/resources/static/openapi.yaml),
