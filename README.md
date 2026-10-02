@@ -147,7 +147,7 @@ curl -X POST http://localhost:8080/v1/registros/alta \
     },
     "nombreRazonEmisor": "Obligado de prueba SL",
     "tipoFactura": "F1",
-    "descripcionOperacion": "Servicios de consultoría",
+    "descripcionOperacion": "Servicios de consultoria",
     "destinatarios": [ { "nombreRazon": "Cliente SL", "nif": "A28015865" } ],
     "desglose": [ {
       "impuesto": "01",

@@ -23,7 +23,7 @@
 
     <form class="acciones" method="get"
           th:action="@{/consola/obligados/{nif}/cotejo(nif=${obligado.nif().valor()})}">
-        <label>Periodo <input type="month" name="periodo" th:value="${periodo}" required></label>
+        <label>Periodo <input type="month" name="periodo" th:value="${periodo}" th:max="${mesEnCurso}" required></label>
         <button type="submit">Cotejar</button>
     </form>
 

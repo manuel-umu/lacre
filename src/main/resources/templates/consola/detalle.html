@@ -33,7 +33,7 @@
     <h3>Cotejo con la AEAT</h3>
     <form class="acciones" method="get"
           th:action="@{/consola/obligados/{nif}/cotejo(nif=${obligado.nif().valor()})}">
-        <label>Periodo <input type="month" name="periodo" required></label>
+        <label>Periodo <input type="month" name="periodo" th:value="${mesEnCurso}" th:max="${mesEnCurso}" required></label>
         <button type="submit">Cotejar con la AEAT</button>
         <span class="nota">Consulta lo presentado en ese mes y lo cruza con lo registrado aquí.</span>
     </form>

@@ -112,6 +112,7 @@ class ConsolaController {
 
         modelo.addAttribute("obligado", obligado);
         modelo.addAttribute("fila", fila);
+        modelo.addAttribute("mesEnCurso", mesEnCurso(obligado));
         modelo.addAttribute("pendientes", conSuRegistro(pendientes, obligado));
         modelo.addAttribute("pendientesSinListar", fila.envios().pendientes() - pendientes.size());
         modelo.addAttribute("conErrores", conSuRegistro(conErrores, obligado));
@@ -137,16 +138,20 @@ class ConsolaController {
             Model modelo) {
         ObligadoTributario obligado = obligadoDe(nif);
         modelo.addAttribute("obligado", obligado);
+        YearMonth enCurso = mesEnCurso(obligado);
+        modelo.addAttribute("mesEnCurso", enCurso);
         YearMonth mes;
         try {
-            mes = periodo == null || periodo.isBlank()
-                    ? YearMonth.now(reloj.withZone(obligado.zonaHoraria()))
-                    : YearMonth.parse(periodo);
+            mes = periodo == null || periodo.isBlank() ? enCurso : YearMonth.parse(periodo);
         } catch (DateTimeParseException e) {
             modelo.addAttribute("error", "El periodo tiene que tener la forma AAAA-MM.");
             return "consola/cotejo";
         }
         modelo.addAttribute("periodo", mes);
+        if (mes.isAfter(enCurso)) {
+            modelo.addAttribute("error", "No se puede cotejar un mes posterior al mes en curso, " + enCurso + ".");
+            return "consola/cotejo";
+        }
         try {
             ResultadoConsulta consulta = aeat.consultar(obligado, mes);
             Map<UUID, RegistroDeFactura> locales = new LinkedHashMap<>();
@@ -234,6 +239,11 @@ class ConsolaController {
             aviso.addFlashAttribute("error", "El envío ya no estaba en el estado que mostraba la página.");
         }
         return "redirect:/consola/obligados/" + obligado.nif().valor();
+    }
+
+    /** El mes en curso en la zona horaria del obligado. */
+    private YearMonth mesEnCurso(ObligadoTributario obligado) {
+        return YearMonth.now(reloj.withZone(obligado.zonaHoraria()));
     }
 
     private ObligadoTributario obligadoDe(String nif) {

@@ -124,6 +124,18 @@ class CotejoConsolaTest {
     }
 
     @Test
+    void unMesFuturoNoLlegaALaAeat() throws Exception {
+        String siguiente = YearMonth.now().plusMonths(2).toString();
+
+        mvc.perform(get("/consola/obligados/{nif}/cotejo", nif)
+                        .param("periodo", siguiente)
+                        .with(user("operador")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("posterior al mes en curso")));
+        assertThat(aeat.periodosPedidos).isEmpty();
+    }
+
+    @Test
     void elCotejoExigeSesion() throws Exception {
         mvc.perform(get("/consola/obligados/{nif}/cotejo", nif)).andExpect(status().is3xxRedirection());
     }
