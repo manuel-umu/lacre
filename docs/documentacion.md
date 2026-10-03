@@ -92,7 +92,7 @@ stateDiagram-v2
 - **El despachador** es un proceso que revisa periódicamente los envíos pendientes usando `for update skip locked`, de forma que varias instancias pueden funcionar a la vez sin coger los
 mismos envíos. La AEAT obliga a esperar un tiempo entre envíos, y ese turno se reserva por obligado con una consulta SQL. En un mismo lote cada factura va solo una vez, porque las
 respuestas de la AEAT se emparejan por factura y tipo de operación. 
-- **El cliente SOAP**, usa un `HttpClient` por obligado, porque el TLS mutuo se autentica con el certificado de cada uno. Los certificados son ficheros PKCS#12 en un volumen: lacre no guarda claves privadas en su base de datos. Cada obligado usa su propio certificado o, si no lo tiene, el del presentador: el de quien remite en su nombre.
+- **El cliente SOAP**, usa un `HttpClient` por obligado ya que se autentica con el certificado de cada uno. Los certificados son ficheros PKCS#12 en un volumen: lacre no guarda claves privadas en su base de datos. Cada obligado usa su propio certificado o, si no lo tiene, el del presentador: el de quien remite en su nombre.
 
 ## API
 
