@@ -7,3 +7,4 @@ target/
 *.md
 docker-compose.yml
 .jqwik-database
+certificados/

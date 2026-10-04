@@ -125,7 +125,11 @@
                 <tr th:each="a : ${cotejo.soloEnAeat()}">
                     <td th:text="${a.idFactura().numSerieFactura()}">FA/1</td>
                     <td th:text="${#temporals.format(a.idFactura().fechaExpedicion(), 'dd/MM/yyyy')}">01/01/2026</td>
-                    <td th:text="${a.estado()}">CORRECTO</td>
+                    <td th:switch="${a.estado().name()}">
+                        <span th:case="'CORRECTO'" class="estado estado-al_dia">Correcto</span>
+                        <span th:case="'ACEPTADO_CON_ERRORES'" class="estado estado-apartados">Aceptado con errores</span>
+                        <span th:case="*" class="estado">Anulado</span>
+                    </td>
                     <td th:text="${a.presentado()} ? ${#temporals.format(a.presentado(), 'dd/MM/yyyy HH:mm')} : '—'">—</td>
                 </tr>
                 </tbody>
