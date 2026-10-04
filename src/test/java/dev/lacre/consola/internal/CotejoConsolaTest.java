@@ -101,6 +101,16 @@ class CotejoConsolaTest {
     }
 
     @Test
+    void cotejarMasVecesQueConexionesTieneElPoolNoLasAgota() throws Exception {
+        RegistroFacturacion coincide = aceptada("FA/1");
+        aeat.responde = (obligado, periodo) -> new ResultadoConsulta(List.of(enAeat("FA/1", coincide)), true);
+
+        for (int i = 0; i < 15; i++) {
+            assertThat(cotejar(PERIODO.toString()).coinciden()).hasSize(1);
+        }
+    }
+
+    @Test
     void sinCertificadoSeExplicaYNoRevienta() throws Exception {
         aeat.responde = (obligado, periodo) -> {
             throw new CertificadoNoDisponibleException(obligado.nif(), "no hay fichero");

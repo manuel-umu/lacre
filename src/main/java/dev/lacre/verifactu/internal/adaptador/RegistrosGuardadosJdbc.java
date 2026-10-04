@@ -122,6 +122,7 @@ class RegistrosGuardadosJdbc implements RegistrosGuardados {
                                 .distinct()
                                 .toList())
                 .query(RegistrosGuardadosJdbc::registroDeFactura)
+                .list()
                 .stream()
                 .filter(registro -> buscadas.contains(registro.idFactura()))
                 .toList();
