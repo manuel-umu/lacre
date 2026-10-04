@@ -400,3 +400,13 @@ a:focus-visible {
 #verificacion > .nota {
     margin-left: 8px;
 }
+
+.entrada .logo {
+    display: block;
+    margin: 0 auto 8px;
+}
+
+.entrada h1,
+.entrada .subtitulo {
+    text-align: center;
+}
