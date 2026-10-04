@@ -15,41 +15,70 @@
     </form>
 </header>
 <main>
-    <h2>Obligados</h2>
+    <div class="titulo">
+        <h2>Obligados</h2>
+        <input type="search" id="buscar" placeholder="Buscar por NIF o nombre" aria-label="Buscar obligado">
+    </div>
     <div th:fragment="tabla" id="tabla" th:attr="hx-get=@{/consola/obligados}" hx-trigger="every 30s"
          hx-swap="outerHTML">
         <p th:if="${#lists.isEmpty(filas)}" class="nota">Todavía no hay obligados dados de alta.</p>
-        <table th:unless="${#lists.isEmpty(filas)}">
-            <thead>
-            <tr>
-                <th>NIF</th>
-                <th>Nombre</th>
-                <th class="numero">Último registro</th>
-                <th class="numero">Pendientes</th>
-                <th>Pendiente más antiguo</th>
-                <th class="numero">Aceptados</th>
-                <th class="numero">Con errores</th>
-                <th class="numero">Rechazados</th>
-                <th class="numero">Duplicados</th>
-                <th class="numero">Apartados</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="fila : ${filas}" th:classappend="${fila.atascado()} ? 'atascado'">
-                <td><a th:href="@{/consola/obligados/{nif}(nif=${fila.nif()})}" th:text="${fila.nif()}">12345678Z</a></td>
-                <td th:text="${fila.nombre()}">Obligado</td>
-                <td class="numero" th:text="${fila.ultimaPosicion()} ?: '—'">0</td>
-                <td class="numero" th:text="${fila.envios().pendientes()}">0</td>
-                <td th:text="${fila.espera()} ?: '—'">—</td>
-                <td class="numero" th:text="${fila.envios().aceptados()}">0</td>
-                <td class="numero" th:text="${fila.envios().aceptadosConErrores()}">0</td>
-                <td class="numero" th:text="${fila.envios().rechazados()}">0</td>
-                <td class="numero" th:text="${fila.envios().duplicados()}">0</td>
-                <td class="numero" th:text="${fila.envios().apartados()}">0</td>
-            </tr>
-            </tbody>
-        </table>
+        <th:block th:unless="${#lists.isEmpty(filas)}">
+            <dl class="cifras">
+                <div><dt>Obligados</dt><dd th:text="${#lists.size(filas)}">0</dd></div>
+                <div><dt>Pendientes</dt><dd th:text="${#aggregates.sum(filas.![envios().pendientes()])}">0</dd></div>
+                <div th:with="n=${#lists.size(filas.?[atascado()])}" th:classappend="${n > 0} ? 'alerta'">
+                    <dt>Atascados</dt><dd th:text="${n}">0</dd></div>
+                <div th:with="n=${#aggregates.sum(filas.![erroresSinAtender()])}" th:classappend="${n > 0} ? 'alerta'">
+                    <dt>Errores sin atender</dt><dd th:text="${n}">0</dd></div>
+                <div><dt>Apartados</dt><dd th:text="${#aggregates.sum(filas.![envios().apartados()])}">0</dd></div>
+            </dl>
+            <div class="bloque">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Obligado</th>
+                        <th>Estado</th>
+                        <th class="numero">Último registro</th>
+                        <th class="numero">Pendientes</th>
+                        <th class="numero">Aceptados</th>
+                        <th class="numero">Incidencias</th>
+                        <th class="numero">Apartados</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="fila : ${filas}" th:classappend="${fila.atascado()} ? 'atascado'"
+                        th:attr="data-busqueda=${#strings.toLowerCase(fila.nif() + ' ' + fila.nombre())}">
+                        <td>
+                            <a class="enlace-fila" th:href="@{/consola/obligados/{nif}(nif=${fila.nif()})}"
+                               th:text="${fila.nombre()}">Obligado</a>
+                            <div class="nif" th:text="${fila.nif()}">12345678Z</div>
+                        </td>
+                        <td><span class="estado" th:classappend="|estado-${#strings.toLowerCase(fila.estado().name())}|"
+                                  th:text="${fila.estado().etiqueta()}">Al día</span></td>
+                        <td class="numero" th:text="${fila.ultimaPosicion()} ?: '—'">0</td>
+                        <td class="numero">
+                            <span th:text="${fila.envios().pendientes()}">0</span>
+                            <div class="nota" th:if="${fila.espera()}" th:text="|hace ${fila.espera()}|">hace 5 min</div>
+                        </td>
+                        <td class="numero" th:text="${fila.envios().aceptados()}">0</td>
+                        <td class="numero" th:text="${fila.incidencias()}">0</td>
+                        <td class="numero" th:text="${fila.envios().apartados()}">0</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </th:block>
     </div>
 </main>
+<script>
+    const buscar = document.getElementById('buscar');
+    const filtrar = () => {
+        const texto = buscar.value.trim().toLowerCase();
+        document.querySelectorAll('#tabla tbody tr')
+            .forEach(fila => fila.hidden = texto !== '' && !fila.dataset.busqueda.includes(texto));
+    };
+    buscar.addEventListener('input', filtrar);
+    document.body.addEventListener('htmx:load', filtrar);
+</script>
 </body>
 </html>

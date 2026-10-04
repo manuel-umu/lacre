@@ -1,25 +1,37 @@
 :root {
     color-scheme: light dark;
-    --fondo: #f7f6f3;
+    --fondo: #f5f4f1;
     --superficie: #ffffff;
     --texto: #1f1d1a;
     --tenue: #6b665f;
-    --borde: #e2ded6;
+    --borde: #e4e0d8;
     --lacre: #a3242b;
     --atasco: #fbeaea;
     --correcto: #2f6b3a;
+    --correcto-fondo: #e6f2e8;
+    --aviso-fondo: #fdf1dc;
+    --aviso-texto: #8a5a00;
+    --neutro-fondo: #efede8;
+    --resalte: #faf9f6;
+    --sombra: 0 1px 2px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.04);
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --fondo: #161514;
-        --superficie: #1f1e1c;
+        --fondo: #141312;
+        --superficie: #1e1d1b;
         --texto: #ecebe8;
         --tenue: #a19d96;
-        --borde: #34322e;
+        --borde: #33312d;
         --lacre: #e0676d;
         --atasco: #3a1f20;
         --correcto: #7fc48c;
+        --correcto-fondo: #1d3322;
+        --aviso-fondo: #3a2e15;
+        --aviso-texto: #e8b75c;
+        --neutro-fondo: #2a2926;
+        --resalte: #252421;
+        --sombra: none;
     }
 }
 
@@ -34,11 +46,18 @@ body {
     color: var(--texto);
 }
 
+a {
+    color: inherit;
+}
+
 header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 24px;
+    padding: 10px 24px;
     background: var(--superficie);
     border-bottom: 1px solid var(--borde);
 }
@@ -46,35 +65,180 @@ header {
 h1 {
     margin: 0;
     font-size: 20px;
+    letter-spacing: 0.02em;
     color: var(--lacre);
 }
 
+h1 a {
+    text-decoration: none;
+}
+
 h2 {
-    font-size: 16px;
+    margin: 0;
+    font-size: 20px;
+}
+
+h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    font-size: 15px;
 }
 
 main {
-    padding: 16px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+}
+
+.titulo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.migas {
+    margin: 0 0 8px;
+    color: var(--tenue);
+}
+
+/* Cifras en tarjetas */
+.cifras {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 0 0 20px;
+}
+
+.cifras > div {
+    padding: 12px 16px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
+}
+
+.cifras dt {
+    color: var(--tenue);
+    font-size: 13px;
+}
+
+.cifras dd {
+    margin: 2px 0 0;
+    font-size: 24px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.cifras .alerta {
+    border-color: var(--lacre);
+}
+
+.cifras .alerta dd {
+    color: var(--lacre);
+}
+
+/* Bloques */
+.bloque {
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    box-shadow: var(--sombra);
     overflow-x: auto;
 }
 
+#tabla .bloque {
+    padding: 0;
+}
+
+.dos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 0 20px;
+}
+
+.ficha {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.etiquetas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cuenta {
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--neutro-fondo);
+    color: var(--tenue);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Tablas */
 table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--superficie);
-    border: 1px solid var(--borde);
 }
 
 th, td {
-    padding: 8px 12px;
+    padding: 10px 14px;
     text-align: left;
     border-bottom: 1px solid var(--borde);
     white-space: nowrap;
+    vertical-align: top;
+}
+
+tbody tr:last-child td {
+    border-bottom: 0;
 }
 
 th {
+    font-size: 13px;
     font-weight: 600;
     color: var(--tenue);
+}
+
+tbody tr {
+    position: relative;
+}
+
+tbody tr:hover {
+    background: var(--resalte);
+}
+
+tr.atascado,
+tr.atascado:hover {
+    background: var(--atasco);
+}
+
+.enlace-fila {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.enlace-fila::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+}
+
+.nif {
+    color: var(--tenue);
+    font-size: 13px;
+    font-family: ui-monospace, monospace;
 }
 
 .numero {
@@ -82,20 +246,106 @@ th {
     font-variant-numeric: tabular-nums;
 }
 
-tr.atascado {
-    background: var(--atasco);
+.numero .nota {
+    font-size: 12px;
 }
 
-button {
+td.descripcion {
+    white-space: normal;
+    min-width: 280px;
+}
+
+td form {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+}
+
+/* Etiquetas de estado */
+.estado {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--neutro-fondo);
+    color: var(--tenue);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.estado-atascado,
+.estado-con_errores {
+    background: var(--atasco);
+    color: var(--lacre);
+}
+
+.estado-apartados,
+.estado-enviando {
+    background: var(--aviso-fondo);
+    color: var(--aviso-texto);
+}
+
+.estado-al_dia {
+    background: var(--correcto-fondo);
+    color: var(--correcto);
+}
+
+/* Controles */
+button,
+select,
+input {
     font: inherit;
-    padding: 6px 14px;
     border: 1px solid var(--borde);
     border-radius: 6px;
     background: var(--superficie);
     color: var(--texto);
+}
+
+button {
+    padding: 6px 14px;
     cursor: pointer;
 }
 
+button:hover {
+    background: var(--resalte);
+}
+
+select {
+    padding: 6px 28px 6px 10px;
+    cursor: pointer;
+}
+
+input {
+    padding: 6px 10px;
+}
+
+input[type="search"] {
+    width: min(320px, 100%);
+}
+
+select:focus-visible,
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--lacre);
+    outline-offset: 1px;
+}
+
+.acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.campo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tenue);
+}
+
+/* Textos */
 .nota {
     color: var(--tenue);
 }
@@ -104,9 +354,26 @@ button {
     color: var(--lacre);
 }
 
+.correcto {
+    color: var(--correcto);
+}
+
+.mensaje {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--superficie);
+    border: 1px solid currentColor;
+}
+
+/* Inicio de sesión */
 .entrada main {
-    max-width: 320px;
+    max-width: 360px;
     margin: 12vh auto 0;
+    padding: 28px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    box-shadow: var(--sombra);
 }
 
 .subtitulo {
@@ -124,84 +391,12 @@ button {
     gap: 4px;
 }
 
-.entrada input {
-    font: inherit;
-    padding: 6px 8px;
-    border: 1px solid var(--borde);
-    border-radius: 6px;
-    background: var(--superficie);
-    color: var(--texto);
+.entrada button {
+    background: var(--lacre);
+    border-color: var(--lacre);
+    color: #fff;
 }
 
-a {
-    color: inherit;
-}
-
-h1 a {
-    text-decoration: none;
-}
-
-h3 {
-    margin-top: 28px;
-    font-size: 15px;
-}
-
-.resumen {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 28px;
-    margin: 0;
-}
-
-.resumen dt {
-    color: var(--tenue);
-    font-size: 13px;
-}
-
-.resumen dd {
-    margin: 0;
-    font-variant-numeric: tabular-nums;
-}
-
-td.descripcion {
-    white-space: normal;
-    min-width: 280px;
-}
-
-.correcto {
-    color: var(--correcto);
-}
-
-.acciones {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-td form {
-    margin: 0;
-}
-
-.campo {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--tenue);
-}
-
-select {
-    font: inherit;
-    padding: 6px 28px 6px 10px;
-    border: 1px solid var(--borde);
-    border-radius: 6px;
-    background: var(--superficie);
-    color: var(--texto);
-    cursor: pointer;
-}
-
-select:focus-visible,
-button:focus-visible {
-    outline: 2px solid var(--lacre);
-    outline-offset: 1px;
+#verificacion > .nota {
+    margin-left: 8px;
 }

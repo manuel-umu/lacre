@@ -25,7 +25,6 @@ import java.time.Clock;
 import java.time.DateTimeException;
 import java.time.OffsetDateTime;
 import java.time.YearMonth;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -288,7 +287,7 @@ class ConsolaController {
         return StreamSupport.stream(obligados.findAll().spliterator(), false)
                 .map(obligado ->
                         FilaObligado.de(obligado, posiciones.get(obligado.id()), porObligado.get(obligado.id()), ahora))
-                .sorted(Comparator.comparing(FilaObligado::nif))
+                .sorted(FilaObligado.POR_ATENCION)
                 .toList();
     }
 }

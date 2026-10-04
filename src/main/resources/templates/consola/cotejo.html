@@ -14,12 +14,12 @@
     </form>
 </header>
 <main>
-    <p class="nota">
+    <p class="migas">
         <a th:href="@{/consola}">Obligados</a> /
         <a th:href="@{/consola/obligados/{nif}(nif=${obligado.nif().valor()})}"
            th:text="${obligado.nif().valor()}">NIF</a> /
     </p>
-    <h2 th:text="|Cotejo con la AEAT · ${periodo} |">Cotejo con la AEAT</h2>
+    <h2 class="titulo" th:text="|Cotejo con la AEAT · ${periodo} |">Cotejo con la AEAT</h2>
 
     <form th:fragment="selectorPeriodo" class="acciones" method="get"
           th:action="@{/consola/obligados/{nif}/cotejo(nif=${obligado.nif().valor()})}"
@@ -58,14 +58,14 @@
         <p th:if="${cotejo.cuadra()}" class="correcto"
            th:text="|Cuadra: las ${#lists.size(cotejo.coinciden())} facturas de la AEAT coinciden con lacre.|">
             Cuadra.</p>
-        <dl class="resumen" th:unless="${cotejo.cuadra()}">
+        <dl class="cifras" th:unless="${cotejo.cuadra()}">
             <div><dt>Coinciden</dt><dd th:text="${#lists.size(cotejo.coinciden())}">0</dd></div>
             <div><dt>Con discrepancias</dt><dd th:text="${#lists.size(cotejo.discrepancias())}">0</dd></div>
             <div><dt>Solo en la AEAT</dt><dd th:text="${#lists.size(cotejo.soloEnAeat())}">0</dd></div>
             <div><dt>Solo en lacre</dt><dd th:text="${#lists.size(cotejo.soloEnLacre())}">0</dd></div>
         </dl>
 
-        <th:block th:unless="${#lists.isEmpty(cotejo.soloEnLacre())}">
+        <section class="bloque" th:unless="${#lists.isEmpty(cotejo.soloEnLacre())}">
             <h3>Solo en lacre</h3>
             <p class="nota">Aceptadas por la AEAT según lacre, pero la consulta no las devuelve.</p>
             <table>
@@ -86,9 +86,9 @@
                 </tr>
                 </tbody>
             </table>
-        </th:block>
+        </section>
 
-        <th:block th:unless="${#lists.isEmpty(cotejo.discrepancias())}">
+        <section class="bloque" th:unless="${#lists.isEmpty(cotejo.discrepancias())}">
             <h3>Con discrepancias</h3>
             <table>
                 <thead>
@@ -106,9 +106,9 @@
                 </tr>
                 </tbody>
             </table>
-        </th:block>
+        </section>
 
-        <th:block th:unless="${#lists.isEmpty(cotejo.soloEnAeat())}">
+        <section class="bloque" th:unless="${#lists.isEmpty(cotejo.soloEnAeat())}">
             <h3>Solo en la AEAT</h3>
             <p class="nota">Presentadas desde otro sistema o antes de usar lacre.</p>
             <table>
@@ -129,7 +129,7 @@
                 </tr>
                 </tbody>
             </table>
-        </th:block>
+        </section>
     </th:block>
 </main>
 </body>

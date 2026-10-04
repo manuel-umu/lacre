@@ -15,21 +15,28 @@
     </form>
 </header>
 <main>
-    <p class="nota"><a th:href="@{/consola}">Obligados</a> /</p>
-    <h2 th:text="|${obligado.nif().valor()} · ${obligado.nombreRazon()}|">NIF · Nombre</h2>
-    <p th:if="${mensaje}" class="correcto" th:text="${mensaje}">Hecho.</p>
-    <p th:if="${error}" class="aviso" th:text="${error}">Error.</p>
-    <dl class="resumen">
-        <div><dt>Zona horaria</dt><dd th:text="${obligado.zonaHoraria()}">Europe/Madrid</dd></div>
-        <div><dt>Certificado</dt>
-            <dd th:switch="${certificado}">
-                <span th:case="'PROPIO'">Propio</span>
-                <span th:case="'PRESENTADOR'">Del presentador</span>
-                <span th:case="*" class="aviso">Ninguno: no se puede remitir</span>
-            </dd>
+    <p class="migas"><a th:href="@{/consola}">Obligados</a> /</p>
+    <div class="ficha">
+        <div>
+            <h2 th:text="${obligado.nombreRazon()}">Nombre</h2>
+            <div class="nif" th:text="|${obligado.nif().valor()} · ${obligado.zonaHoraria()}|">NIF · zona</div>
         </div>
+        <div class="etiquetas">
+            <span class="estado" th:classappend="|estado-${#strings.toLowerCase(fila.estado().name())}|"
+                  th:text="${fila.estado().etiqueta()}">Al día</span>
+            <span th:switch="${certificado}">
+                <span th:case="'PROPIO'" class="estado">Certificado propio</span>
+                <span th:case="'PRESENTADOR'" class="estado">Certificado del presentador</span>
+                <span th:case="*" class="estado estado-atascado">Ninguno: no se puede remitir</span>
+            </span>
+        </div>
+    </div>
+    <p th:if="${mensaje}" class="mensaje correcto" th:text="${mensaje}">Hecho.</p>
+    <p th:if="${error}" class="mensaje aviso" th:text="${error}">Error.</p>
+    <dl class="cifras">
         <div><dt>Último registro</dt><dd th:text="${fila.ultimaPosicion()} ?: '—'">0</dd></div>
-        <div><dt>Pendientes</dt><dd th:text="${fila.envios().pendientes()}">0</dd></div>
+        <div th:classappend="${fila.atascado()} ? 'alerta'"><dt>Pendientes</dt>
+            <dd th:text="${fila.envios().pendientes()}">0</dd></div>
         <div><dt>Aceptados</dt><dd th:text="${fila.envios().aceptados()}">0</dd></div>
         <div><dt>Con errores</dt><dd th:text="${fila.envios().aceptadosConErrores()}">0</dd></div>
         <div><dt>Rechazados</dt><dd th:text="${fila.envios().rechazados()}">0</dd></div>
@@ -37,10 +44,14 @@
         <div><dt>Apartados</dt><dd th:text="${fila.envios().apartados()}">0</dd></div>
     </dl>
 
+    <div class="dos">
+    <section class="bloque">
     <h3>Cotejo con la AEAT</h3>
     <div th:replace="~{consola/cotejo :: selectorPeriodo}"></div>
     <p class="nota">Consulta lo presentado en ese mes y lo cruza con lo registrado aquí.</p>
+    </section>
 
+    <section class="bloque">
     <h3>Cadena</h3>
     <div id="verificacion">
         <button type="button" th:attr="hx-get=@{/consola/obligados/{nif}/cadena(nif=${obligado.nif().valor()})}"
@@ -72,8 +83,11 @@
             </table>
         </th:block>
     </div>
+    </section>
+    </div>
 
-    <h3>Pendientes</h3>
+    <section class="bloque">
+    <h3>Pendientes <span class="cuenta" th:text="${fila.envios().pendientes()}">0</span></h3>
     <p th:if="${#lists.isEmpty(pendientes)}" class="nota">No hay envíos pendientes.</p>
     <form th:unless="${#lists.isEmpty(pendientes)}" class="acciones" method="post"
           th:action="@{/consola/obligados/{nif}/apartar-pendientes(nif=${obligado.nif().valor()})}">
@@ -115,7 +129,10 @@
     </table>
     <p th:if="${pendientesSinListar > 0}" class="nota" th:text="|Y ${pendientesSinListar} más.|">Y 3 más.</p>
 
-    <h3>Apartados</h3>
+    </section>
+
+    <section class="bloque">
+    <h3>Apartados <span class="cuenta" th:text="${fila.envios().apartados()}">0</span></h3>
     <p th:if="${#lists.isEmpty(apartados)}" class="nota">No hay envíos apartados.</p>
     <form th:unless="${#lists.isEmpty(apartados)}" class="acciones" method="post"
           th:action="@{/consola/obligados/{nif}/reanudar-apartados(nif=${obligado.nif().valor()})}">
@@ -156,7 +173,10 @@
     </table>
     <p th:if="${apartadosSinListar > 0}" class="nota" th:text="|Y ${apartadosSinListar} más.|">Y 3 más.</p>
 
-    <h3>Con errores de la AEAT</h3>
+    </section>
+
+    <section class="bloque">
+    <h3>Con errores de la AEAT <span class="cuenta" th:text="${fila.erroresSinAtender()}">0</span></h3>
     <p th:if="${#lists.isEmpty(conErrores)}" class="nota">No hay errores de la AEAT sin atender.</p>
     <table th:unless="${#lists.isEmpty(conErrores)}">
         <thead>
@@ -193,6 +213,7 @@
     </table>
     <p th:if="${fila.envios().erroresAtendidos() > 0}" class="nota"
        th:text="|${fila.envios().erroresAtendidos()} atendidos, ocultos.|">2 atendidos, ocultos.</p>
+    </section>
 </main>
 </body>
 </html>
