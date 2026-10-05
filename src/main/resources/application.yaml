@@ -49,7 +49,7 @@ lacre:
     nif: ${LACRE_PRODUCTOR_NIF:89890001K}
     nombre-sistema-informatico: ${LACRE_SIF_NOMBRE:lacre}
     id-sistema-informatico: ${LACRE_SIF_ID:01}
-    version: ${LACRE_SIF_VERSION:0.0.1}
+    version: ${LACRE_SIF_VERSION:@project.version@}
     numero-instalacion: ${LACRE_SIF_INSTALACION:0001}
 
     # La zona horaria no está aquí: entra en el cálculo de la huella y es dato de cada obligado

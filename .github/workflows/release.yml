@@ -1,0 +1,78 @@
+name: Versión
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Pull request de versión
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      creada: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  imagen:
+    name: Imagen en GHCR
+    needs: version
+    if: needs.version.outputs.creada == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGEN: ghcr.io/${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGEN }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ needs.version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ needs.version.outputs.version }}
+            type=raw,value=latest
+      - name: Construir para comprobarla
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: lacre:comprobacion
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Sin certificados dentro
+        run: |
+          encontrados=$(docker run --rm --user root --entrypoint find lacre:comprobacion / -xdev \( -iname '*.p12' -o -iname '*.pfx' \) -print)
+          if [ -n "$encontrados" ]; then
+            echo "La imagen contiene certificados:"
+            echo "$encontrados"
+            exit 1
+          fi
+      - name: Publicar
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha

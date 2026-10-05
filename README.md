@@ -100,9 +100,6 @@ Solo hace falta Docker. La base de datos y la aplicación se levantan con `docke
 cp .env.example .env
 ```
 
-Y en `.env` se sustituyen las tres claves de ejemplo por claves propias, que pueden generarse con
-`openssl rand -base64 32`. La URL del QR puede quedarse como está:
-
 | Variable | Para qué sirve |
 |---|---|
 | `LACRE_DB_CLAVE` | Clave del propietario de la base de datos, que aplica las migraciones |
@@ -118,8 +115,23 @@ Y en `.env` se sustituyen las tres claves de ejemplo por claves propias, que pue
 docker compose up -d db lacre
 ```
 
-La primera vez se construye la imagen y tarda unos minutos. La API queda en
-<http://localhost:8080>, y la consola, si tiene clave, en <http://localhost:8080/consola>.
+La primera vez se descarga la imagen publicada en `ghcr.io/manuel-umu/lacre`; para construirla desde
+el código, `docker compose up -d --build db lacre`. Para actualizar a una versión nueva,
+`docker compose pull lacre` antes de arrancar. La API queda en <http://localhost:8080>, y la
+consola, si tiene clave, en <http://localhost:8080/consola>.
+
+Con eso lacre registra las facturas, pero no las remite a la AEAT. Para ello hay que completar el `.env`:
+
+- Los datos del productor del sistema informático, en el bloque «Para presentar a la AEAT», tal
+  como figuran en el censo de la AEAT.
+- El certificado de cada obligado en `certificados/`, con su NIF como nombre (`12345678Z.p12`), y
+  su contraseña en `LACRE_CERTIFICADOS_CONTRASENAS_12345678Z`. Si se remite en nombre de los
+  obligados como colaborador social o apoderado, basta con un único `presentador.p12` y su
+  contraseña en `LACRE_CERTIFICADOS_PRESENTADOR_CONTRASENA`; la autorización de cada obligado se
+  gestiona fuera de lacre.
+
+Para producción, además, `LACRE_AEAT_ENDPOINT` y `LACRE_QR_URL_BASE` con las direcciones de
+producción, que están en el `.env.example`.
 
 **3. Dar de alta un obligado tributario**, que es quien expide las facturas. Todas las llamadas
 llevan la clave de la API en la cabecera `Authorization`:
@@ -178,9 +190,6 @@ curl http://localhost:8080/v1/obligados/89890001K/cadena \
 docker compose down
 ```
 
-Para enviar los registros a la AEAT hace falta además el certificado de cada obligado; se explica
-en [Despliegue](#despliegue).
-
 ### Tests
 
 Requieren JDK 25 y Docker en marcha, porque levantan un PostgreSQL con Testcontainers:
@@ -188,15 +197,6 @@ Requieren JDK 25 y Docker en marcha, porque levantan un PostgreSQL con Testconta
 ```bash
 ./mvnw test
 ```
-
-## Despliegue
-
-Todo se configura en el `.env`:
-
-1. Rellenar el bloque obligatorio y cambiar `LACRE_QR_URL_BASE` a la URL de producción.
-2. En el bloque «Para presentar a la AEAT», descomentar `LACRE_AEAT_ENDPOINT` con el endpoint de producción y poner los datos del productor del sistema informático.
-3. Copiar el certificado de cada obligado a `certificados/`, con su NIF como nombre (`12345678Z.p12`), y añadir su contraseña en `LACRE_CERTIFICADOS_CONTRASENAS_12345678Z`. Si se remite en nombre de los obligados como colaborador social o apoderado, basta con un único `presentador.p12` y su contraseña en `LACRE_CERTIFICADOS_PRESENTADOR_CONTRASENA`; la autorización de cada obligado se gestiona fuera de lacre.
-4. `docker compose up -d --build db lacre`.
 
 ## Integración
 
