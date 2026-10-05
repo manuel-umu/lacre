@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/manuel-umu/lacre/compare/v0.1.0...v0.1.1) (2026-10-05)
+
+
+### Documentation
+
+* insignias de tests, CodeQL, versión, imagen y licencia en el README ([7ffb7e2](https://github.com/manuel-umu/lacre/commit/7ffb7e2fbbf2460ba563a3d377dec25b4ae626de))
+
 ## [0.1.0](https://github.com/manuel-umu/lacre/compare/v0.0.1...v0.1.0) (2026-10-05)
 
 
