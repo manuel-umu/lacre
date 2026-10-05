@@ -12,6 +12,8 @@ jobs:
   verify:
     name: Formato y tests
     runs-on: ubuntu-latest
+    outputs:
+      aprobados: ${{ steps.recuento.outputs.aprobados }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -20,3 +22,37 @@ jobs:
           java-version: '25'
           cache: maven
       - run: ./mvnw -B verify
+      - id: recuento
+        name: Recuento de tests
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import glob, xml.etree.ElementTree as ET
+          aprobados = 0
+          for informe in glob.glob("target/surefire-reports/TEST-*.xml"):
+              suite = ET.parse(informe).getroot()
+              aprobados += sum(int(suite.get(campo, 0)) * signo for campo, signo in
+                               (("tests", 1), ("failures", -1), ("errors", -1), ("skipped", -1)))
+          print(f"aprobados={aprobados}")
+          EOF
+
+  insignia:
+    name: Insignia de tests
+    needs: verify
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publicar tests.json en la rama insignias
+        env:
+          APROBADOS: ${{ needs.verify.outputs.aprobados }}
+          REPOSITORIO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir insignias && cd insignias
+          git init -q -b insignias
+          printf '{"schemaVersion":1,"label":"tests","message":"%s passed","color":"brightgreen"}\n' "$APROBADOS" > tests.json
+          git add tests.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "tests: $APROBADOS"
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${REPOSITORIO}.git" insignias
