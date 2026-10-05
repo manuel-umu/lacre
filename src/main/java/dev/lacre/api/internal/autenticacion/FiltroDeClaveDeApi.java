@@ -55,7 +55,10 @@ class FiltroDeClaveDeApi extends OncePerRequestFilter {
     }
 
     private void rechazar(HttpServletRequest peticion, HttpServletResponse respuesta) throws IOException {
-        log.warn("Petición sin credencial válida a {} desde {}", peticion.getRequestURI(), peticion.getRemoteAddr());
+        log.warn(
+                "Petición sin credencial válida a {} desde {}",
+                peticion.getRequestURI().replaceAll("[\r\n]", ""),
+                peticion.getRemoteAddr());
 
         ProblemDetail problema = ProblemDetail.forStatusAndDetail(
                 HttpStatus.UNAUTHORIZED,

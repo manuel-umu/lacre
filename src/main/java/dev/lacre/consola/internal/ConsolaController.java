@@ -191,7 +191,11 @@ class ConsolaController {
                             consulta.completo(),
                             locales.values(),
                             envios.estadosDe(locales.keySet())));
-            log.info("{} cotejó con la AEAT el periodo {} del obligado {}", operador.getName(), mes, nif);
+            log.info(
+                    "{} cotejó con la AEAT el periodo {} del obligado {}",
+                    operador.getName(),
+                    mes,
+                    obligado.nif().valor());
         } catch (CertificadoNoDisponibleException e) {
             modelo.addAttribute("error", "No hay certificado con el que consultar a la AEAT: " + e.getMessage());
         } catch (RemisionFallidaException e) {
@@ -203,7 +207,7 @@ class ConsolaController {
     @PostMapping("/obligados/{nif}/envios/{envio}/apartar")
     String apartar(@PathVariable String nif, @PathVariable UUID envio, Principal operador, RedirectAttributes aviso) {
         return actuar(nif, aviso, obligado -> {
-            operacion.apartar(obligado, envio);
+            operacion.apartar(obligado.id(), envio);
             log.info("{} apartó el envío {}", operador.getName(), envio);
             return "Envío apartado: el despachador no lo remitirá hasta que se reanude.";
         });
@@ -212,7 +216,7 @@ class ConsolaController {
     @PostMapping("/obligados/{nif}/envios/{envio}/reanudar")
     String reanudar(@PathVariable String nif, @PathVariable UUID envio, Principal operador, RedirectAttributes aviso) {
         return actuar(nif, aviso, obligado -> {
-            operacion.reanudar(obligado, envio);
+            operacion.reanudar(obligado.id(), envio);
             log.info("{} reanudó el envío {}", operador.getName(), envio);
             return "Envío reanudado: vuelve a estar pendiente.";
         });
@@ -221,8 +225,12 @@ class ConsolaController {
     @PostMapping("/obligados/{nif}/apartar-pendientes")
     String apartarPendientes(@PathVariable String nif, Principal operador, RedirectAttributes aviso) {
         return actuar(nif, aviso, obligado -> {
-            int apartados = operacion.apartarPendientesDe(obligado);
-            log.info("{} apartó {} envíos pendientes del obligado {}", operador.getName(), apartados, nif);
+            int apartados = operacion.apartarPendientesDe(obligado.id());
+            log.info(
+                    "{} apartó {} envíos pendientes del obligado {}",
+                    operador.getName(),
+                    apartados,
+                    obligado.nif().valor());
             return apartados + " envíos apartados.";
         });
     }
@@ -230,8 +238,12 @@ class ConsolaController {
     @PostMapping("/obligados/{nif}/reanudar-apartados")
     String reanudarApartados(@PathVariable String nif, Principal operador, RedirectAttributes aviso) {
         return actuar(nif, aviso, obligado -> {
-            int reanudados = operacion.reanudarApartadosDe(obligado);
-            log.info("{} reanudó {} envíos apartados del obligado {}", operador.getName(), reanudados, nif);
+            int reanudados = operacion.reanudarApartadosDe(obligado.id());
+            log.info(
+                    "{} reanudó {} envíos apartados del obligado {}",
+                    operador.getName(),
+                    reanudados,
+                    obligado.nif().valor());
             return reanudados + " envíos reanudados.";
         });
     }
@@ -240,16 +252,16 @@ class ConsolaController {
     String marcarAtendido(
             @PathVariable String nif, @PathVariable UUID envio, Principal operador, RedirectAttributes aviso) {
         return actuar(nif, aviso, obligado -> {
-            operacion.marcarAtendido(obligado, envio, operador.getName());
+            operacion.marcarAtendido(obligado.id(), envio, operador.getName());
             log.info("{} dio por atendido el error del envío {}", operador.getName(), envio);
             return "Error marcado como atendido.";
         });
     }
 
-    private String actuar(String nif, RedirectAttributes aviso, Function<UUID, String> accion) {
+    private String actuar(String nif, RedirectAttributes aviso, Function<ObligadoTributario, String> accion) {
         ObligadoTributario obligado = obligadoDe(nif);
         try {
-            aviso.addFlashAttribute("mensaje", accion.apply(obligado.id()));
+            aviso.addFlashAttribute("mensaje", accion.apply(obligado));
         } catch (EnvioDesconocidoException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         } catch (EnvioEnCursoException e) {
