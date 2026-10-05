@@ -56,7 +56,7 @@ class SeguridadConsolaTest {
         mvc.perform(get("/consola/entrar")).andExpect(status().isOk());
         mvc.perform(get("/consola/consola.css")).andExpect(status().isOk());
         mvc.perform(get("/consola/htmx.min.js")).andExpect(status().isOk());
-        mvc.perform(get("/consola/logo.svg")).andExpect(status().isOk());
+        mvc.perform(get("/logo.svg")).andExpect(status().isOk());
     }
 
     @Test

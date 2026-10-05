@@ -34,8 +34,7 @@ class SeguridadConsola {
                     .build();
         }
         return http.authorizeHttpRequests(peticiones -> peticiones
-                        .requestMatchers(
-                                "/consola/entrar", "/consola/consola.css", "/consola/htmx.min.js", "/consola/logo.svg")
+                        .requestMatchers("/consola/entrar", "/consola/consola.css", "/consola/htmx.min.js")
                         .permitAll()
                         .anyRequest()
                         .authenticated())
