@@ -22,6 +22,10 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
 @EnableConfigurationProperties(PropiedadesConsola.class)
 class SeguridadConsola {
 
+    /** Solo recursos propios: ni scripts ni estilos en línea, ni marcos ajenos, ni formularios hacia fuera. */
+    static final String CSP =
+            "default-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';" + " frame-ancestors 'none'";
+
     @Bean
     SecurityFilterChain cadenaDeLaConsola(HttpSecurity http, PropiedadesConsola propiedades) throws Exception {
         http.securityMatcher("/consola/**");
@@ -44,6 +48,7 @@ class SeguridadConsola {
                         .failureUrl("/consola/entrar?error"))
                 .logout(salida -> salida.logoutUrl("/consola/salir").logoutSuccessUrl("/consola/entrar?salida"))
                 .exceptionHandling(errores -> errores.authenticationEntryPoint(aLaEntrada()))
+                .headers(cabeceras -> cabeceras.contentSecurityPolicy(csp -> csp.policyDirectives(CSP)))
                 .build();
     }
 

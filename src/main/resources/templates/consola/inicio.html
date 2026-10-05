@@ -3,10 +3,12 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>lacre · consola</title>
+    <title>Lacre</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/logo.svg}">
     <link rel="stylesheet" th:href="@{/consola/consola.css}">
+    <meta name="htmx-config" content='{"includeIndicatorStyles": false}'>
     <script th:src="@{/consola/htmx.min.js}" defer></script>
+    <script th:src="@{/consola/consola.js}" defer></script>
 </head>
 <body>
 <header>
@@ -76,15 +78,5 @@
         </th:block>
     </div>
 </main>
-<script>
-    const buscar = document.getElementById('buscar');
-    const filtrar = () => {
-        const texto = buscar.value.trim().toLowerCase();
-        document.querySelectorAll('#tabla tbody tr')
-            .forEach(fila => fila.hidden = texto !== '' && !fila.dataset.busqueda.includes(texto));
-    };
-    buscar.addEventListener('input', filtrar);
-    document.body.addEventListener('htmx:load', filtrar);
-</script>
 </body>
 </html>

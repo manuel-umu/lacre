@@ -52,6 +52,13 @@ class SeguridadConsolaTest {
     }
 
     @Test
+    void laConsolaSoloCargaRecursosPropios() throws Exception {
+        mvc.perform(get("/consola").with(user(USUARIO)))
+                .andExpect(header().string("Content-Security-Policy", SeguridadConsola.CSP));
+        mvc.perform(get("/consola/entrar")).andExpect(header().string("Content-Security-Policy", SeguridadConsola.CSP));
+    }
+
+    @Test
     void laPaginaDeEntradaYSusEstilosSonPublicos() throws Exception {
         mvc.perform(get("/consola/entrar")).andExpect(status().isOk());
         mvc.perform(get("/consola/consola.css")).andExpect(status().isOk());
