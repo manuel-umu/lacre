@@ -189,7 +189,7 @@ Requieren JDK 25 y Docker en marcha, porque levantan un PostgreSQL con Testconta
 ./mvnw test
 ```
 
-## Producción
+## Despliegue
 
 Todo se configura en el `.env`:
 
