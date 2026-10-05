@@ -3,9 +3,9 @@
 <p align="center"><img src="docs/logo.svg" alt="lacre" width="320"></p>
 
 <p align="center">
-  <a href="https://github.com/manuel-umu/lacre/actions/workflows/ci.yml"><img src="https://github.com/manuel-umu/lacre/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/manuel-umu/lacre/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/manuel-umu/lacre/ci.yml?branch=main&amp;label=build" alt="Build"></a>
   <a href="https://github.com/manuel-umu/lacre/actions/workflows/ci.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmanuel-umu%2Flacre%2Finsignias%2Ftests.json" alt="Tests"></a>
-  <a href="https://github.com/manuel-umu/lacre/actions/workflows/codeql.yml"><img src="https://github.com/manuel-umu/lacre/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
+  <a href="https://github.com/manuel-umu/lacre/actions/workflows/codeql.yml"><img src="https://img.shields.io/github/actions/workflow/status/manuel-umu/lacre/codeql.yml?branch=main&amp;label=CodeQL" alt="CodeQL"></a>
   <a href="https://github.com/manuel-umu/lacre/releases"><img src="https://img.shields.io/github/v/release/manuel-umu/lacre" alt="Versión"></a>
   <a href="https://github.com/manuel-umu/lacre/pkgs/container/lacre"><img src="https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&amp;logoColor=white" alt="Imagen Docker"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/manuel-umu/lacre" alt="Licencia"></a>
