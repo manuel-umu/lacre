@@ -16,6 +16,11 @@
     </form>
 </header>
 <main>
+    <p th:if="${productorDeEjemplo}" class="mensaje aviso">
+        <strong>Aviso:</strong> El productor del sistema informático es el NIF de ejemplo. La AEAT rechazará los
+        registros enviados con la configuración actual. Cámbiala con <code>LACRE_PRODUCTOR_NIF</code> y
+        <code>LACRE_PRODUCTOR_NOMBRE</code>.
+    </p>
     <div class="titulo">
         <h2>Obligados</h2>
         <input type="search" id="buscar" placeholder="Buscar por NIF o nombre" aria-label="Buscar obligado">

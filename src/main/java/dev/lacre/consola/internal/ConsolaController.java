@@ -20,6 +20,7 @@ import dev.lacre.shared.ValorInvalidoException;
 import dev.lacre.verifactu.consulta.RegistroDeFactura;
 import dev.lacre.verifactu.consulta.RegistroGuardado;
 import dev.lacre.verifactu.consulta.RegistrosGuardados;
+import dev.lacre.verifactu.registro.SistemaInformatico;
 import java.security.Principal;
 import java.time.Clock;
 import java.time.DateTimeException;
@@ -65,6 +66,7 @@ class ConsolaController {
     private final ConsultaAeat aeat;
     private final AlmacenCertificados certificados;
     private final Clock reloj;
+    private final boolean productorDeEjemplo;
 
     ConsolaController(
             Obligados obligados,
@@ -73,6 +75,7 @@ class ConsolaController {
             OperacionDeEnvios operacion,
             ConsultaAeat aeat,
             AlmacenCertificados certificados,
+            SistemaInformatico sistema,
             Clock reloj) {
         this.obligados = obligados;
         this.registros = registros;
@@ -81,6 +84,7 @@ class ConsolaController {
         this.aeat = aeat;
         this.certificados = certificados;
         this.reloj = reloj;
+        this.productorDeEjemplo = sistema.productorDeEjemplo();
     }
 
     @GetMapping("/entrar")
@@ -91,6 +95,7 @@ class ConsolaController {
     @GetMapping
     String inicio(Model modelo) {
         modelo.addAttribute("filas", filas());
+        modelo.addAttribute("productorDeEjemplo", productorDeEjemplo);
         return "consola/inicio";
     }
 

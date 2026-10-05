@@ -10,7 +10,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
 /**
  * Seguridad de {@code /consola/**}: inicio de sesión por formulario, sesión con CSRF y un único
@@ -42,6 +44,7 @@ class SeguridadConsola {
                         .defaultSuccessUrl("/consola", true)
                         .failureUrl("/consola/entrar?error"))
                 .logout(salida -> salida.logoutUrl("/consola/salir").logoutSuccessUrl("/consola/entrar?salida"))
+                .exceptionHandling(errores -> errores.authenticationEntryPoint(aLaEntrada()))
                 .build();
     }
 
@@ -60,6 +63,22 @@ class SeguridadConsola {
                 .password(codificador.encode(propiedades.clave()))
                 .roles("OPERADOR")
                 .build());
+    }
+
+    /**
+     * Sin sesión, a la página de entrada: por redirección o, a una petición de htmx, con
+     * {@code HX-Redirect}, que lleva la ventana entera y no solo el fragmento.
+     */
+    private static AuthenticationEntryPoint aLaEntrada() {
+        AuthenticationEntryPoint redireccion = new LoginUrlAuthenticationEntryPoint("/consola/entrar");
+        return (peticion, respuesta, e) -> {
+            if (peticion.getHeader("HX-Request") == null) {
+                redireccion.commence(peticion, respuesta, e);
+                return;
+            }
+            respuesta.setHeader("HX-Redirect", peticion.getContextPath() + "/consola/entrar");
+            respuesta.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        };
     }
 
     private static void noExiste(HttpServletResponse respuesta) throws java.io.IOException {

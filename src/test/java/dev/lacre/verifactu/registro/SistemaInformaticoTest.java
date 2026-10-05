@@ -61,4 +61,16 @@ class SistemaInformaticoTest {
         assertThatThrownBy(() -> new SistemaInformatico(PRODUCTOR, "  ", "01", "1.0", "0001", true, false, false))
                 .isInstanceOf(ValorInvalidoException.class);
     }
+
+    @Test
+    void reconoceAlProductorDeEjemplo() {
+        PersonaFisicaJuridica deEjemplo = new PersonaFisicaJuridica("lacre", SistemaInformatico.NIF_DE_EJEMPLO);
+
+        assertThat(new SistemaInformatico(deEjemplo, "lacre", "01", "0.0.1", "0001", true, false, false)
+                        .productorDeEjemplo())
+                .isTrue();
+        assertThat(new SistemaInformatico(PRODUCTOR, "lacre", "01", "0.0.1", "0001", true, false, false)
+                        .productorDeEjemplo())
+                .isFalse();
+    }
 }

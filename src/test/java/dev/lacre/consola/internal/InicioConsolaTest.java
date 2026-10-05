@@ -69,6 +69,7 @@ class InicioConsolaTest {
         MvcResult resultado = mvc.perform(get("/consola").with(user("operador")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("class=\"atascado\"")))
+                .andExpect(content().string(containsString("es el NIF de ejemplo. La AEAT rechazará")))
                 .andReturn();
 
         @SuppressWarnings("unchecked")

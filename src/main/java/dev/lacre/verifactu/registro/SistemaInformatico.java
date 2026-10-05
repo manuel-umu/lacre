@@ -1,5 +1,6 @@
 package dev.lacre.verifactu.registro;
 
+import dev.lacre.shared.Nif;
 import dev.lacre.shared.ReglaAeatIncumplidaException;
 import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
@@ -33,6 +34,9 @@ public record SistemaInformatico(
     public static final int MAXIMO_LONGITUD_VERSION = 50;
     public static final int MAXIMO_LONGITUD_NUMERO_INSTALACION = 100;
 
+    /** NIF de los ejemplos de la documentación de la AEAT, que no figura en su censo. */
+    public static final Nif NIF_DE_EJEMPLO = new Nif("89890001K");
+
     private static final Pattern ID_SISTEMA = Pattern.compile("[A-Z0-9]{2}");
 
     public SistemaInformatico {
@@ -57,5 +61,10 @@ public record SistemaInformatico(
             throw new ValorInvalidoException(
                     "Un sistema que no admite varios obligados no puede declarar que está dando servicio a varios");
         }
+    }
+
+    /** Si el productor es el NIF de ejemplo, con el que la AEAT rechaza los registros. */
+    public boolean productorDeEjemplo() {
+        return NIF_DE_EJEMPLO.equals(productor.identificador());
     }
 }

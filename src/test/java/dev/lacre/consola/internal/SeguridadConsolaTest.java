@@ -7,6 +7,7 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,6 +42,13 @@ class SeguridadConsolaTest {
     void elDetalleDeUnObligadoTambienExigeSesion() throws Exception {
         mvc.perform(get("/consola/obligados/{nif}", "89890001K")).andExpect(redirectedUrl("/consola/entrar"));
         mvc.perform(get("/consola/obligados/{nif}/cadena", "89890001K")).andExpect(redirectedUrl("/consola/entrar"));
+    }
+
+    @Test
+    void conLaSesionCaducadaHtmxRecargaLaVentanaEnLaPaginaDeEntrada() throws Exception {
+        mvc.perform(get("/consola/obligados").header("HX-Request", "true"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().string("HX-Redirect", "/consola/entrar"));
     }
 
     @Test
