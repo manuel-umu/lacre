@@ -171,6 +171,30 @@ class AltaRestTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void unaClaveDeIdempotenciaMasLargaQueLaColumnaEsPeticionInvalida() throws Exception {
+        mvc.perform(alta("k".repeat(129), cuerpo("FA/9", "123.45")))
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.detail").value("La Idempotency-Key admite como máximo 128 caracteres y tiene 129"));
+
+        mvc.perform(alta("k".repeat(128), cuerpo("FA/9", "123.45"))).andExpect(status().isCreated());
+    }
+
+    @Test
+    void unCaracterDeControlNoLlegaAlXmlDelRegistro() throws Exception {
+        String conControl = cuerpo("FA/8", "123.45").replace("Servicios de consultoría", "Servicios\\u0001raros");
+
+        mvc.perform(alta("clave-control", conControl))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("U+0001")));
+
+        assertThat(jdbc.sql("""
+                        select count(*) from registro_facturacion where obligado_id = :obligado
+                        """).param("obligado", obligadoId).query(Long.class).single())
+                .isZero();
+    }
+
     /** El error nombra el campo que falta. */
     @Test
     void unCampoObligatorioQueFaltaSeDicePorSuNombre() throws Exception {

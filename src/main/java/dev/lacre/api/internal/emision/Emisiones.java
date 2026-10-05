@@ -5,6 +5,7 @@ import dev.lacre.identidad.ObligadoDesconocidoException;
 import dev.lacre.identidad.ObligadoTributario;
 import dev.lacre.identidad.Obligados;
 import dev.lacre.shared.Nif;
+import dev.lacre.shared.ValorInvalidoException;
 import dev.lacre.verifactu.emision.AnomaliaPrevia;
 import dev.lacre.verifactu.emision.EmisorDeRegistros;
 import dev.lacre.verifactu.emision.RegistroEmitido;
@@ -36,6 +37,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 class Emisiones {
 
+    /** El tamaño de la columna {@code peticion_idempotente.clave}. */
+    static final int MAXIMO_LONGITUD_CLAVE = 128;
+
     private final EmisorDeRegistros emisor;
     private final SistemaInformatico sistemaInformatico;
     private final Obligados obligados;
@@ -60,6 +64,10 @@ class Emisiones {
 
     @Transactional
     RespuestaRegistro emitir(String clave, PeticionRegistro peticion) {
+        if (clave.length() > MAXIMO_LONGITUD_CLAVE) {
+            throw new ValorInvalidoException("La Idempotency-Key admite como máximo " + MAXIMO_LONGITUD_CLAVE
+                    + " caracteres y tiene " + clave.length());
+        }
         ObligadoTributario obligado = obligadoDe(peticion);
         String huellaPeticion = huellaDe(peticion);
 

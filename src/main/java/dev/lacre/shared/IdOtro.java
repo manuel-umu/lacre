@@ -39,6 +39,7 @@ public record IdOtro(String codigoPais, TipoIdentificacion tipo, String id) impl
             throw new ValorInvalidoException("El identificador es obligatorio");
         }
         id = id.strip();
+        Textos.exigirAdmitidoEnXml(id, "El identificador");
         if (id.length() > MAXIMO_LONGITUD_ID) {
             throw new ValorInvalidoException(
                     "El identificador admite como máximo " + MAXIMO_LONGITUD_ID + " caracteres: " + id);

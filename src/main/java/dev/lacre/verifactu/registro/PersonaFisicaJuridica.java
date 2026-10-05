@@ -7,6 +7,7 @@ import static dev.lacre.shared.TipoIdentificacion.PASAPORTE;
 import dev.lacre.shared.IdOtro;
 import dev.lacre.shared.IdentificadorFiscal;
 import dev.lacre.shared.Nif;
+import dev.lacre.shared.Textos;
 import dev.lacre.shared.ValorInvalidoException;
 
 /**
@@ -18,14 +19,7 @@ public record PersonaFisicaJuridica(String nombreRazon, IdentificadorFiscal iden
     public static final int MAXIMO_LONGITUD_NOMBRE = 120;
 
     public PersonaFisicaJuridica {
-        if (nombreRazon == null || nombreRazon.isBlank()) {
-            throw new ValorInvalidoException("El nombre o razón social es obligatorio");
-        }
-        nombreRazon = nombreRazon.strip();
-        if (nombreRazon.length() > MAXIMO_LONGITUD_NOMBRE) {
-            throw new ValorInvalidoException("El nombre o razón social admite como máximo " + MAXIMO_LONGITUD_NOMBRE
-                    + " caracteres y tiene " + nombreRazon.length());
-        }
+        nombreRazon = Textos.obligatorio(nombreRazon, MAXIMO_LONGITUD_NOMBRE, "El nombre o razón social");
         if (identificador == null) {
             throw new ValorInvalidoException("El identificador fiscal es obligatorio");
         }
