@@ -30,7 +30,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<spring-modulith.version>2.1.0</spring-modulith.version>
+		<spring-modulith.version>2.1.1</spring-modulith.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -151,19 +151,19 @@
 		<dependency>
 			<groupId>net.jqwik</groupId>
 			<artifactId>jqwik</artifactId>
-			<version>1.9.3</version>
+			<version>1.10.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.tngtech.archunit</groupId>
 			<artifactId>archunit-junit5</artifactId>
-			<version>1.4.1</version>
+			<version>1.5.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.wiremock</groupId>
 			<artifactId>wiremock-standalone</artifactId>
-			<version>3.13.1</version>
+			<version>3.13.2</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
