@@ -53,6 +53,15 @@ transacción entera y la respuesta es un error, porque la norma no admite factur
 Sí puede existir un registro sin remitir: la norma exige el registro, no que la AEAT esté
 disponible, y por eso el envío es asíncrono y reintentable.
 
+## Consola de operación
+
+<img src="docs/consola-claro.png" alt="Vista general de la consola de operación">
+
+Una consola web en `/consola` muestra el estado de la cadena y de los envíos de cada obligado,
+aparta los envíos que fallan siempre igual y coteja lo registrado con lo que tiene la AEAT.
+
+<img src="docs/consola-detalle-claro.png" alt="Detalle de un obligado en la consola de operación">
+
 ## Arquitectura
 
 Monolito modular con Spring Modulith, hexagonal por módulo. Cinco módulos más un paquete de
