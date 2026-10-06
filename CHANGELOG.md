@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/manuel-umu/lacre/compare/v0.1.0...v0.1.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **deps:** bump the menores-y-parches group with 5 updates ([6f2fbb7](https://github.com/manuel-umu/lacre/commit/6f2fbb78736ee91784a5f2ed3a2277bd9d875b9c))
+* **deps:** bump the menores-y-parches group with 5 updates ([66d8700](https://github.com/manuel-umu/lacre/commit/66d87004ecb58c730fe6299bb1b68b6176561392))
+
 ## [0.1.0](https://github.com/manuel-umu/lacre/compare/v0.0.1...v0.1.0) (2026-10-05)
 
 
