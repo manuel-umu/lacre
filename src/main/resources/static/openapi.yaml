@@ -13,15 +13,13 @@ info:
 
     ### 1. Arranca lacre
 
-    Necesita dos variables. Sin ninguna de las dos arranca:
+    Con Docker: se copia `.env.example` a `.env`, se rellenan las claves y se arranca con
+    `docker compose up -d db lacre`. El paso a paso está en el README del repositorio,
+    <https://github.com/manuel-umu/lacre>. Si falta `LACRE_API_CLAVE` o `LACRE_QR_URL_BASE`,
+    lacre no arranca.
 
-    ```
-    export LACRE_API_CLAVE=$(openssl rand -base64 32)
-    export LACRE_QR_URL_BASE='https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?'
-    ```
-
-    La segunda decide si los códigos QR que imprimas apuntan al entorno de pruebas o al de
-    producción, que es `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?`.
+    `LACRE_QR_URL_BASE` decide si los códigos QR que imprimas apuntan al entorno de pruebas o
+    al de producción, que es `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?`.
 
     ### 2. Da de alta al obligado tributario
 
@@ -35,12 +33,13 @@ info:
       -d '{ "nombreRazon": "Obligado de prueba SL", "zonaHoraria": "Europe/Madrid" }'
     ```
 
-    La zona horaria no es del despliegue sino de cada obligado: el huso de cada registro sale de
-    ella, y Canarias (`Atlantic/Canary`) va una hora por detrás de la Península.
+    La zona horaria es de cada obligado, no del despliegue, porque de ella sale el huso de sus
+    registros: un obligado de Canarias (`Atlantic/Canary`) va una hora por detrás de la
+    Península aunque lacre esté desplegado en Madrid.
 
     Su certificado no pasa por la API: es un fichero PKCS#12 con su NIF como nombre, en el
-    volumen que monta el despliegue. Sin él, lacre registra sus facturas pero no puede
-    remitirlas.
+    volumen que monta el despliegue. Sin él, ni el del presentador, lacre registra sus
+    facturas pero no puede remitirlas.
 
     ### 3. Registra la factura
 
@@ -86,30 +85,35 @@ info:
 
     ### 5. Consulta qué dijo la AEAT
 
-    La remisión es asíncrona: `GET /v1/registros/{id}` dice en qué quedó.
+    La remisión es asíncrona: `GET /v1/registros/{id}` dice si la AEAT ya lo ha aceptado, lo ha
+    rechazado o sigue pendiente.
 
     ## Lo que hay que saber antes de integrar
 
-    **La `Idempotency-Key` es obligatoria en los dos `POST`.** Un cliente reintenta —por un timeout,
-    por un reinicio, por el reintento automático de su cliente HTTP— y un reintento no puede
-    generar dos registros. Reintentar con la misma clave y la misma factura devuelve la misma
-    respuesta; usarla para **otra** factura devuelve `409`, porque darte el registro de la
-    primera te haría creer registrada una factura que no lo está.
+    - **La `Idempotency-Key` es obligatoria en los dos `POST`.** Un cliente puede reintentar
+    por un timeout, por un reinicio o por el reintento automático de su cliente HTTP. Sea como
+    fuere, no puede generar dos registros. Reintentar con la misma clave y la misma factura
+    devuelve la misma respuesta; usarla para **otra** factura devuelve `409`, porque darte el
+    registro de la primera te haría creer registrada una factura que no lo está.
 
-    **El obligado no se pide.** En Veri*Factu el `idEmisorFactura` **es** el obligado por cuya
+    - **El obligado no se pide.** En Veri*Factu el `idEmisorFactura` **es** el obligado por cuya
     cuenta se expide, así que pedirlo dos veces solo añade una forma de que no coincidan. Tiene
     que estar dado de alta antes con `PUT /v1/obligados/{nif}`; si no, el registro da `422`.
 
-    **Anular añade un eslabón, no quita el del alta.** La cadena es de solo inserción.
+    - **Anular añade un eslabón, no quita el del alta.** La cadena es de solo inserción, ya que
+    Veri*Factu exige conservar **todos** los registros.
 
-    **Un `201` no significa que la AEAT lo haya aceptado**, sino que el registro existe y está
+    - **Un `201` no significa que la AEAT lo haya aceptado**, sino que el registro existe y está
     encadenado. La norma exige el registro, no que la AEAT esté disponible.
 
-    **Cada respuesta lleva `X-Request-Id`**, el identificador con el que salen sus trazas en el log.
-    Si la petición trae uno propio de hasta 64 caracteres `A-Z a-z 0-9 . _ -`, se respeta; si no,
-    lacre genera un UUID. Es lo que hay que citar al preguntar por una petición concreta.
+    - **Cada respuesta incluye la cabecera `X-Request-Id`**, un identificador único de la
+    petición que también aparece en todas las líneas de log que genera. Si hay un problema con
+    una petición concreta, basta con dar ese identificador para encontrar todo lo que pasó con
+    ella. Si quien llama ya envía su propio `X-Request-Id`, lacre lo reutiliza, siempre que
+    tenga como máximo 64 caracteres y solo letras, números, puntos, guiones o guiones bajos. Si
+    no lo envía, lacre genera uno.
 
-    **La facturación no se interrumpe.** Un descuadre de totales o una cadena mal encadenada se
+    - **La facturación no se interrumpe.** Un descuadre de totales o una cadena mal encadenada se
     avisan en `avisos`, pero no impiden registrar: la AEAT los trata como errores admisibles.
     Solo se rechaza lo que la AEAT rechazaría al recibirlo.
 
@@ -553,7 +557,8 @@ components:
       description: |
         El cuerpo no cumple el contrato, o los datos no forman un registro que la AEAT vaya a
         aceptar. Cuando falla el contrato, `errores` nombra los campos; cuando es una validación
-        de la AEAT, `codigoAeat` dice cuál.
+        de la AEAT, `codigoAeat` dice cuál. Los textos tampoco admiten caracteres que el XML no
+        permite, como los de control: el error nombra el campo y el carácter.
       content:
         application/problem+json:
           schema:
@@ -593,10 +598,12 @@ components:
             $ref: '#/components/schemas/Problema'
           example:
             type: about:blank
-            title: No autorizado
+            title: No autenticado
             status: 401
-            detail: Falta o no es válida la clave de la API.
-            codigo: no-autorizado
+            detail: >-
+              Falta la cabecera Authorization con la clave de la API, o no es válida. El formato
+              es: Authorization: Bearer <clave>
+            codigo: no-autenticado
 
     ClaveReutilizada:
       description: La `Idempotency-Key` ya se usó para otra factura.
@@ -609,8 +616,8 @@ components:
             title: Clave de idempotencia reutilizada
             status: 409
             detail: >-
-              La clave de idempotencia 6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f ya se usó para otra
-              factura distinta.
+              La clave de idempotencia '6d4f8d0e-1a2b-4c3d-8e9f-0a1b2c3d4e5f' ya se usó para otra
+              factura de este obligado. Usa una clave distinta por cada factura.
             codigo: clave-idempotencia-reutilizada
 
     ObligadoDesconocido:
@@ -625,7 +632,7 @@ components:
             type: about:blank
             title: Obligado tributario no dado de alta
             status: 422
-            detail: No hay ningún obligado tributario con el NIF 89890001K
+            detail: No hay ningún obligado tributario con NIF 89890001K
             codigo: obligado-desconocido
 
   schemas:
@@ -662,6 +669,7 @@ components:
       properties:
         nombreRazon:
           type: string
+          maxLength: 120
           example: Cliente SL
         nif:
           type: string
@@ -1123,7 +1131,7 @@ components:
             - obligado-desconocido
             - registro-desconocido
             - clave-idempotencia-reutilizada
-            - no-autorizado
+            - no-autenticado
         codigoAeat:
           type: string
           description: |
