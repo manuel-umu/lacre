@@ -7,6 +7,7 @@
   <a href="https://github.com/manuel-umu/lacre/actions/workflows/ci.yml"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmanuel-umu%2Flacre%2Finsignias%2Ftests.json" alt="Tests"></a>
   <a href="https://github.com/manuel-umu/lacre/actions/workflows/codeql.yml"><img src="https://img.shields.io/github/actions/workflow/status/manuel-umu/lacre/codeql.yml?branch=main&amp;label=CodeQL" alt="CodeQL"></a>
   <a href="https://github.com/manuel-umu/lacre/releases"><img src="https://img.shields.io/github/v/release/manuel-umu/lacre" alt="Versión"></a>
+  <a href="https://manuel-umu.github.io/lacre/"><img src="https://img.shields.io/badge/API-docs-85EA2D?logo=swagger&amp;logoColor=black" alt="Documentación de la API"></a>
   <a href="https://github.com/manuel-umu/lacre/pkgs/container/lacre"><img src="https://img.shields.io/badge/docker-ghcr.io-2496ED?logo=docker&amp;logoColor=white" alt="Imagen Docker"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/manuel-umu/lacre" alt="Licencia"></a>
 </p>
@@ -219,6 +220,8 @@ Requieren JDK 25 y Docker en marcha, porque levantan un PostgreSQL con Testconta
 El contrato está en [src/main/resources/static/openapi.yaml](src/main/resources/static/openapi.yaml),
 en OpenAPI 3.1, y la aplicación lo sirve en `/openapi.yaml` sin necesidad de credencial. Incluye
 la guía de la primera factura, los ejemplos de cada operación y los códigos de error.
+
+Se puede consultar sin instalar nada en <https://manuel-umu.github.io/lacre/>.
 
 Para leerlo con Swagger UI:
 

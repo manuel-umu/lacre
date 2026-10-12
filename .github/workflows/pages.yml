@@ -1,0 +1,41 @@
+name: Documentación de la API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/main/resources/static/openapi.yaml
+      - .github/pages/**
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    name: Swagger UI en GitHub Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/configure-pages@v6
+      - name: Montar el sitio
+        run: |
+          mkdir sitio
+          cp .github/pages/index.html src/main/resources/static/openapi.yaml src/main/resources/static/logo.svg sitio/
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: sitio
+      - id: despliegue
+        uses: actions/deploy-pages@v5
