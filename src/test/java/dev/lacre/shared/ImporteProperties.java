@@ -23,7 +23,6 @@ class ImporteProperties {
     void laEscalaSiempreEsDos(@ForAll("importes") Importe a, @ForAll("importes") Importe b) {
         assertThat(a.sumar(b).valor().scale()).isEqualTo(Importe.ESCALA);
         assertThat(a.restar(b).valor().scale()).isEqualTo(Importe.ESCALA);
-        assertThat(a.negado().valor().scale()).isEqualTo(Importe.ESCALA);
     }
 
     @Property

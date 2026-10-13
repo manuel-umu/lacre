@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,9 +83,10 @@ class Emisiones {
         String urlQr = urlQrDe(datos);
 
         RegistroEmitido emitido = emisor.emitir(obligado.id(), datos);
-        anotar(obligado.id(), clave, huellaPeticion, emitido, urlQr);
+        List<Aviso> avisos = avisosDe(emitido.avisos(), Descuadre.de(datos));
+        anotar(obligado.id(), clave, huellaPeticion, emitido, urlQr, avisos);
         return new RespuestaRegistro(
-                emitido.id(), emitido.posicion(), emitido.huella().valor(), urlQr, avisosDe(emitido.avisos()));
+                emitido.id(), emitido.posicion(), emitido.huella().valor(), urlQr, avisos);
     }
 
     /** El QR identifica una factura, y una anulación no es una factura que se imprima. */
@@ -126,7 +128,13 @@ class Emisiones {
                 .optional();
     }
 
-    private void anotar(UUID obligadoId, String clave, String huellaPeticion, RegistroEmitido emitido, String urlQr) {
+    private void anotar(
+            UUID obligadoId,
+            String clave,
+            String huellaPeticion,
+            RegistroEmitido emitido,
+            String urlQr,
+            List<Aviso> avisos) {
         jdbc.sql("""
                 insert into peticion_idempotente
                     (obligado_id, clave, huella_peticion, registro_id, posicion, huella, url_qr,
@@ -141,28 +149,27 @@ class Emisiones {
                 .param("posicion", emitido.posicion())
                 .param("huella", emitido.huella().valor())
                 .param("urlQr", urlQr)
-                .param("avisos", codificar(emitido.avisos()))
+                .param("avisos", codificar(avisos))
                 .param("creadoEn", OffsetDateTime.now(reloj))
                 .update();
     }
 
-    private static List<Aviso> avisosDe(Set<AnomaliaPrevia> anomalias) {
-        return anomalias.stream().map(Aviso::de).toList();
+    /** Primero los de la cadena, después los descuadres del propio registro. */
+    private static List<Aviso> avisosDe(Set<AnomaliaPrevia> anomalias, List<Descuadre> descuadres) {
+        return Stream.concat(
+                        anomalias.stream().map(Aviso::de), descuadres.stream().map(Aviso::de))
+                .toList();
     }
 
     /** Los avisos se anotan por su código, separados por comas; nulo si no hubo ninguno. */
-    private static String codificar(Set<AnomaliaPrevia> anomalias) {
-        return anomalias.isEmpty()
-                ? null
-                : anomalias.stream().map(AnomaliaPrevia::name).collect(Collectors.joining(","));
+    private static String codificar(List<Aviso> avisos) {
+        return avisos.isEmpty() ? null : avisos.stream().map(Aviso::codigo).collect(Collectors.joining(","));
     }
 
     private static List<Aviso> descodificar(String codigos) {
         return codigos == null
                 ? List.of()
-                : Arrays.stream(codigos.split(","))
-                        .map(codigo -> Aviso.de(AnomaliaPrevia.valueOf(codigo)))
-                        .toList();
+                : Arrays.stream(codigos.split(",")).map(Aviso::deCodigo).toList();
     }
 
     /**

@@ -139,6 +139,30 @@ class AltaRestTest {
 
     /** Sin anotarlos, el reintento diría que la cadena está sana. */
     @Test
+    void unaCuotaTotalDescuadradaSeAvisaYNoImpideRegistrar() throws Exception {
+        String descuadrada = cuerpo("FA/D1", "123.45").replace("\"cuotaTotal\": 12.35", "\"cuotaTotal\": 30.00");
+
+        mvc.perform(alta("clave-descuadre-cuota", descuadrada))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.avisos.length()").value(1))
+                .andExpect(jsonPath("$.avisos[0].codigo").value("CUOTA_TOTAL_NO_CUADRA"));
+    }
+
+    @Test
+    void unImporteTotalDescuadradoSeAvisaTambienAlReintentar() throws Exception {
+        String descuadrado = cuerpo("FA/D2", "200.00");
+
+        for (int intento = 0; intento < 2; intento++) {
+            mvc.perform(alta("clave-descuadre-importe", descuadrado))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.avisos.length()").value(1))
+                    .andExpect(jsonPath("$.avisos[0].codigo").value("IMPORTE_TOTAL_NO_CUADRA"))
+                    .andExpect(jsonPath("$.avisos[0].mensaje")
+                            .value(org.hamcrest.Matchers.containsString("aceptará con errores")));
+        }
+    }
+
+    @Test
     void elReintentoIdempotenteRepiteLosAvisos() throws Exception {
         mvc.perform(alta("clave-rota-3", cuerpo("FA/1", "123.45"))).andExpect(status().isCreated());
         insertarEslabonSuelto();
