@@ -31,7 +31,6 @@ class ImporteTest {
     void sumaYResta() {
         assertThat(Importe.de("10.50").sumar(Importe.de("0.75"))).isEqualTo(Importe.de("11.25"));
         assertThat(Importe.de("10.50").restar(Importe.de("11.00"))).isEqualTo(Importe.de("-0.50"));
-        assertThat(Importe.de("10.50").negado()).isEqualTo(Importe.de("-10.50"));
     }
 
     @Test

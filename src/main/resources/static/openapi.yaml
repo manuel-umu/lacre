@@ -943,8 +943,9 @@ components:
         avisos:
           type: array
           description: |
-            Anomalías que la comprobación previa del art. 7.i encontró en la cadena. No impiden
-            registrar —la facturación no debe interrumpirse—, pero la cadena necesita atención.
+            Anomalías que la comprobación previa del art. 7.i encontró en la cadena, y descuadres
+            de los totales del propio registro. No impiden registrar —la facturación no debe
+            interrumpirse—, pero hay algo que revisar.
           items:
             $ref: '#/components/schemas/Aviso'
 
@@ -958,11 +959,16 @@ components:
             `HUELLA_ANTERIOR_NO_CUADRA`: el registro que precede al emitido declara una huella
             anterior que no es la del que le precede. `IDENTIFICACION_ANTERIOR_NO_CUADRA`: declara
             como anterior otra factura, o su XML no se puede leer. `FECHA_DEL_ANTERIOR_EN_EL_FUTURO`:
-            se generó con más de un minuto de adelanto.
+            se generó con más de un minuto de adelanto. `CUOTA_TOTAL_NO_CUADRA`: `cuotaTotal` no
+            coincide con la suma de las cuotas del desglose, con un margen de 10 €.
+            `IMPORTE_TOTAL_NO_CUADRA`: `importeTotal` no coincide con las bases más las cuotas,
+            con el mismo margen. Con un descuadre, la AEAT acepta el registro con errores.
           enum:
             - HUELLA_ANTERIOR_NO_CUADRA
             - IDENTIFICACION_ANTERIOR_NO_CUADRA
             - FECHA_DEL_ANTERIOR_EN_EL_FUTURO
+            - CUOTA_TOTAL_NO_CUADRA
+            - IMPORTE_TOTAL_NO_CUADRA
         mensaje:
           type: string
 

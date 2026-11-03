@@ -104,7 +104,7 @@ del repositorio se detallan en la [documentación técnica](docs/documentacion.m
 
 Java 25, Spring Boot 4.1, Spring Modulith 2.1, Spring Data JDBC, PostgreSQL 17 con Flyway. Thymeleaf, htmx y Spring Security para la consola de operación.
 
-Tests con JUnit 5, AssertJ, Testcontainers con PostgreSQL real, jqwik, XMLUnit, WireMock y ArchUnit.
+Tests con JUnit 6, AssertJ, Testcontainers con PostgreSQL real, jqwik, XMLUnit, WireMock y ArchUnit.
 
 
 ## Cómo ejecutarlo

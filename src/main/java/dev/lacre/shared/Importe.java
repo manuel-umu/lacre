@@ -50,10 +50,6 @@ public record Importe(BigDecimal valor) implements Comparable<Importe> {
         return new Importe(valor.subtract(otro.valor));
     }
 
-    public Importe negado() {
-        return new Importe(valor.negate());
-    }
-
     public boolean esCero() {
         return valor.signum() == 0;
     }
