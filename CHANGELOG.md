@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/manuel-umu/lacre/compare/v0.1.1...v0.2.0) (2026-11-03)
+
+
+### Features
+
+* avisos de descuadre de totales en el alta ([6b059f9](https://github.com/manuel-umu/lacre/commit/6b059f9ebe30b80afc7f67d95d7e9d42f0057ef2))
+* avisos de descuadre de totales en el alta ([82c087a](https://github.com/manuel-umu/lacre/commit/82c087a69ea7e7b816bcb6a2493acff0d2eeea5c))
+
+
+### Bug Fixes
+
+* **deps:** bump the menores-y-parches group across 1 directory with 5 updates ([f2d25f0](https://github.com/manuel-umu/lacre/commit/f2d25f0d8a09080f9452561e20aad8612637fa19))
+* **deps:** bump the menores-y-parches group across 1 directory with 5 updates ([76711c4](https://github.com/manuel-umu/lacre/commit/76711c46508be69d23bf91f51e79776cd16341af))
+
 ## [0.1.1](https://github.com/manuel-umu/lacre/compare/v0.1.0...v0.1.1) (2026-10-06)
 
 
